@@ -1,0 +1,435 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum UserGender {
+  MALE
+  FEMALE
+}
+
+
+
+enum PropertyCategory {
+  PRIVATE_HOUSE
+  TOWNHOUSE
+  COTTAGE
+  LAND
+}
+
+enum PropertyVerificationStatus {
+  UNVERIFIED
+  VERIFIED
+}
+
+enum PropertyResourceCategory {
+  WELL
+  GENERATOR
+  SEPTIC
+  OTHER
+}
+
+enum EventType {
+  NOTIFICATION
+  EVENT
+}
+
+enum DocumentType {
+  LICENSE
+  PRIVACY
+}
+
+model Users {
+  id               Int         @id @default(autoincrement())
+  phone            String      @unique
+  login            String?     @unique
+  password         String?
+  email            String?     @unique
+  firstName        String?
+  lastName         String?
+  gender           UserGender?
+  birthDate        DateTime?
+  avatar           String?
+  role             UserRole    @default(USER)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @default(now()) @updatedAt
+  isVerified       Boolean     @default(false)
+  smsCode          String?
+  smsCodeExpiresAt DateTime?
+  status           UserStatus  @default(ACTIVE)
+  lastAccess       DateTime?
+  registrationStep Int         @default(1)
+  latitude         Float?
+  longitude        Float?
+  address          String?
+  familyTypeId     Int?
+  familyType       FamilyType? @relation(fields: [familyTypeId], references: [id])
+
+  Blockings               Blocking[]
+  Communities             UsersOnCommunities[]
+  CreatedCommunities      Community[]              @relation("CommunityCreator")
+  Properties              Property[]
+  Events                  Event[]
+  ParticipatingEvents     UsersOnEvents[]
+  EventMessages           EventMessage[]
+  PropertyVerifications   PropertyVerification[]
+  AiChat                  AiChat?
+  AiChatMessages          AiChatMessage[]
+  GeoModerationRejections GeoModerationRejection[]
+  votings                 Voting[]                 @relation("UserVoting")
+  qualifications          UsersOnQualifications[]
+  products                UsersOnProducts[]
+
+  @@map("users")
+}
+
+enum BlockingStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Blocking {
+  id Int @id @default(autoincrement())
+
+  userId    Int
+  user      Users          @relation(fields: [userId], references: [id])
+  reason    String?
+  status    BlockingStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @default(now()) @updatedAt
+
+  @@map("blocking")
+}
+
+enum CommunityStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Community {
+  id          Int                  @id @default(autoincrement())
+  name        String
+  description String?
+  status      CommunityStatus      @default(ACTIVE)
+  latitude    Float
+  longitude   Float
+  isPrivate   Boolean              @default(false)
+  isActive    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  createdBy   Int
+  creator     Users                @relation("CommunityCreator", fields: [createdBy], references: [id])
+  users       UsersOnCommunities[]
+  joinCode    String?              @unique
+  events      Event[]
+
+  @@map("communities")
+}
+
+model UsersOnCommunities {
+  userId Int
+  user   Users @relation(fields: [userId], references: [id])
+
+  communityId Int
+  community   Community @relation(fields: [communityId], references: [id])
+
+  @@id([userId, communityId])
+  @@map("users_on_communities")
+}
+
+model Property {
+  id                 Int                        @id @default(autoincrement())
+  name               String
+  category           PropertyCategory
+  latitude           Float
+  longitude          Float
+  photo              String?
+  isActive           Boolean                    @default(true)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  userId             Int
+  user               Users                      @relation(fields: [userId], references: [id])
+  resources          PropertyResource[]
+  verificationStatus PropertyVerificationStatus @default(UNVERIFIED)
+  verifications      PropertyVerification[]
+
+  @@map("properties")
+}
+
+model PropertyResource {
+  id         Int                      @id @default(autoincrement())
+  name       String
+  photo      String?
+  category   PropertyResourceCategory
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+  propertyId Int
+  property   Property                 @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_resources")
+}
+
+model EventCategory {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  icon     String
+  color    String?  // Цвет категории (обязателен только для оповещений)
+  type     EventType @default(EVENT) // Тип категории: оповещение или мероприятие
+  isActive Boolean  @default(true)
+  events   Event[]
+  // Можно добавить поле description, если потребуется
+
+  @@map("event_categories")
+}
+
+model Event {
+  id                 Int             @id @default(autoincrement())
+  title              String
+  description        String?
+  image              String? // Картинка мероприятия
+  latitude           Float
+  longitude          Float
+  categoryId         Int?
+  category           EventCategory?  @relation(fields: [categoryId], references: [id])
+  type               EventType
+  hasVoting          Boolean         @default(false)
+  votingQuestion     String? // Вопрос для голосования
+  hasMoneyCollection Boolean         @default(false)
+  moneyAmount        Float? // Сумма сбора, если есть
+  eventDateTime      DateTime?       // Дата и время проведения мероприятия
+  isActive           Boolean         @default(true)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  createdBy          Int
+  creator            Users           @relation(fields: [createdBy], references: [id])
+  communityId        Int
+  community          Community       @relation(fields: [communityId], references: [id])
+  participants       UsersOnEvents[]
+  messages           EventMessage[]
+  votingOptions      VotingOption[]
+  votings            Voting[]
+
+  @@map("events")
+}
+
+model VotingOption {
+  id      Int      @id @default(autoincrement())
+  eventId Int
+  event   Event    @relation(fields: [eventId], references: [id])
+  text    String
+  votings Voting[]
+
+  @@map("voting_options")
+}
+
+model Voting {
+  id             Int          @id @default(autoincrement())
+  eventId        Int
+  event          Event        @relation(fields: [eventId], references: [id])
+  votingOptionId Int
+  votingOption   VotingOption @relation(fields: [votingOptionId], references: [id])
+  userId         Int
+  user           Users        @relation("UserVoting", fields: [userId], references: [id])
+  createdAt      DateTime     @default(now())
+
+  @@unique([eventId, userId])
+  @@map("votings")
+}
+
+model EventMessage {
+  id        Int      @id @default(autoincrement())
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  eventId   Int
+  event     Event    @relation(fields: [eventId], references: [id])
+  userId    Int
+  user      Users    @relation(fields: [userId], references: [id])
+
+  @@map("event_messages")
+}
+
+model UsersOnEvents {
+  userId Int
+  user   Users @relation(fields: [userId], references: [id])
+
+  eventId Int
+  event   Event @relation(fields: [eventId], references: [id])
+
+  joinedAt DateTime @default(now())
+
+  @@id([userId, eventId])
+  @@map("users_on_events")
+}
+
+model PropertyVerification {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  userId     Int
+  user       Users    @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([propertyId, userId])
+  @@map("property_verifications")
+}
+
+enum AiChatMessageRole {
+  USER
+  ASSISTANT
+}
+
+enum GeoModerationAction {
+  COMMUNITY_JOIN
+  PROPERTY_VERIFICATION
+  PROPERTY_CREATION
+}
+
+model AiChat {
+  id        Int             @id @default(autoincrement())
+  userId    Int             @unique
+  user      Users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  messages  AiChatMessage[]
+
+  @@map("ai_chats")
+}
+
+model AiChatMessage {
+  id        Int               @id @default(autoincrement())
+  chatId    Int
+  chat      AiChat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      Users             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      AiChatMessageRole
+  content   String
+  createdAt DateTime          @default(now())
+
+  @@map("ai_chat_messages")
+}
+
+model GeoModerationSettings {
+  id                              Int      @id @default(autoincrement())
+  communityJoinEnabled            Boolean  @default(true)
+  communityJoinMaxDistance        Int      @default(500) // в метрах
+  propertyVerificationEnabled     Boolean  @default(true)
+  propertyVerificationMaxDistance Int      @default(100) // в метрах
+  propertyCreationEnabled         Boolean  @default(true)
+  propertyCreationMaxDistance     Int      @default(100) // в метрах
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+
+  @@map("geo_moderation_settings")
+}
+
+model GeoModerationRejection {
+  id              Int                 @id @default(autoincrement())
+  userId          Int
+  user            Users               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action          GeoModerationAction
+  distance        Int // расстояние в метрах
+  maxDistance     Int // максимально допустимое расстояние
+  reason          String // причина отказа
+  userLatitude    Float? // координаты пользователя
+  userLongitude   Float?
+  targetLatitude  Float? // координаты цели (объекта/сообщества)
+  targetLongitude Float?
+  createdAt       DateTime            @default(now())
+
+  @@map("geo_moderation_rejections")
+}
+
+model Qualification {
+  id          Int                    @id @default(autoincrement())
+  name        String                 @unique
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean                @default(true)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  users       UsersOnQualifications[]
+
+  @@map("qualifications")
+}
+
+model UsersOnQualifications {
+  userId Int
+  user   Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  qualificationId Int
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  @@id([userId, qualificationId])
+  @@map("users_on_qualifications")
+}
+
+model Product {
+  id          Int               @id @default(autoincrement())
+  name        String
+  description String?
+  price       Float?
+  image       String?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  users       UsersOnProducts[]
+
+  @@map("products")
+}
+
+model UsersOnProducts {
+  userId Int
+  user   Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  @@id([userId, productId])
+  @@map("users_on_products")
+}
+
+model FamilyType {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       Users[]
+
+  @@map("family_types")
+}
+
+model Document {
+  id        String       @id @default(cuid())
+  title     String
+  content   String
+  type      DocumentType @unique
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@map("documents")
+}

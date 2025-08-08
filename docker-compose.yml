@@ -1,0 +1,39 @@
+version: '3.8'
+
+networks:
+  npm-network:
+    name: npm-network
+
+services:
+  app:
+    build: .
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/neighbours?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - SMS_LOGIN=${SMS_LOGIN}
+      - SMS_PASSWORD=${SMS_PASSWORD}
+      - SMS_API_URL=${SMS_API_URL}
+      - SMS_SENDER=${SMS_SENDER}
+    depends_on:
+      - postgres
+    networks:
+      - npm-network
+    volumes:
+      - ./uploads:/app/uploads
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: neighbours
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - npm-network
+
+volumes:
+  postgres_data:

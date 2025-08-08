@@ -1,0 +1,23 @@
+version: '3.8'
+
+networks:
+  npm-network:
+    name: npm-network
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: neighbours-postgres-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: neighbours
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - npm-network
+
+volumes:
+  postgres_data: 
