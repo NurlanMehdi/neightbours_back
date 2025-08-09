@@ -967,7 +967,30 @@ export class UserService {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: data.map(property => this.transformPropertyToDto({ ...property, currentUserId: userId })),
+      data: data.map(property => {
+        // Находим дату подтверждения текущим пользователем
+        const currentUserVerification = property.verifications?.find((v: any) => v.userId === userId);
+        const verifiedAt = currentUserVerification?.createdAt;
+
+        return {
+          property: {
+            id: property.id,
+            name: property.name,
+            category: property.category,
+            latitude: property.latitude,
+            longitude: property.longitude,
+            photo: property.photo,
+            verificationStatus: property.verificationStatus,
+            verificationCount: property.verifications?.length || 0,
+            verifiedUserIds: property.verifications?.map((verification: any) => verification.userId) || [],
+            createdById: property.userId,
+            createdBy: property.user ? `${property.user.firstName} ${property.user.lastName}`.trim() : 'Неизвестный пользователь',
+            createdAt: property.createdAt,
+            updatedAt: property.updatedAt,
+          },
+          verifiedAt: verifiedAt,
+        };
+      }),
       total,
       page,
       limit,

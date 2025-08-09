@@ -4,9 +4,28 @@ import { PropertyDto } from '../../properties/dto/property.dto';
 export class UserVerificationsPaginatedDto {
   @ApiProperty({
     description: 'Список объектов недвижимости, подтвержденных пользователем',
-    type: [PropertyDto],
+    example: [
+      {
+        property: {
+          id: 1,
+          name: "Частный дом на Рублевке",
+          category: "PRIVATE_HOUSE",
+          latitude: 55.7558,
+          longitude: 37.6176,
+          photo: "/uploads/house1.jpg",
+          verificationStatus: "VERIFIED",
+          verificationCount: 3,
+          verifiedUserIds: [1, 2, 3],
+          createdById: 1,
+          createdBy: "Иван Петров",
+          createdAt: "2025-08-09T10:52:53.078Z",
+          updatedAt: "2025-08-09T10:52:53.078Z"
+        },
+        verifiedAt: "2025-08-09T10:52:53.078Z"
+      }
+    ]
   })
-  data: PropertyDto[];
+  data: any[];
 
   @ApiProperty({
     description: 'Общее количество подтверждений',
