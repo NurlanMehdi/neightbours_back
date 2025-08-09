@@ -14,7 +14,14 @@ export class CommunityUserDto {
     example: 'Иван Иванов',
   })
   @Expose()
-  fullName: string;
+  firstName: string;
+
+  @ApiProperty({
+    description: 'Фамилия пользователя',
+    example: 'Иванов',
+  })
+  @Expose()
+  lastName: string;
 
   @ApiProperty({
     description: 'Аватар пользователя',

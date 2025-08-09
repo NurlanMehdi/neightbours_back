@@ -321,13 +321,12 @@ export class CommunityService {
     const usersOnCommunities = await this.communityRepository.getCommunityUsers(communityId);
 
     return usersOnCommunities.map((uc) => {
-      const fullName = `${uc.user.firstName} ${uc.user.lastName}`.trim();
-      
       return plainToInstance(
         CommunityUserDto,
         {
           id: uc.user.id,
-          fullName: fullName,
+          firstName: uc.user.firstName,
+          lastName: uc.user.lastName,
           avatar: uc.user.avatar,
         },
         {
