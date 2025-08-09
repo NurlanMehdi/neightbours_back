@@ -1,10 +1,17 @@
-import { Body, Controller, Param, Put } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { Body, Controller, Param, Put, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiParam, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 import { DocumentService } from '../services/document.service';
 import { DocumentResponseDto, UpdateDocumentDto } from '../dto';
 
 @ApiTags('Admin - Documents')
 @Controller('admin/documents')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
+@ApiBearerAuth()
 export class DocumentsAdminController {
   constructor(private readonly documentService: DocumentService) {}
 
