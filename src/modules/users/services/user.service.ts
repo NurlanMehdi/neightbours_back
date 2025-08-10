@@ -965,7 +965,7 @@ export class UserService {
     const { page = 1, limit = 10 } = filters;
     const { data, total } = await this.propertyRepository.findUserVerifications(userId, filters);
     const totalPages = Math.ceil(total / limit);
-
+ 
     return {
       data: data.map(property => {
         // Находим дату подтверждения текущим пользователем

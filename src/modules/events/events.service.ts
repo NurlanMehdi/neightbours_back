@@ -517,12 +517,16 @@ export class EventsService {
     if (!hasVoting) {
       throw new EventHasNoVotingException();
     }
-
+    const event = await this.eventsRepository.findById(eventId);
     // Проверяем, что пользователь является участником мероприятия
-    const isParticipant = await this.eventsRepository.isUserParticipant(userId, eventId);
-    if (!isParticipant) {
-      throw new UserNotParticipantException();
+    const isCommunityMember = await this.eventsRepository.isUserInCommunity(userId, event.communityId);
+    if (!isCommunityMember) {
+      throw new UserNotCommunityMemberException();
     }
+    
+    console.log('event', event);
+    console.log('userId', userId);
+    console.log('event.communityId', event.communityId);
 
     // Проверяем, что вариант ответа существует для данного мероприятия
     const optionExists = await this.votingRepository.isVotingOptionExists(eventId, voteDto.votingOptionId);
@@ -558,10 +562,11 @@ export class EventsService {
       throw new EventHasNoVotingException();
     }
 
+    const event = await this.eventsRepository.findById(eventId);
     // Проверяем, что пользователь является участником мероприятия
-    const isParticipant = await this.eventsRepository.isUserParticipant(userId, eventId);
-    if (!isParticipant) {
-      throw new UserNotParticipantException();
+    const isCommunityMember = await this.eventsRepository.isUserInCommunity(userId, event.communityId);
+    if (!isCommunityMember) {
+      throw new UserNotCommunityMemberException();
     }
 
     // Проверяем, что пользователь голосовал
