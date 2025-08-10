@@ -668,9 +668,10 @@ export class UserService {
     const updatedUser = await this.updateUser(userId, updateUserDto, avatar);
 
     // Обновляем шаг регистрации
-    await this.userRepository.update(userId, { registrationStep: 3 });
-
-    return updatedUser;
+    const finalUpdatedUser = await this.userRepository.update(userId, { registrationStep: 3 });
+    
+    // Возвращаем обновленные данные пользователя с правильным шагом регистрации
+    return this.buildUserDto(finalUpdatedUser);
   }
 
   /**
