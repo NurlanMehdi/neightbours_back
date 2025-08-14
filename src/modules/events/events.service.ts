@@ -328,15 +328,18 @@ export class EventsService {
     eventId: number,
     dto: CreateMessageDto,
   ): Promise<EventMessage> {
-    const isParticipant = await this.eventMessagesRepository.isUserParticipant(
-      userId,
-      eventId,
-    );
+    const event = await this.eventsRepository.findById(eventId);
 
-    if (!isParticipant) {
-      throw new UnauthorizedException(
-        'Только участники мероприятия могут отправлять сообщения',
-      );
+    if (!event) {
+      throw new EventNotFoundException();
+    }
+
+    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
+      userId,
+      event.communityId,
+    );
+    if (!isUserInCommunity) {
+      throw new UserNotInCommunityException();
     }
 
     return this.eventMessagesRepository.createMessage(userId, eventId, dto);
@@ -352,11 +355,14 @@ export class EventsService {
     if (!event) {
       throw new EventNotFoundException();
     }
+    
+    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
+      userId,
+      event.communityId,
+    );
 
-    // Проверяем, что пользователь является участником мероприятия
-    const isParticipant = await this.eventsRepository.isUserParticipant(userId, eventId);
-    if (!isParticipant) {
-      throw new UserNotParticipantException();
+    if (!isUserInCommunity) {
+      throw new UserNotInCommunityException();
     }
 
     return this.eventMessagesRepository.getEventMessages(eventId, page, limit);
@@ -523,10 +529,6 @@ export class EventsService {
     if (!isCommunityMember) {
       throw new UserNotCommunityMemberException();
     }
-    
-    console.log('event', event);
-    console.log('userId', userId);
-    console.log('event.communityId', event.communityId);
 
     // Проверяем, что вариант ответа существует для данного мероприятия
     const optionExists = await this.votingRepository.isVotingOptionExists(eventId, voteDto.votingOptionId);
