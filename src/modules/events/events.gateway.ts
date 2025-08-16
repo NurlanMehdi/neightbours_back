@@ -1,4 +1,4 @@
-import { Logger, ParseIntPipe } from '@nestjs/common';
+import { Logger, ParseIntPipe, UseGuards, UseFilters } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -13,6 +13,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { EventsService } from './events.service';
+import { WsJwtAuthGuard } from '../../common/guards/ws-jwt-auth.guard';
+import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
 
 @WebSocketGateway({
   cors: {
@@ -24,6 +26,7 @@ import { EventsService } from './events.service';
   pingInterval: 25000,
   namespace: '/',
 })
+@UseFilters(WsExceptionFilter)
 export class EventsGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -64,6 +67,19 @@ export class EventsGateway
   handleDisconnect(client: Socket) {
     try {
       this.logger.log(`Client id: ${client.id} disconnected`);
+      
+      // Удаляем пользователя из маппинга
+      const userId = this.socketUser.get(client.id);
+      if (userId) {
+        this.socketUser.delete(client.id);
+        const userSockets = this.userSockets.get(userId);
+        if (userSockets) {
+          userSockets.delete(client.id);
+          if (userSockets.size === 0) {
+            this.userSockets.delete(userId);
+          }
+        }
+      }
     } catch (error) {
       this.logger.error(`Error in handleDisconnect: ${error.message}`);
     }
@@ -78,15 +94,25 @@ export class EventsGateway
     return data;
   }
 
+  @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('joinEvent')
   async handleJoinEvent(
     @ConnectedSocket() client: Socket,
-    @MessageBody() eventId: ParseIntPipe,
+    @MessageBody() eventId: number,
   ) {
     try {
       this.logger.log(`User attempting to join event ${eventId}`);
-      const userId = 2;
+      
+      // Получаем userId из аутентифицированного пользователя
+      const userId = client.data.user.sub;
       this.logger.log(`User ${userId} joining event ${eventId}`);
+
+      // Сохраняем маппинг socket -> user
+      this.socketUser.set(client.id, userId);
+      if (!this.userSockets.has(userId)) {
+        this.userSockets.set(userId, new Set());
+      }
+      this.userSockets.get(userId).add(client.id);
 
       await this.eventsService.joinEvent(userId, Number(eventId));
       client.join(`event:${eventId}`);
@@ -104,6 +130,7 @@ export class EventsGateway
     }
   }
 
+  @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('leaveEvent')
   async handleLeaveEvent(
     @ConnectedSocket() client: Socket,
@@ -111,7 +138,7 @@ export class EventsGateway
   ) {
     try {
       this.logger.log(`User attempting to leave event ${eventId}`);
-      const userId = this.socketUser.get(client.id);
+      const userId = client.data.user.sub;
       this.logger.log(`User ${userId} leaving event ${eventId}`);
 
       await this.eventsService.leaveEvent(userId, eventId);
@@ -130,6 +157,7 @@ export class EventsGateway
     }
   }
 
+  @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('sendMessage')
   async handleMessage(
     @ConnectedSocket() client: Socket,
@@ -142,7 +170,8 @@ export class EventsGateway
 
       this.logger.log(`New message attempt for event ${parsedData.eventId}`);
       this.logger.log(`Message data: ${JSON.stringify(parsedData)}`);
-      const userId = 2;
+      
+      const userId = client.data.user.sub;
       this.logger.log(
         `User ${userId} sending message to event ${parsedData.eventId}`,
       );
@@ -158,6 +187,9 @@ export class EventsGateway
       );
       this.logger.log(`Broadcasting to room: event:${parsedData.eventId}`);
       this.logger.log(`Current rooms: ${Array.from(client.rooms)}`);
+
+      // Отправляем сообщение всем участникам события
+      this.io.to(`event:${parsedData.eventId}`).emit('newMessage', message);
 
       this.logger.log(
         `Message successfully sent to event ${parsedData.eventId}`,

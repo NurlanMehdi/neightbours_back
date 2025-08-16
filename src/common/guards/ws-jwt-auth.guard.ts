@@ -10,7 +10,14 @@ export class WsJwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       const client: Socket = context.switchToWs().getClient();
-      const token = client.handshake.auth.token;
+      
+      // Пытаемся получить токен из разных источников
+      let token = client.handshake.auth.token;
+      
+      if (!token) {
+        // Если токен не в auth, пробуем из query параметров
+        token = client.handshake.query.token as string;
+      }
 
       if (!token) {
         throw new WsException('Токен не предоставлен');
@@ -21,6 +28,9 @@ export class WsJwtAuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
+      if (error instanceof WsException) {
+        throw error;
+      }
       throw new WsException('Недействительный токен');
     }
   }

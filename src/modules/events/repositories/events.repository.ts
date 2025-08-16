@@ -230,7 +230,8 @@ export class EventsRepository {
    * Получает событие по ID
    */
   async findById(id: number): Promise<any> {
-          const event = await this.prisma.event.findFirst({
+    try {
+      const event = await this.prisma.event.findFirst({
         where: { 
           id,
           isActive: true,
@@ -268,11 +269,19 @@ export class EventsRepository {
         },
       });
 
-    if (!event) {
-      throw new EventNotFoundException();
-    }
+      if (!event) {
+        console.log(`Event with ID ${id} not found or not active`);
+        throw new EventNotFoundException();
+      }
 
-    return event;
+      return event;
+    } catch (error) {
+      if (error instanceof EventNotFoundException) {
+        throw error;
+      }
+      console.error(`Database error in findById for event ${id}:`, error);
+      throw new Error(`Ошибка базы данных при поиске события: ${error.message}`);
+    }
   }
 
   /**

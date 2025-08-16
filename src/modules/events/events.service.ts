@@ -29,9 +29,12 @@ import { IEvent, IEventsList, ICreateEventData, IUpdateEventData, IEventFilters 
 import { GetEventsAdminDto } from './dto/get-events-admin.dto';
 import { EventsPaginatedAdminDto } from './dto/events-paginated-admin.dto';
 import { transformBoolean } from '../../common/utils/boolean-transformer.util';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class EventsService {
+  private readonly logger = new Logger(EventsService.name);
+
   constructor(
     private readonly eventsRepository: EventsRepository,
     private readonly eventMessagesRepository: EventMessagesRepository,
@@ -274,31 +277,54 @@ export class EventsService {
    * Добавляет пользователя в участники события
    */
   async joinEvent(userId: number, eventId: number): Promise<IEvent> {
-    const event = await this.eventsRepository.findById(eventId);
-    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
-      userId,
-      event.communityId,
-    );
+    try {
+      this.logger.log(`Attempting to join event ${eventId} for user ${userId}`);
+      
+      const event = await this.eventsRepository.findById(eventId);
+      this.logger.log(`Event found: ${event.id} - ${event.title}`);
+      
+      const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
+        userId,
+        event.communityId,
+      );
+      this.logger.log(`User ${userId} in community ${event.communityId}: ${isUserInCommunity}`);
 
-    if (!isUserInCommunity) {
-      throw new UserNotInCommunityException();
+      if (!isUserInCommunity) {
+        this.logger.warn(`User ${userId} is not a member of community ${event.communityId}`);
+        throw new UserNotInCommunityException();
+      }
+
+      const isParticipant = await this.eventsRepository.isUserParticipant(
+        userId,
+        eventId,
+      );
+      this.logger.log(`User ${userId} already participant: ${isParticipant}`);
+
+      if (isParticipant) {
+        // Если пользователь уже участник, возвращаем текущее состояние события
+        this.logger.log(`User ${userId} is already a participant of event ${eventId}`);
+        return this.transformEventToDto(event);
+      }
+
+      await this.eventsRepository.addParticipant(userId, eventId);
+      this.logger.log(`Successfully added user ${userId} to event ${eventId}`);
+      
+      // Получаем обновленное событие с новым участником
+      const updatedEvent = await this.eventsRepository.findById(eventId);
+      return this.transformEventToDto(updatedEvent);
+    } catch (error) {
+      this.logger.error(`Error in joinEvent for user ${userId}, event ${eventId}: ${error.message}`);
+      this.logger.error(`Error stack: ${error.stack}`);
+      
+      // Если это уже наше исключение, пробрасываем его дальше
+      if (error instanceof UserNotInCommunityException || 
+          error instanceof EventNotFoundException) {
+        throw error;
+      }
+      
+      // Для других ошибок создаем более информативное сообщение
+      throw new Error(`Ошибка при присоединении к событию: ${error.message}`);
     }
-
-    const isParticipant = await this.eventsRepository.isUserParticipant(
-      userId,
-      eventId,
-    );
-
-    if (isParticipant) {
-      // Если пользователь уже участник, возвращаем текущее состояние события
-      return this.transformEventToDto(event);
-    }
-
-    await this.eventsRepository.addParticipant(userId, eventId);
-    
-    // Получаем обновленное событие с новым участником
-    const updatedEvent = await this.eventsRepository.findById(eventId);
-    return this.transformEventToDto(updatedEvent);
   }
 
   /**
