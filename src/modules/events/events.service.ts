@@ -395,6 +395,39 @@ export class EventsService {
   }
 
   /**
+   * Помечает сообщение мероприятия как прочитанное
+   */
+  async markMessageAsRead(userId: number, messageId: number): Promise<EventMessage> {
+    const message = await this.eventMessagesRepository.findMessageById(messageId);
+    if (!message) {
+      throw new EventNotFoundException();
+    }
+    const event = await this.eventsRepository.findById(message.eventId);
+    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
+      userId,
+      event.communityId,
+    );
+    if (!isUserInCommunity) {
+      throw new UserNotInCommunityException();
+    }
+    return this.eventMessagesRepository.markMessageAsRead(messageId);
+  }
+
+  /**
+   * Возвращает все непрочитанные сообщения пользователя (из событий, где он участник)
+   */
+  async getUnreadMessages(
+    userId: number,
+    page: number = 1,
+    limit: number = 50,
+  eventId?: number,
+  ): Promise<{ items: EventMessage[]; total: number; page: number; limit: number; totalPages: number }> {
+    const { items, total } = await this.eventMessagesRepository.findUnreadMessagesForUser(userId, page, limit, eventId);
+    const totalPages = Math.ceil(total / limit);
+    return { items, total, page, limit, totalPages };
+  }
+
+  /**
    * Получает все события с фильтрами и пагинацией (админ)
    */
   async findAllEventsForAdmin(filters: GetEventsAdminDto): Promise<EventsPaginatedAdminDto> {
