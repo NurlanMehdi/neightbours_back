@@ -114,7 +114,7 @@ export class EventsGateway
       }
       this.userSockets.get(userId).add(client.id);
 
-      await this.eventsService.joinEvent(userId, Number(eventId));
+      //await this.eventsService.joinEvent(userId, Number(eventId));
       client.join(`event:${eventId}`);
 
       this.logger.log(`User ${userId} successfully joined event ${eventId}`);
