@@ -35,7 +35,7 @@ export class SmsService {
           login,
           password,
           sender,
-          phones: [phone], 
+          phones: phone, 
           text,
         },
         {
