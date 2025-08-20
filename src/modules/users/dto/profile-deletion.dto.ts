@@ -9,6 +9,20 @@ export class RequestDeletionDto {
   })
   @Expose()
   message: string;
+
+  @ApiProperty({
+    description: 'Код подтверждения удаления',
+    example: '1234',
+  })
+  @Expose()
+  code: string;
+
+  @ApiProperty({
+    description: 'Дата истечения кода',
+    example: '2024-01-20T10:35:00.000Z',
+  })
+  @Expose()
+  date: Date;
 }
 
 export class ConfirmDeletionDto {
@@ -26,7 +40,7 @@ export class ConfirmDeletionDto {
 export class ConfirmDeletionResponseDto {
   @ApiProperty({
     description: 'Сообщение о запланированном удалении',
-    example: 'Профиль будет удален через 30 дней. Вы можете отменить удаление до этого времени.',
+    example: 'Профиль будет удален через 14 дней. Вы можете отменить удаление до этого времени.',
   })
   @Expose()
   message: string;

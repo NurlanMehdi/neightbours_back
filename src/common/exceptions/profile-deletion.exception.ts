@@ -31,8 +31,8 @@ export class TooManyDeletionAttemptsException extends ProfileDeletionException {
 }
 
 export class ActiveDeletionRequestExistsException extends ProfileDeletionException {
-  constructor() {
-    super('У вас уже есть активный запрос на удаление профиля');
+  constructor(code: string) {
+    super(`У вас уже есть активный запрос на удаление профиля. Код: ${code}`);
   }
 }
 

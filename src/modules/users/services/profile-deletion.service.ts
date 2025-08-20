@@ -23,7 +23,7 @@ export class ProfileDeletionService {
   private readonly logger = new Logger(ProfileDeletionService.name);
   private readonly MAX_ATTEMPTS = 5;
   private readonly CODE_EXPIRY_MINUTES = 5;
-  private readonly DELETION_DELAY_DAYS = 30;
+  private readonly DELETION_DELAY_DAYS = 14;
 
   constructor(
     private readonly profileDeletionRepository: ProfileDeletionRepository,
@@ -41,7 +41,7 @@ export class ProfileDeletionService {
 
     const existingRequest = await this.profileDeletionRepository.findActiveRequestByUserId(userId);
     if (existingRequest) {
-      throw new ActiveDeletionRequestExistsException();
+      throw new ActiveDeletionRequestExistsException(existingRequest.code);
     }
 
     const code = this.generateVerificationCode();
@@ -54,6 +54,8 @@ export class ProfileDeletionService {
 
     return {
       message: 'Код подтверждения отправлен на ваш номер телефона',
+      code,
+      date: expiresAt,
     };
   }
 
@@ -85,7 +87,7 @@ export class ProfileDeletionService {
     this.logger.log(`Удаление профиля запланировано для пользователя ${userId} на ${deletionDate}`);
 
     return {
-      message: 'Профиль будет удален через 30 дней. Вы можете отменить удаление до этого времени.',
+      message: 'Профиль будет удален через 14 дней. Вы можете отменить удаление до этого времени.',
       deletionScheduledAt: deletionDate,
     };
   }

@@ -243,4 +243,12 @@ export class UserDto {
     nullable: true,
   })
   familyType?: FamilyTypeDto | null;
+
+  @Expose()
+  @ApiProperty({
+    description: 'Дата запланированного удаления профиля',
+    example: '2024-02-03T10:30:00.000Z',
+    nullable: true,
+  })
+  deletionScheduledAt: Date | null;
 }
