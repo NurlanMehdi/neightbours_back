@@ -19,9 +19,7 @@ export class SmsService {
     const sender = this.configService.get<string>('SMS_SENDER');
 
     if (!login || !password || !apiUrl || !sender) {
-      throw new InternalServerErrorException(
-        'SMS service configuration is incomplete',
-      );
+      throw new InternalServerErrorException('SMS service configuration is incomplete');
     }
 
     const text = `Ваш код подтверждения: ${code}`;
@@ -29,19 +27,16 @@ export class SmsService {
     try {
       this.logger.log(`Отправка SMS на номер ${phone} с кодом ${code}`);
 
-      const response = await axios.post(
-        apiUrl,
-        {
-          login,
-          password,
-          sender,
-          phones: phone, 
-          text,
-        },
-        {
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+      const params = new URLSearchParams();
+      params.append('login', login);
+      params.append('password', password);
+      params.append('sender', sender);
+      params.append('phones', phone); 
+      params.append('text', text);
+
+      const response = await axios.post(apiUrl, params.toString(), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
 
       this.logger.debug(`SMS API response: ${JSON.stringify(response.data)}`);
 
