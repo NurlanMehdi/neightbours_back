@@ -55,12 +55,12 @@ export class AuthService {
       });
     }
 
-    const isDevelopment = this.configService.get('NODE_ENV') === 'development';
-
-    if (!isDevelopment) {
-      await this.smsService.sendSms(phone, code);
-      return { message: 'SMS отправлено' };
-    }
+    // const isDevelopment = this.configService.get('NODE_ENV') === 'development';
+    //
+    // if (!isDevelopment) {
+    //   await this.smsService.sendSms(phone, code);
+    //   return { message: 'SMS отправлено' };
+    // }
 
     return {
       message: 'Режим разработки: SMS не отправлено',
