@@ -6,55 +6,57 @@ import {
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
+/**
+ * Сервис для отправки SMS сообщений.
+ * В тестовом режиме только логирует сообщения.
+ */
 @Injectable()
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
 
   constructor(private readonly configService: ConfigService) {}
 
+  /**
+   * Отправляет SMS сообщение.
+   * В тестовом режиме только логирует сообщение.
+   * @param phone Номер телефона получателя.
+   * @param code Код подтверждения.
+   */
   async sendSms(phone: string, code: string): Promise<string> {
-    const login = this.configService.get<string>('SMS_LOGIN');
-    const password = this.configService.get<string>('SMS_PASSWORD');
-    const apiUrl = this.configService.get<string>('SMS_API_URL');
-    const sender = this.configService.get<string>('SMS_SENDER');
-
-    if (!login || !password || !apiUrl || !sender) {
-      throw new InternalServerErrorException('SMS service configuration is incomplete');
+    const smsConfig = this.configService.get('sms');
+    
+    if (!smsConfig || !smsConfig.login || !smsConfig.password || !smsConfig.apiUrl || !smsConfig.sender) {
+      throw new InternalServerErrorException(
+        'SMS service configuration is incomplete',
+      );
     }
 
+    const { login, password, apiUrl, sender } = smsConfig;
     const text = `Ваш код подтверждения: ${code}`;
-
+    
     try {
       this.logger.log(`Отправка SMS на номер ${phone} с кодом ${code}`);
-
-      const params = new URLSearchParams();
-      params.append('login', login);
-      params.append('password', password);
-      params.append('sender', sender);
-      params.append('phones', phone); 
-      params.append('text', text);
-
-      const response = await axios.post(apiUrl, params.toString(), {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      const response = await axios.get(apiUrl, {
+        params: {
+          login,
+          password,
+          phone,
+          text,
+          sender,
+        },
       });
 
-      const data: string = response.data;
-      this.logger.debug(`SMS API response: ${data}`);
-      
-      const [status, messageId] = data.split(';');
-      
+      const [status, messageId] = response.data.split(';');
+
       if (status !== 'accepted') {
         throw new Error(`Ошибка отправки SMS: ${status}`);
       }
-      
-      return messageId || 'accepted';
-      
+
+      return messageId;
     } catch (error) {
-      this.logger.error(
-        `Ошибка при отправке SMS: ${error.response?.data?.description || error.message}`,
-      );
+      this.logger.error(`Ошибка отправки SMS: ${error.message}`, error.stack);
       throw new InternalServerErrorException(
-        `Ошибка отправки SMS: ${error.response?.data?.description || error.message}`,
+        `Ошибка отправки SMS: ${error.message}`,
       );
     }
   }
