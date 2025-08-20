@@ -4,12 +4,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
-/**
- * Сервис для отправки SMS сообщений.
- * В тестовом режиме только логирует сообщения.
- */
 @Injectable()
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
@@ -26,6 +22,12 @@ export class SmsService {
     const smsConfig = this.configService.get('sms');
     
     if (!smsConfig || !smsConfig.login || !smsConfig.password || !smsConfig.apiUrl || !smsConfig.sender) {
+      this.logger.error('SMS service configuration is incomplete', {
+        hasLogin: !!smsConfig?.login,
+        hasPassword: !!smsConfig?.password,
+        hasApiUrl: !!smsConfig?.apiUrl,
+        hasSender: !!smsConfig?.sender,
+      });
       throw new InternalServerErrorException(
         'SMS service configuration is incomplete',
       );
@@ -36,6 +38,7 @@ export class SmsService {
     
     try {
       this.logger.log(`Отправка SMS на номер ${phone} с кодом ${code}`);
+      
       const response = await axios.get(apiUrl, {
         params: {
           login,
@@ -44,19 +47,67 @@ export class SmsService {
           text,
           sender,
         },
+        timeout: 10000, 
+        validateStatus: (status) => status < 500, 
       });
 
-      const [status, messageId] = response.data.split(';');
+      this.logger.log(`SMS API response: ${JSON.stringify(response.data)}`);
 
-      if (status !== 'accepted') {
-        throw new Error(`Ошибка отправки SMS: ${status}`);
+      if (response.status !== 200) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return messageId;
+      // Parse response data
+      let responseData = response.data;
+      if (typeof responseData !== 'string') {
+        responseData = JSON.stringify(responseData);
+      }
+
+      const [status, messageId] = responseData.split(';');
+
+      if (status !== 'accepted') {
+        throw new Error(`SMS API rejected request: ${status}`);
+      }
+
+      this.logger.log(`SMS отправлено успешно. Message ID: ${messageId}`);
+      return messageId || 'sent';
+
     } catch (error) {
-      this.logger.error(`Ошибка отправки SMS: ${error.message}`, error.stack);
+      let errorMessage = 'Unknown error occurred';
+      let errorDetails = {};
+
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        errorMessage = `Network error: ${axiosError.code || axiosError.message}`;
+        errorDetails = {
+          code: axiosError.code,
+          status: axiosError.response?.status,
+          statusText: axiosError.response?.statusText,
+          responseData: axiosError.response?.data,
+          url: axiosError.config?.url,
+        };
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+        errorDetails = {
+          name: error.name,
+          stack: error.stack,
+        };
+      } else {
+        errorMessage = String(error);
+      }
+
+      this.logger.error(
+        `Ошибка отправки SMS на номер ${phone}: ${errorMessage}`,
+        {
+          error: errorDetails,
+          phone,
+          code,
+          apiUrl,
+        }
+      );
+
       throw new InternalServerErrorException(
-        `Ошибка отправки SMS: ${error.message}`,
+        `Ошибка отправки SMS: ${errorMessage}`,
       );
     }
   }
