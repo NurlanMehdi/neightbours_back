@@ -48,7 +48,7 @@ export class ProfileDeletionService {
     const expiresAt = new Date(Date.now() + this.CODE_EXPIRY_MINUTES * 60 * 1000);
 
     await this.profileDeletionRepository.createDeletionRequest(userId, code, expiresAt);
-    await this.smsService.sendSms(user.phone, code);
+    //await this.smsService.sendSms(user.phone, code);
 
     this.logger.log(`Запрос на удаление профиля создан для пользователя ${userId}`);
 
