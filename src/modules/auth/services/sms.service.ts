@@ -5,24 +5,13 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { SmsCodeExpiredException } from '../../../common/exceptions/auth.exception';
 
-/**
- * Сервис для отправки SMS сообщений.
- * В тестовом режиме только логирует сообщения.
- */
 @Injectable()
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
 
   constructor(private readonly configService: ConfigService) {}
 
-  /**
-   * Отправляет SMS сообщение.
-   * В тестовом режиме только логирует сообщение.
-   * @param phone Номер телефона получателя.
-   * @param code Код подтверждения.
-   */
   async sendSms(phone: string, code: string): Promise<string> {
     const login = this.configService.get<string>('SMS_LOGIN');
     const password = this.configService.get<string>('SMS_PASSWORD');
@@ -36,31 +25,39 @@ export class SmsService {
     }
 
     const text = `Ваш код подтверждения: ${code}`;
-    if (!apiUrl) {
-      throw new SmsCodeExpiredException();
-    }
+
     try {
       this.logger.log(`Отправка SMS на номер ${phone} с кодом ${code}`);
-      const response = await axios.get(apiUrl, {
-        params: {
+
+      const response = await axios.post(
+        apiUrl,
+        {
           login,
           password,
-          phone,
-          text,
           sender,
+          phones: [phone], 
+          text,
         },
-      });
+        {
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
 
-      const [status, messageId] = response.data.split(';');
+      this.logger.debug(`SMS API response: ${JSON.stringify(response.data)}`);
 
-      if (status !== 'accepted') {
-        throw new Error(`Ошибка отправки SMS: ${status}`);
+      if (response.data.status !== 'accepted') {
+        throw new Error(
+          `Ошибка отправки SMS: ${response.data.description || response.data.status}`,
+        );
       }
 
-      return messageId;
+      return response.data.messageId || 'accepted';
     } catch (error) {
+      this.logger.error(
+        `Ошибка при отправке SMS: ${error.response?.data?.description || error.message}`,
+      );
       throw new InternalServerErrorException(
-        `Ошибка отправки SMS: ${error.message}`,
+        `Ошибка отправки SMS: ${error.response?.data?.description || error.message}`,
       );
     }
   }
