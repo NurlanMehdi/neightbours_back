@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile Deletion WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Profile Deletion WebSocket Test</h1>
+    
+    <div>
+        <label>JWT Token:</label>
+        <input type="text" id="token" placeholder="Enter your JWT token here" style="width: 400px;">
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+    
+    <div id="status">Disconnected</div>
+    
+    <h2>Notifications:</h2>
+    <div id="notifications" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll;"></div>
+
+    <script>
+        let socket;
+        
+        function connect() {
+            const token = document.getElementById('token').value;
+            if (!token) {
+                alert('Please enter your JWT token');
+                return;
+            }
+            
+            socket = io('http://localhost:3000/profile-deletion', {
+                auth: {
+                    token: token
+                }
+            });
+            
+            socket.on('connect', () => {
+                document.getElementById('status').innerHTML = '<span style="color: green;">Connected</span>';
+                addNotification('Connected to profile deletion monitoring', 'info');
+            });
+            
+            socket.on('disconnect', () => {
+                document.getElementById('status').innerHTML = '<span style="color: red;">Disconnected</span>';
+                addNotification('Disconnected from profile deletion monitoring', 'info');
+            });
+            
+            socket.on('deletion-warning', (data) => {
+                addNotification(`Warning: ${data.message}`, 'warning');
+            });
+            
+            socket.on('deletion-urgent', (data) => {
+                addNotification(`Urgent: ${data.message}`, 'urgent');
+            });
+            
+            socket.on('deletion-completed', (data) => {
+                addNotification(`Completed: ${data.message}`, 'completed');
+            });
+            
+            socket.on('deletion-cancelled', (data) => {
+                addNotification(`Cancelled: ${data.message}`, 'cancelled');
+            });
+            
+            socket.on('connect_error', (error) => {
+                addNotification(`Connection error: ${error.message}`, 'error');
+            });
+        }
+        
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+            }
+        }
+        
+        function addNotification(message, type) {
+            const notifications = document.getElementById('notifications');
+            const div = document.createElement('div');
+            div.style.marginBottom = '5px';
+            div.style.padding = '5px';
+            
+            switch(type) {
+                case 'warning':
+                    div.style.backgroundColor = '#fff3cd';
+                    div.style.color = '#856404';
+                    break;
+                case 'urgent':
+                    div.style.backgroundColor = '#f8d7da';
+                    div.style.color = '#721c24';
+                    break;
+                case 'completed':
+                    div.style.backgroundColor = '#d1ecf1';
+                    div.style.color = '#0c5460';
+                    break;
+                case 'cancelled':
+                    div.style.backgroundColor = '#d4edda';
+                    div.style.color = '#155724';
+                    break;
+                case 'error':
+                    div.style.backgroundColor = '#f8d7da';
+                    div.style.color = '#721c24';
+                    break;
+                default:
+                    div.style.backgroundColor = '#e2e3e5';
+                    div.style.color = '#383d41';
+            }
+            
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            notifications.appendChild(div);
+            notifications.scrollTop = notifications.scrollHeight;
+        }
+    </script>
+</body>
+</html>

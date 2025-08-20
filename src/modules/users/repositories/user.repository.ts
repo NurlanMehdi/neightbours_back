@@ -18,6 +18,7 @@ import {
 type UserWithBlocking = Users & {
   Blocking?: Blocking[];
   Communities?: { community: any }[];
+  deletionScheduledAt?: Date | null;
 };
 
 /**

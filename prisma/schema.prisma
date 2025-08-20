@@ -55,30 +55,31 @@ enum DocumentType {
 }
 
 model Users {
-  id               Int         @id @default(autoincrement())
-  phone            String      @unique
-  login            String?     @unique
-  password         String?
-  email            String?     @unique
-  firstName        String?
-  lastName         String?
-  gender           UserGender?
-  birthDate        DateTime?
-  avatar           String?
-  role             UserRole    @default(USER)
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @default(now()) @updatedAt
-  isVerified       Boolean     @default(false)
-  smsCode          String?
-  smsCodeExpiresAt DateTime?
-  status           UserStatus  @default(ACTIVE)
-  lastAccess       DateTime?
-  registrationStep Int         @default(1)
-  latitude         Float?
-  longitude        Float?
-  address          String?
-  familyTypeId     Int?
-  familyType       FamilyType? @relation(fields: [familyTypeId], references: [id])
+  id                  Int         @id @default(autoincrement())
+  phone               String      @unique
+  login               String?     @unique
+  password            String?
+  email               String?     @unique
+  firstName           String?
+  lastName            String?
+  gender              UserGender?
+  birthDate           DateTime?
+  avatar              String?
+  role                UserRole    @default(USER)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @default(now()) @updatedAt
+  isVerified          Boolean     @default(false)
+  smsCode             String?
+  smsCodeExpiresAt    DateTime?
+  status              UserStatus  @default(ACTIVE)
+  lastAccess          DateTime?
+  registrationStep    Int         @default(1)
+  latitude            Float?
+  longitude           Float?
+  address             String?
+  familyTypeId        Int?
+  familyType          FamilyType? @relation(fields: [familyTypeId], references: [id])
+  deletionScheduledAt DateTime?
 
   Blockings               Blocking[]
   Communities             UsersOnCommunities[]
@@ -95,6 +96,7 @@ model Users {
   qualifications          UsersOnQualifications[]
   products                UsersOnProducts[]
   eventReads              EventRead[]              @relation("UserEventReads")
+  profileDeletionRequests ProfileDeletionRequest[]
 
   @@map("users")
 }
@@ -446,4 +448,19 @@ model Document {
   updatedAt DateTime     @updatedAt
 
   @@map("documents")
+}
+
+model ProfileDeletionRequest {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  expiresAt DateTime
+  confirmed Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId])
+  @@map("profile_deletion_requests")
 }
