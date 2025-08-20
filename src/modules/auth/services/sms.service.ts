@@ -38,15 +38,17 @@ export class SmsService {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
 
-      this.logger.debug(`SMS API response: ${JSON.stringify(response.data)}`);
-
-      if (response.data.status !== 'accepted') {
-        throw new Error(
-          `Ошибка отправки SMS: ${response.data.description || response.data.status}`,
-        );
+      const data: string = response.data;
+      this.logger.debug(`SMS API response: ${data}`);
+      
+      const [status, messageId] = data.split(';');
+      
+      if (status !== 'accepted') {
+        throw new Error(`Ошибка отправки SMS: ${status}`);
       }
-
-      return response.data.messageId || 'accepted';
+      
+      return messageId || 'accepted';
+      
     } catch (error) {
       this.logger.error(
         `Ошибка при отправке SMS: ${error.response?.data?.description || error.message}`,
