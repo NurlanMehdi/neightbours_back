@@ -1,4 +1,3 @@
-import { GetUnreadMessagesDto } from './dto/get-unread-messages.dto';
 import {
   Controller,
   Get,
@@ -33,6 +32,8 @@ import { VoteDto, VoteResponseDto } from './dto/vote.dto';
 import { VotingResultsDto } from './dto/voting-results.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { IEvent, IEventsList } from './interfaces/event.interface';
+import { GetUnreadMessagesDto, UnreadMessagesResponseDto } from './dto/unread-messages.dto';
+import { plainToInstance } from 'class-transformer';
 
 @ApiTags('События')
 @Controller('events')
@@ -225,29 +226,6 @@ export class EventsController {
     return this.eventsService.createMessage(userId, +eventId, createMessageDto);
   }
 
-  @Get('messages/unread')
-  @ApiOperation({ summary: 'Получить непрочитанные сообщения пользователя' })
-  @ApiResponse({ status: 200, description: 'Список непрочитанных сообщений' })
-  async getUnreadMessages(
-    @UserId() userId: number,
-    @Query() query: GetUnreadMessagesDto,
-  ) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 50;
-    return this.eventsService.getUnreadMessages(userId, page, limit, query.eventId);
-  }
-
-  @Post('messages/:messageId/read')
-  @ApiOperation({ summary: 'Пометить сообщение как прочитанное' })
-  @ApiResponse({ status: 200, description: 'Сообщение помечено как прочитанное' })
-  @ApiResponse({ status: 404, description: 'Сообщение или событие не найдено' })
-  async markMessageAsRead(
-    @UserId() userId: number,
-    @Param('messageId', ParseIntPipe) messageId: number,
-  ) {
-    return this.eventsService.markMessageAsRead(userId, messageId);
-  }
-
   @Post(':id/vote')
   @ApiOperation({ summary: 'Проголосовать в мероприятии' })
   @ApiResponse({
@@ -337,5 +315,52 @@ export class EventsController {
     @Param('id') eventId: string,
   ): Promise<any[]> {
     return this.eventsService.getVotingOptions(+eventId, userId);
+  }
+
+  @Post(':id/read')
+  @ApiOperation({ summary: 'Отметить событие как прочитанное' })
+  @ApiResponse({
+    status: 200,
+    description: 'Событие успешно отмечено как прочитанное',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Событие не найдено',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Пользователь не является членом сообщества',
+  })
+  async markEventAsRead(
+    @UserId() userId: number,
+    @Param('id', ParseIntPipe) eventId: number,
+  ): Promise<{ success: boolean }> {
+    await this.eventsService.markEventAsRead(userId, eventId);
+    return { success: true };
+  }
+
+  @Get('messages/unread')
+  @ApiOperation({ summary: 'Получить непрочитанные сообщения' })
+  @ApiResponse({
+    status: 200,
+    description: 'Список непрочитанных сообщений',
+    type: UnreadMessagesResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Событие не найдено (если указан eventId)',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Пользователь не является членом сообщества (если указан eventId)',
+  })
+  async getUnreadMessages(
+    @UserId() userId: number,
+    @Query() query: GetUnreadMessagesDto,
+  ): Promise<UnreadMessagesResponseDto> {
+    const result = await this.eventsService.getUnreadMessages(userId, query.eventId);
+    return plainToInstance(UnreadMessagesResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 }

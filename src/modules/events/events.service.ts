@@ -395,39 +395,6 @@ export class EventsService {
   }
 
   /**
-   * Помечает сообщение мероприятия как прочитанное
-   */
-  async markMessageAsRead(userId: number, messageId: number): Promise<EventMessage> {
-    const message = await this.eventMessagesRepository.findMessageById(messageId);
-    if (!message) {
-      throw new EventNotFoundException();
-    }
-    const event = await this.eventsRepository.findById(message.eventId);
-    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
-      userId,
-      event.communityId,
-    );
-    if (!isUserInCommunity) {
-      throw new UserNotInCommunityException();
-    }
-    return this.eventMessagesRepository.markMessageAsRead(messageId);
-  }
-
-  /**
-   * Возвращает все непрочитанные сообщения пользователя (из событий, где он участник)
-   */
-  async getUnreadMessages(
-    userId: number,
-    page: number = 1,
-    limit: number = 50,
-  eventId?: number,
-  ): Promise<{ items: EventMessage[]; total: number; page: number; limit: number; totalPages: number }> {
-    const { items, total } = await this.eventMessagesRepository.findUnreadMessagesForUser(userId, page, limit, eventId);
-    const totalPages = Math.ceil(total / limit);
-    return { items, total, page, limit, totalPages };
-  }
-
-  /**
    * Получает все события с фильтрами и пагинацией (админ)
    */
   async findAllEventsForAdmin(filters: GetEventsAdminDto): Promise<EventsPaginatedAdminDto> {
@@ -695,5 +662,55 @@ export class EventsService {
       id: option.id,
       text: option.text,
     }));
+  }
+
+  /**
+   * Отмечает событие как прочитанное для пользователя
+   */
+  async markEventAsRead(userId: number, eventId: number): Promise<void> {
+    // Проверяем, что событие существует
+    const event = await this.eventsRepository.findById(eventId);
+    if (!event) {
+      throw new EventNotFoundException();
+    }
+
+    // Проверяем, что пользователь является членом сообщества
+    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
+      userId,
+      event.communityId,
+    );
+    if (!isUserInCommunity) {
+      throw new UserNotInCommunityException();
+    }
+
+    // Отмечаем событие как прочитанное
+    await this.eventMessagesRepository.markEventAsRead(userId, eventId);
+  }
+
+  /**
+   * Получает непрочитанные сообщения для пользователя
+   */
+  async getUnreadMessages(userId: number, eventId?: number): Promise<{ messages: EventMessage[]; total: number }> {
+    // Если указан конкретный eventId, проверяем доступ
+    if (eventId) {
+      const event = await this.eventsRepository.findById(eventId);
+      if (!event) {
+        throw new EventNotFoundException();
+      }
+
+      const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
+        userId,
+        event.communityId,
+      );
+      if (!isUserInCommunity) {
+        throw new UserNotInCommunityException();
+      }
+    }
+
+    const messages = await this.eventMessagesRepository.getUnreadMessages(userId, eventId);
+    return {
+      messages,
+      total: messages.length,
+    };
   }
 }

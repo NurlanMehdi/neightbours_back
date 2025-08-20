@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateMessageDto } from '../dto/create-message.dto';
-import { EventMessage, Prisma } from '@prisma/client';
+import { EventMessage } from '@prisma/client';
 
 @Injectable()
 export class EventMessagesRepository {
@@ -68,16 +68,74 @@ export class EventMessagesRepository {
     return !!participant;
   }
 
-  async findMessageById(messageId: number): Promise<EventMessage | null> {
-    return this.prisma.eventMessage.findUnique({
-      where: { id: messageId },
+  /**
+   * Отмечает событие как прочитанное для пользователя (upsert)
+   */
+  async markEventAsRead(userId: number, eventId: number): Promise<void> {
+    await this.prisma.eventRead.upsert({
+      where: {
+        userId_eventId: {
+          userId,
+          eventId,
+        },
+      },
+      update: {
+        readAt: new Date(),
+      },
+      create: {
+        userId,
+        eventId,
+        readAt: new Date(),
+      },
     });
   }
 
-  async markMessageAsRead(messageId: number): Promise<EventMessage> {
-    return this.prisma.eventMessage.update({
-      where: { id: messageId },
-      data: { isRead: { set: true } } as unknown as Prisma.EventMessageUpdateInput,
+  /**
+   * Получает непрочитанные сообщения для пользователя
+   */
+  async getUnreadMessages(
+    userId: number,
+    eventId?: number,
+  ): Promise<EventMessage[]> {
+    // Подзапрос для получения прочитанных событий пользователя
+    const readEventIds = await this.prisma.eventRead.findMany({
+      where: {
+        userId,
+      },
+      select: {
+        eventId: true,
+      },
+    });
+
+    const readEventIdList = readEventIds.map(read => read.eventId);
+
+    // Получаем сообщения из событий, которые пользователь НЕ читал
+    const whereClause: any = {
+      // Исключаем сообщения самого пользователя
+      userId: {
+        not: userId,
+      },
+    };
+
+    // Если указан конкретный eventId
+    if (eventId) {
+      // Проверяем, прочитано ли это конкретное событие
+      if (readEventIdList.includes(eventId)) {
+        // Если событие прочитано, возвращаем пустой массив
+        return [];
+      } else {
+        // Если событие не прочитано, фильтруем по этому eventId
+        whereClause.eventId = eventId;
+      }
+    } else {
+      // Если eventId не указан, исключаем все прочитанные события
+      whereClause.eventId = {
+        notIn: readEventIdList,
+      };
+    }
+
+    return this.prisma.eventMessage.findMany({
+      where: whereClause,
       include: {
         user: {
           select: {
@@ -87,59 +145,17 @@ export class EventMessagesRepository {
             avatar: true,
           },
         },
-      },
-    });
-  }
-
-  async findUnreadMessagesForUser(
-    userId: number,
-    page: number = 1,
-    limit: number = 50,
-    eventId?: number,
-  ): Promise<{ items: EventMessage[]; total: number }> {
-    const skip = (page - 1) * limit;
-    const where: any = {
-      isRead: false,
-      event: {
-        OR: [
-          {
-            participants: {
-              some: { userId },
-            },
-          },
-          {
-            community: {
-              users: {
-                some: { userId },
-              },
-            },
-          },
-        ],
-      },
-    };
-    if (eventId) {
-      where.eventId = eventId;
-    }
-    const whereTyped = where as Prisma.EventMessageWhereInput;
-
-    const [items, total] = await Promise.all([
-      this.prisma.eventMessage.findMany({
-        where: whereTyped,
-        include: {
-          user: {
-            select: { id: true, firstName: true, lastName: true, avatar: true },
-          },
-          event: {
-            select: { id: true, title: true, communityId: true },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            communityId: true,
           },
         },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.eventMessage.count({ where: whereTyped }),
-    ]);
-
-    return { items, total };
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 }

@@ -94,6 +94,7 @@ model Users {
   votings                 Voting[]                 @relation("UserVoting")
   qualifications          UsersOnQualifications[]
   products                UsersOnProducts[]
+  eventReads              EventRead[]              @relation("UserEventReads")
 
   @@map("users")
 }
@@ -223,6 +224,7 @@ model Event {
   messages           EventMessage[]
   votingOptions      VotingOption[]
   votings            Voting[]
+  eventReads         EventRead[]
 
   @@map("events")
 }
@@ -256,13 +258,24 @@ model EventMessage {
   text      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  isRead    Boolean  @default(false)
   eventId   Int
   event     Event    @relation(fields: [eventId], references: [id])
   userId    Int
   user      Users    @relation(fields: [userId], references: [id])
 
   @@map("event_messages")
+}
+
+model EventRead {
+  id      Int      @id @default(autoincrement())
+  userId  Int
+  user    Users    @relation("UserEventReads", fields: [userId], references: [id], onDelete: Cascade)
+  eventId Int
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  readAt  DateTime @default(now())
+
+  @@unique([userId, eventId])
+  @@map("event_reads")
 }
 
 model UsersOnEvents {
