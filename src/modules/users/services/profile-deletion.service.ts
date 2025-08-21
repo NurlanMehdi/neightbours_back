@@ -3,7 +3,6 @@ import { ProfileDeletionRepository } from '../repositories/profile-deletion.repo
 import { SmsService } from '../../auth/services/sms.service';
 import { UserRepository } from '../repositories/user.repository';
 import {
-  ActiveDeletionRequestExistsException,
   DeletionCodeExpiredException,
   DeletionRequestNotFoundException,
   InvalidDeletionCodeException,
@@ -39,18 +38,13 @@ export class ProfileDeletionService {
       throw new DeletionRequestNotFoundException();
     }
 
-    const existingRequest = await this.profileDeletionRepository.findActiveRequestByUserId(userId);
-    if (existingRequest) {
-      throw new ActiveDeletionRequestExistsException(existingRequest.code);
-    }
-
     const code = this.generateVerificationCode();
     const expiresAt = new Date(Date.now() + this.CODE_EXPIRY_MINUTES * 60 * 1000);
 
     await this.profileDeletionRepository.createDeletionRequest(userId, code, expiresAt);
     //await this.smsService.sendSms(user.phone, code);
 
-    this.logger.log(`Запрос на удаление профиля создан для пользователя ${userId}`);
+    this.logger.log(`Запрос на удаление профиля создан/обновлен для пользователя ${userId}`);
 
     return {
       message: 'Код подтверждения отправлен на ваш номер телефона',
@@ -131,6 +125,6 @@ export class ProfileDeletionService {
   }
 
   private generateVerificationCode(): string {
-    return Math.floor(1000 + Math.random() * 9000).toString();
+    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 }
