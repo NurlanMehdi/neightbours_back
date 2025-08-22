@@ -24,11 +24,14 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { UserDto } from '../dto/user.dto';
+import { BulkDeleteUsersDto } from '../dto/bulk-delete-users.dto';
+import { DeleteResponseDto } from '../dto/delete-response.dto';
 import { CreateAdminDto } from '../dto/create.admin.dto';
 import { PaginationQueryDto } from '../../../common/models/paginated-query.dto';
 import { BlockUserDto } from '../dto/block.user.dto';
 import { UserService } from '../services/user.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { CreateUserAdminDto } from '../dto/create-user-admin.dto';
@@ -277,5 +280,53 @@ export class UsersAdminController {
     @Param('productId', ParseIntPipe) productId: number,
   ): Promise<void> {
     return this.userService.removeUserProduct(userId, productId);
+  }
+
+  // Удаление пользователей
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Delete('bulk')
+  @ApiOperation({ 
+    summary: 'Массовое удаление пользователей',
+    description: 'Выполняет полное удаление нескольких пользователей из базы данных'
+  })
+  @ApiBody({ type: BulkDeleteUsersDto })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Пользователи успешно удалены',
+    type: DeleteResponseDto,
+    example: {
+      success: true,
+      message: 'Пользователи успешно удалены',
+      deletedCount: 5
+    }
+  })
+  @ApiStandardResponses()
+  async bulkDeleteUsers(@Body() dto: BulkDeleteUsersDto): Promise<DeleteResponseDto> {
+    return this.userService.bulkDeleteUsers(dto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Delete(':id')
+  @ApiOperation({ 
+    summary: 'Удаление пользователя',
+    description: 'Выполняет полное удаление пользователя из базы данных по ID'
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'ID пользователя' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Пользователь успешно удален',
+    type: DeleteResponseDto,
+    example: {
+      success: true,
+      message: 'Пользователь успешно удален'
+    }
+  })
+  @ApiStandardResponses()
+  async deleteUser(@Param('id', ParseIntPipe) id: number): Promise<DeleteResponseDto> {
+    return this.userService.deleteUser(id);
   }
 }

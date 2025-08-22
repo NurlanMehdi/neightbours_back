@@ -323,6 +323,146 @@ export class UserRepository {
     });
   }
 
+  /**
+   * Жесткое удаление пользователя из базы данных с очисткой связанных данных
+   * @param id Идентификатор пользователя
+   * @returns Удаленный пользователь
+   */
+  async hardDelete(id: number): Promise<Users> {
+    this.logger.log(`Репозиторий: жесткое удаление пользователя с id: ${id}.`);
+    
+    return this.prisma.$transaction(async (tx) => {
+      await tx.blocking.deleteMany({
+        where: { userId: id },
+      });
+
+      await tx.usersOnCommunities.deleteMany({
+        where: { userId: id },
+      });
+
+      const admin = await tx.users.findFirst({
+        where: { role: 'ADMIN' },
+        select: { id: true },
+      });
+
+      if (admin) {
+        await tx.community.updateMany({
+          where: { createdBy: id },
+          data: { createdBy: admin.id },
+        });
+      } else {
+        await tx.community.deleteMany({
+          where: { createdBy: id },
+        });
+      }
+
+      await tx.usersOnEvents.deleteMany({
+        where: { userId: id },
+      });
+
+      if (admin) {
+        await tx.event.updateMany({
+          where: { createdBy: id },
+          data: { createdBy: admin.id },
+        });
+      } else {
+        const userEvents = await tx.event.findMany({
+          where: { createdBy: id },
+          select: { id: true },
+        });
+        
+        for (const event of userEvents) {
+          await tx.eventMessage.deleteMany({ where: { eventId: event.id } });
+          await tx.usersOnEvents.deleteMany({ where: { eventId: event.id } });
+          await tx.voting.deleteMany({ where: { eventId: event.id } });
+          await tx.$executeRaw`DELETE FROM event_reads WHERE "eventId" = ${event.id}`;
+          await tx.votingOption.deleteMany({ where: { eventId: event.id } });
+        }
+        
+        await tx.event.deleteMany({
+          where: { createdBy: id },
+        });
+      }
+
+      await tx.eventMessage.deleteMany({
+        where: { userId: id },
+      });
+
+      // 7. Удаляем голоса пользователя
+      await tx.voting.deleteMany({
+        where: { userId: id },
+      });
+
+      // 8. Удаляем отметки о прочтении событий (используем raw query если модель недоступна)
+      await tx.$executeRaw`DELETE FROM event_reads WHERE "userId" = ${id}`;
+
+      // 9. Удаляем верификации свойств пользователя
+      await tx.propertyVerification.deleteMany({
+        where: { userId: id },
+      });
+
+      const userProperties = await tx.property.findMany({
+        where: { userId: id },
+        select: { id: true },
+      });
+
+      for (const property of userProperties) {
+        await tx.propertyResource.deleteMany({ where: { propertyId: property.id } });
+        await tx.propertyVerification.deleteMany({ where: { propertyId: property.id } });
+      }
+
+      await tx.property.deleteMany({
+        where: { userId: id },
+      });
+
+      // Окончательное удаление пользователя
+      return tx.users.delete({
+        where: { id },
+      });
+    });
+  }
+
+  /**
+   * Массовое жесткое удаление пользователей из базы данных
+   * @param ids Массив ID пользователей для удаления
+   * @returns Количество удаленных записей
+   */
+  async bulkHardDelete(ids: number[]): Promise<number> {
+    this.logger.log(`Репозиторий: массовое жесткое удаление пользователей с ids: ${ids.join(', ')}.`);
+    
+    let deletedCount = 0;
+    
+    // Удаляем каждого пользователя индивидуально для правильной обработки связей
+    for (const id of ids) {
+      try {
+        await this.hardDelete(id);
+        deletedCount++;
+        this.logger.log(`Пользователь с id ${id} успешно удален`);
+      } catch (error) {
+        this.logger.error(`Ошибка при удалении пользователя с id ${id}: ${error.message}`);
+        // Продолжаем удаление других пользователей даже если один не удалился
+      }
+    }
+    
+    return deletedCount;
+  }
+
+  /**
+   * Проверяет существование пользователей по массиву ID
+   * @param ids Массив ID пользователей
+   * @returns Массив существующих ID
+   */
+  async findExistingIds(ids: number[]): Promise<number[]> {
+    this.logger.log(`Репозиторий: проверка существования пользователей с ids: ${ids.join(', ')}.`);
+    const users = await this.prisma.users.findMany({
+      where: { 
+        id: { in: ids },
+      },
+      select: { id: true },
+    });
+    return users.map(user => user.id);
+  }
+
   async updateLastAccess(id: number) {
     return this.prisma.users.update({
       where: { id },

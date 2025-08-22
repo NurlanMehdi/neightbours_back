@@ -41,6 +41,8 @@ import { GetUserVerificationsDto } from '../dto/get-user-verifications.dto';
 import { UserVerificationsPaginatedDto } from '../dto/user-verifications-paginated.dto';
 import { GetUserEventsDto } from '../dto/get-user-events.dto';
 import { UserEventsPaginatedDto } from '../dto/user-events-paginated.dto';
+import { BulkDeleteUsersDto } from '../dto/bulk-delete-users.dto';
+import { DeleteResponseDto } from '../dto/delete-response.dto';
 
 type UserWithBlocking = Users & {
   Blocking?: Blocking[];
@@ -1090,6 +1092,58 @@ export class UserService {
         name: event.community.name,
         description: event.community.description,
       } : undefined,
+    };
+  }
+
+  /**
+   * Удаление одного пользователя (жесткое удаление из БД)
+   * @param id ID пользователя
+   * @returns Результат операции удаления
+   */
+  async deleteUser(id: number): Promise<DeleteResponseDto> {
+    this.logger.log(`Сервис: удаление пользователя с id: ${id}`);
+
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    await this.userRepository.hardDelete(id);
+
+    return {
+      success: true,
+      message: 'Пользователь успешно удален',
+    };
+  }
+
+  /**
+   * Массовое удаление пользователей (жесткое удаление из БД)
+   * @param dto DTO с массивом ID пользователей
+   * @returns Результат операции удаления
+   */
+  async bulkDeleteUsers(dto: BulkDeleteUsersDto): Promise<DeleteResponseDto> {
+    this.logger.log(`Сервис: массовое удаление пользователей с ids: ${dto.ids.join(', ')}`);
+
+    // Проверяем, какие пользователи существуют
+    const existingIds = await this.userRepository.findExistingIds(dto.ids);
+    
+    if (existingIds.length === 0) {
+      throw new UserNotFoundException();
+    }
+
+    // Выполняем массовое жесткое удаление
+    const deletedCount = await this.userRepository.bulkHardDelete(existingIds);
+
+    // Логируем несуществующие ID, если есть
+    const nonExistingIds = dto.ids.filter(id => !existingIds.includes(id));
+    if (nonExistingIds.length > 0) {
+      this.logger.warn(`Пользователи с ids ${nonExistingIds.join(', ')} не найдены`);
+    }
+
+    return {
+      success: true,
+      message: 'Пользователи успешно удалены',
+      deletedCount,
     };
   }
 }
