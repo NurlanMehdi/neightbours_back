@@ -387,21 +387,38 @@ export class EventsController {
   @ApiResponse({
     status: 200,
     description: 'Группированные непрочитанные сообщения по событиям',
+    type: UnreadMessagesResponseDto,
     schema: {
       type: 'object',
-      additionalProperties: {
-        type: 'object',
-        properties: {
-          notifications: {
+      properties: {
+        count: {
+          type: 'object',
+          description: 'Объект с количеством непрочитанных сообщений по событиям',
+          additionalProperties: {
             type: 'number',
-            description: 'Количество уведомлений',
-            example: 3,
+            description: 'Количество непрочитанных сообщений для события',
           },
+          example: { "1": 33, "2": 56, "6": 45 },
+        },
+        EVENT: {
+          type: 'number',
+          description: 'Общее количество непрочитанных сообщений во всех событиях',
+          example: 134,
+        },
+        NOTIFICATION: {
+          type: 'number',
+          description: 'Количество уведомлений (пока всегда 0)',
+          example: 0,
         },
       },
       example: {
-        '1': { notifications: 3 },
-        '2': { notifications: 2 },
+        count: {
+          "1": 33,
+          "2": 56,
+          "6": 45
+        },
+        EVENT: 134,
+        NOTIFICATION: 0
       },
     },
   })

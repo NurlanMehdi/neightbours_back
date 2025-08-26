@@ -59,11 +59,21 @@ async function testUnreadMessagesAPI() {
                 acc[eventId].push(message);
                 return acc;
             }, {});
-            console.log('\n📊 Ожидаемый результат API:');
+            console.log('\n📊 Ожидаемый результат API (новый формат):');
+            const count = {};
+            let totalMessages = 0;
             Object.entries(grouped).forEach(([eventId, messages]) => {
                 const event = allEvents.find(e => e.id.toString() === eventId);
-                console.log(`   "${eventId}": { "notifications": ${messages.length} } // ${event?.title}`);
+                count[eventId] = messages.length;
+                totalMessages += messages.length;
+                console.log(`   "${eventId}": ${messages.length} // ${event?.title}`);
             });
+            console.log('\n📋 Полный ответ API:');
+            console.log(JSON.stringify({
+                count,
+                EVENT: totalMessages,
+                NOTIFICATION: 0
+            }, null, 2));
             console.log('\n🔗 Теперь вы можете протестировать API:');
             console.log(`GET http://localhost:3000/api/events/messages/unread`);
             console.log(`Authorization: Bearer <YOUR_JWT_TOKEN>`);

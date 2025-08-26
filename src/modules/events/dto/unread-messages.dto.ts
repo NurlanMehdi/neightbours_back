@@ -161,6 +161,32 @@ export class EventNotificationsDto {
 }
 
 /**
- * Тип для ответа с непрочитанными сообщениями, группированными по событиям
+ * DTO для ответа с непрочитанными сообщениями в новом формате
  */
-export type UnreadMessagesResponseDto = Record<string, EventNotificationsDto>;
+export class UnreadMessagesResponseDto {
+  @ApiProperty({
+    description: 'Объект с количеством непрочитанных сообщений по событиям',
+    example: { "1": 33, "2": 56, "6": 45 },
+    type: 'object',
+    additionalProperties: {
+      type: 'number',
+      description: 'Количество непрочитанных сообщений для события',
+    },
+  })
+  @Expose()
+  count: Record<string, number>;
+
+  @ApiProperty({
+    description: 'Общее количество непрочитанных сообщений во всех событиях',
+    example: 134,
+  })
+  @Expose()
+  EVENT: number;
+
+  @ApiProperty({
+    description: 'Количество уведомлений (пока всегда 0)',
+    example: 0,
+  })
+  @Expose()
+  NOTIFICATION: number;
+}

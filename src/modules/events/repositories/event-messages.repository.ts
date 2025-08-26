@@ -231,7 +231,7 @@ export class EventMessagesRepository {
   async getUnreadMessagesGroupedByEvent(
     userId: number,
     eventId?: number,
-  ): Promise<Record<string, { notifications: number }>> {
+  ): Promise<{ count: Record<string, number>; EVENT: number; NOTIFICATION: number }> {
     // Подзапрос для получения прочитанных событий пользователя
     const readEventIds = await this.prisma.eventRead.findMany({
       where: {
@@ -256,9 +256,13 @@ export class EventMessagesRepository {
 
     const userCommunityIds = userCommunities.map(uc => uc.communityId);
 
-    // Если у пользователя нет сообществ, возвращаем пустой объект
+    // Если у пользователя нет сообществ, возвращаем пустой результат
     if (userCommunityIds.length === 0) {
-      return {};
+      return {
+        count: {},
+        EVENT: 0,
+        NOTIFICATION: 0,
+      };
     }
 
     // Получаем сообщения из событий, которые пользователь НЕ читал
@@ -279,8 +283,12 @@ export class EventMessagesRepository {
     if (eventId) {
       // Проверяем, прочитано ли это конкретное событие
       if (readEventIdList.includes(eventId)) {
-        // Если событие прочитано, возвращаем пустой объект
-        return {};
+        // Если событие прочитано, возвращаем пустой результат
+        return {
+          count: {},
+          EVENT: 0,
+          NOTIFICATION: 0,
+        };
       } else {
         // Если событие не прочитано, фильтруем по этому eventId
         whereClause.eventId = eventId;
@@ -301,14 +309,21 @@ export class EventMessagesRepository {
       },
     });
 
-    // Преобразуем результат в нужный формат
-    const result: Record<string, { notifications: number }> = {};
+    // Преобразуем результат в новый формат
+    const count: Record<string, number> = {};
+    let totalEventMessages = 0;
+    
     groupedMessages.forEach(group => {
-      result[group.eventId.toString()] = {
-        notifications: group._count.id,
-      };
+      const eventIdStr = group.eventId.toString();
+      const messageCount = group._count.id;
+      count[eventIdStr] = messageCount;
+      totalEventMessages += messageCount;
     });
 
-    return result;
+    return {
+      count,
+      EVENT: totalEventMessages,
+      NOTIFICATION: 0,
+    };
   }
 }
