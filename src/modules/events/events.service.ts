@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { GetEventsDto } from './dto/get-events.dto';
+import { UnreadMessagesResponseDto } from './dto/unread-messages.dto';
 import { EventsRepository } from './repositories/events.repository';
 import { VotingRepository } from './repositories/voting.repository';
 import { Event, EventMessage } from '@prisma/client';
@@ -21,6 +22,8 @@ import {
 import { BadRequestException } from '@nestjs/common';
 import { EventMessagesRepository } from './repositories/event-messages.repository';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { AddMessageDto } from './dto/add-message.dto';
+import { MarkEventReadDto } from './dto/mark-event-read.dto';
 import { EventDto, EventsListDto } from './dto/event.dto';
 import { VoteDto, VoteResponseDto } from './dto/vote.dto';
 import { VotingResultsDto } from './dto/voting-results.dto';
@@ -371,6 +374,41 @@ export class EventsService {
     return this.eventMessagesRepository.createMessage(userId, eventId, dto);
   }
 
+  async addMessage(dto: AddMessageDto): Promise<EventMessage> {
+    const event = await this.eventsRepository.findById(dto.eventId);
+
+    if (!event) {
+      throw new EventNotFoundException();
+    }
+
+    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
+      dto.userId,
+      event.communityId,
+    );
+    if (!isUserInCommunity) {
+      throw new UserNotInCommunityException();
+    }
+
+    return this.eventMessagesRepository.addMessage(dto);
+  }
+
+  async markEventAsReadByDto(dto: MarkEventReadDto): Promise<void> {
+    const event = await this.eventsRepository.findById(dto.eventId);
+    if (!event) {
+      throw new EventNotFoundException();
+    }
+
+    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
+      dto.userId,
+      event.communityId,
+    );
+    if (!isUserInCommunity) {
+      throw new UserNotInCommunityException();
+    }
+
+    await this.eventMessagesRepository.markEventAsReadWithDto(dto.userId, dto.eventId);
+  }
+
   async getEventMessages(
     eventId: number,
     userId: number,
@@ -688,9 +726,9 @@ export class EventsService {
   }
 
   /**
-   * Получает непрочитанные сообщения для пользователя
+   * Получает непрочитанные сообщения для пользователя, группированные по событиям
    */
-  async getUnreadMessages(userId: number, eventId?: number): Promise<{ messages: EventMessage[]; total: number }> {
+  async getUnreadMessages(userId: number, eventId?: number): Promise<UnreadMessagesResponseDto> {
     // Если указан конкретный eventId, проверяем доступ
     if (eventId) {
       const event = await this.eventsRepository.findById(eventId);
@@ -707,10 +745,6 @@ export class EventsService {
       }
     }
 
-    const messages = await this.eventMessagesRepository.getUnreadMessages(userId, eventId);
-    return {
-      messages,
-      total: messages.length,
-    };
+    return this.eventMessagesRepository.getUnreadMessagesGroupedByEvent(userId, eventId);
   }
 }

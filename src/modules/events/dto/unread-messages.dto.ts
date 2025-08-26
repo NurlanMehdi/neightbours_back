@@ -8,6 +8,15 @@ import { Expose } from 'class-transformer';
  */
 export class GetUnreadMessagesDto {
   @ApiProperty({
+    description: 'ID пользователя',
+    required: true,
+    example: 1,
+  })
+  @IsInt()
+  @Transform(({ value }) => parseInt(value, 10))
+  userId: number;
+
+  @ApiProperty({
     description: 'ID события для фильтрации сообщений',
     required: false,
     example: 1,
@@ -140,20 +149,18 @@ export class UnreadMessageDto {
 }
 
 /**
- * DTO для ответа с непрочитанными сообщениями
+ * DTO для группировки уведомлений по событию
  */
-export class UnreadMessagesResponseDto {
+export class EventNotificationsDto {
   @ApiProperty({
-    description: 'Список непрочитанных сообщений',
-    type: [UnreadMessageDto],
+    description: 'Количество уведомлений',
+    example: 3,
   })
   @Expose()
-  messages: UnreadMessageDto[];
-
-  @ApiProperty({
-    description: 'Общее количество непрочитанных сообщений',
-    example: 5,
-  })
-  @Expose()
-  total: number;
+  notifications: number;
 }
+
+/**
+ * Тип для ответа с непрочитанными сообщениями, группированными по событиям
+ */
+export type UnreadMessagesResponseDto = Record<string, EventNotificationsDto>;

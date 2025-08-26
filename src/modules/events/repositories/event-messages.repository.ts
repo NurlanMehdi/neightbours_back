@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateMessageDto } from '../dto/create-message.dto';
+import { AddMessageDto } from '../dto/add-message.dto';
 import { EventMessage } from '@prisma/client';
 
 @Injectable()
@@ -17,6 +18,26 @@ export class EventMessagesRepository {
         text: dto.text,
         userId,
         eventId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+  }
+
+  async addMessage(dto: AddMessageDto): Promise<EventMessage> {
+    return this.prisma.eventMessage.create({
+      data: {
+        text: dto.text,
+        userId: dto.userId,
+        eventId: dto.eventId,
       },
       include: {
         user: {
@@ -91,6 +112,28 @@ export class EventMessagesRepository {
   }
 
   /**
+   * Отмечает событие как прочитанное для пользователя с использованием DTO
+   */
+  async markEventAsReadWithDto(userId: number, eventId: number): Promise<void> {
+    await this.prisma.eventRead.upsert({
+      where: {
+        userId_eventId: {
+          userId,
+          eventId,
+        },
+      },
+      update: {
+        readAt: new Date(),
+      },
+      create: {
+        userId,
+        eventId,
+        readAt: new Date(),
+      },
+    });
+  }
+
+  /**
    * Получает непрочитанные сообщения для пользователя
    */
   async getUnreadMessages(
@@ -109,11 +152,34 @@ export class EventMessagesRepository {
 
     const readEventIdList = readEventIds.map(read => read.eventId);
 
+    // Получаем ID сообществ, членом которых является пользователь
+    const userCommunities = await this.prisma.usersOnCommunities.findMany({
+      where: {
+        userId,
+      },
+      select: {
+        communityId: true,
+      },
+    });
+
+    const userCommunityIds = userCommunities.map(uc => uc.communityId);
+
+    // Если у пользователя нет сообществ, возвращаем пустой массив
+    if (userCommunityIds.length === 0) {
+      return [];
+    }
+
     // Получаем сообщения из событий, которые пользователь НЕ читал
     const whereClause: any = {
       // Исключаем сообщения самого пользователя
       userId: {
         not: userId,
+      },
+      // Фильтруем только по событиям из сообществ пользователя
+      event: {
+        communityId: {
+          in: userCommunityIds,
+        },
       },
     };
 
@@ -157,5 +223,92 @@ export class EventMessagesRepository {
         createdAt: 'desc',
       },
     });
+  }
+
+  /**
+   * Получает группированные непрочитанные сообщения по событиям
+   */
+  async getUnreadMessagesGroupedByEvent(
+    userId: number,
+    eventId?: number,
+  ): Promise<Record<string, { notifications: number }>> {
+    // Подзапрос для получения прочитанных событий пользователя
+    const readEventIds = await this.prisma.eventRead.findMany({
+      where: {
+        userId,
+      },
+      select: {
+        eventId: true,
+      },
+    });
+
+    const readEventIdList = readEventIds.map(read => read.eventId);
+
+    // Получаем ID сообществ, членом которых является пользователь
+    const userCommunities = await this.prisma.usersOnCommunities.findMany({
+      where: {
+        userId,
+      },
+      select: {
+        communityId: true,
+      },
+    });
+
+    const userCommunityIds = userCommunities.map(uc => uc.communityId);
+
+    // Если у пользователя нет сообществ, возвращаем пустой объект
+    if (userCommunityIds.length === 0) {
+      return {};
+    }
+
+    // Получаем сообщения из событий, которые пользователь НЕ читал
+    const whereClause: any = {
+      // Исключаем сообщения самого пользователя
+      userId: {
+        not: userId,
+      },
+      // Фильтруем только по событиям из сообществ пользователя
+      event: {
+        communityId: {
+          in: userCommunityIds,
+        },
+      },
+    };
+
+    // Если указан конкретный eventId
+    if (eventId) {
+      // Проверяем, прочитано ли это конкретное событие
+      if (readEventIdList.includes(eventId)) {
+        // Если событие прочитано, возвращаем пустой объект
+        return {};
+      } else {
+        // Если событие не прочитано, фильтруем по этому eventId
+        whereClause.eventId = eventId;
+      }
+    } else {
+      // Если eventId не указан, исключаем все прочитанные события
+      whereClause.eventId = {
+        notIn: readEventIdList,
+      };
+    }
+
+    // Группируем сообщения по eventId и считаем количество
+    const groupedMessages = await this.prisma.eventMessage.groupBy({
+      by: ['eventId'],
+      where: whereClause,
+      _count: {
+        id: true,
+      },
+    });
+
+    // Преобразуем результат в нужный формат
+    const result: Record<string, { notifications: number }> = {};
+    groupedMessages.forEach(group => {
+      result[group.eventId.toString()] = {
+        notifications: group._count.id,
+      };
+    });
+
+    return result;
   }
 }
