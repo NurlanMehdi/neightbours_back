@@ -239,10 +239,10 @@ export class EventMessagesRepository {
       select: { eventId: true, readAt: true },
     });
 
-    // Получаем события, в которых пользователь участвует
+    // Получаем события, в которых пользователь участвует, с timestamp присоединения
     const userParticipations = await this.prisma.usersOnEvents.findMany({
       where: { userId },
-      select: { eventId: true },
+      select: { eventId: true, joinedAt: true },
     });
     const userEventIds = userParticipations.map(up => up.eventId);
 
@@ -255,9 +255,12 @@ export class EventMessagesRepository {
       };
     }
 
-    // Создаем map для быстрого поиска readAt времени по eventId
+    // Создаем maps для быстрого поиска timestamps по eventId
     const readAtMap = new Map(
       readEvents.map(read => [read.eventId, read.readAt])
+    );
+    const joinedAtMap = new Map(
+      userParticipations.map(participation => [participation.eventId, participation.joinedAt])
     );
 
     // Получаем все сообщения из событий, в которых пользователь участвует
@@ -278,12 +281,22 @@ export class EventMessagesRepository {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Фильтруем сообщения: показываем только те, что созданы ПОСЛЕ readAt timestamp
+    // Фильтруем сообщения: показываем только те, что созданы ПОСЛЕ join time И readAt timestamp
     const unreadMessages = messages.filter(message => {
+      const joinedAt = joinedAtMap.get(message.eventId);
       const readAt = readAtMap.get(message.eventId);
-      // Если событие никогда не было прочитано - все сообщения непрочитанные
-      if (!readAt) return true;
-      // Если сообщение создано ПОСЛЕ того как событие было прочитано - оно непрочитанное
+      
+      // Сообщение должно быть создано ПОСЛЕ времени присоединения к событию
+      if (!joinedAt || message.createdAt <= joinedAt) {
+        return false;
+      }
+      
+      // Если событие никогда не было прочитано - сообщения после join времени непрочитанные
+      if (!readAt) {
+        return true;
+      }
+      
+      // Сообщение непрочитанное если оно создано ПОСЛЕ последнего времени прочтения
       return message.createdAt > readAt;
     });
 
