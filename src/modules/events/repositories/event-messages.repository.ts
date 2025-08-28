@@ -233,12 +233,11 @@ export class EventMessagesRepository {
   async getUnreadMessagesGroupedByEvent(
     userId: number,
   ): Promise<{ count: Record<string, number>; EVENT: number; NOTIFICATION: number }> {
-    // Получаем прочитанные события пользователя
-    const readEventIds = await this.prisma.eventRead.findMany({
+    // Получаем события с timestamp когда пользователь их прочитал
+    const readEvents = await this.prisma.eventRead.findMany({
       where: { userId },
-      select: { eventId: true },
+      select: { eventId: true, readAt: true },
     });
-    const readEventIdList = readEventIds.map(read => read.eventId);
 
     // Получаем события, в которых пользователь участвует
     const userParticipations = await this.prisma.usersOnEvents.findMany({
@@ -256,25 +255,18 @@ export class EventMessagesRepository {
       };
     }
 
-    // Получаем ID событий, которые участник НЕ читал
-    const unreadEventIds = userEventIds.filter(eventId => !readEventIdList.includes(eventId));
+    // Создаем map для быстрого поиска readAt времени по eventId
+    const readAtMap = new Map(
+      readEvents.map(read => [read.eventId, read.readAt])
+    );
 
-    // Если все события прочитаны, возвращаем пустой результат
-    if (unreadEventIds.length === 0) {
-      return {
-        count: {},
-        EVENT: 0,
-        NOTIFICATION: 0,
-      };
-    }
-
-    // Получаем непрочитанные сообщения из событий, в которых пользователь участвует
+    // Получаем все сообщения из событий, в которых пользователь участвует
     const messages = await this.prisma.eventMessage.findMany({
       where: {
         // Исключаем сообщения самого пользователя
         userId: { not: userId },
-        // Только из непрочитанных событий, в которых пользователь участвует
-        eventId: { in: unreadEventIds },
+        // Только из событий, в которых пользователь участвует
+        eventId: { in: userEventIds },
         // Только из активных событий
         event: { isActive: true },
       },
@@ -283,15 +275,25 @@ export class EventMessagesRepository {
           select: { id: true, type: true },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // Группируем и считаем сообщения по типу события
+    // Фильтруем сообщения: показываем только те, что созданы ПОСЛЕ readAt timestamp
+    const unreadMessages = messages.filter(message => {
+      const readAt = readAtMap.get(message.eventId);
+      // Если событие никогда не было прочитано - все сообщения непрочитанные
+      if (!readAt) return true;
+      // Если сообщение создано ПОСЛЕ того как событие было прочитано - оно непрочитанное
+      return message.createdAt > readAt;
+    });
+
+    // Группируем и считаем непрочитанные сообщения по типу события
     const count: Record<string, number> = {};
     let totalEventMessages = 0;
     let totalNotificationMessages = 0;
 
-    // Группируем сообщения по eventId
-    const groupedByEvent = messages.reduce((acc, message) => {
+    // Группируем ТОЛЬКО непрочитанные сообщения по eventId
+    const groupedByEvent = unreadMessages.reduce((acc, message) => {
       const eventId = message.eventId;
       if (!acc[eventId]) {
         acc[eventId] = {
