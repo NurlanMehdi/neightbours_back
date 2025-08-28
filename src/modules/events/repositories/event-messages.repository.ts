@@ -228,34 +228,23 @@ export class EventMessagesRepository {
   }
 
   /**
-   * Получает группированные непрочитанные сообщения по событиям
+   * Получает группированные непрочитанные сообщения по событиям для пользователя
    */
   async getUnreadMessagesGroupedByEvent(
     userId: number,
-    eventId?: number,
   ): Promise<{ count: Record<string, number>; EVENT: number; NOTIFICATION: number }> {
-    // Подзапрос для получения прочитанных событий пользователя
+    // Получаем прочитанные события пользователя
     const readEventIds = await this.prisma.eventRead.findMany({
-      where: {
-        userId,
-      },
-      select: {
-        eventId: true,
-      },
+      where: { userId },
+      select: { eventId: true },
     });
-
     const readEventIdList = readEventIds.map(read => read.eventId);
 
-    // Получаем ID событий, в которых пользователь участвует
+    // Получаем события, в которых пользователь участвует
     const userParticipations = await this.prisma.usersOnEvents.findMany({
-      where: {
-        userId,
-      },
-      select: {
-        eventId: true,
-      },
+      where: { userId },
+      select: { eventId: true },
     });
-
     const userEventIds = userParticipations.map(up => up.eventId);
 
     // Если пользователь не участвует ни в одном событии, возвращаем пустой результат
@@ -267,57 +256,36 @@ export class EventMessagesRepository {
       };
     }
 
-    // Получаем сообщения из событий, в которых пользователь участвует и которые он НЕ читал
-    const whereClause: any = {
-      // Исключаем сообщения самого пользователя
-      userId: {
-        not: userId,
-      },
-      // Фильтруем только по событиям, в которых пользователь участвует
-      event: {
-        id: {
-          in: userEventIds,
-        },
-        // Учитываем только активные события
-        isActive: true,
-      },
-    };
+    // Получаем ID событий, которые участник НЕ читал
+    const unreadEventIds = userEventIds.filter(eventId => !readEventIdList.includes(eventId));
 
-    // Если указан конкретный eventId
-    if (eventId) {
-      // Проверяем, прочитано ли это конкретное событие
-      if (readEventIdList.includes(eventId)) {
-        // Если событие прочитано, возвращаем пустой результат
-        return {
-          count: {},
-          EVENT: 0,
-          NOTIFICATION: 0,
-        };
-      } else {
-        // Если событие не прочитано, фильтруем по этому eventId
-        whereClause.eventId = eventId;
-      }
-    } else {
-      // Если eventId не указан, исключаем все прочитанные события
-      whereClause.eventId = {
-        notIn: readEventIdList,
+    // Если все события прочитаны, возвращаем пустой результат
+    if (unreadEventIds.length === 0) {
+      return {
+        count: {},
+        EVENT: 0,
+        NOTIFICATION: 0,
       };
     }
 
-    // Получаем сообщения с информацией о типе события
+    // Получаем непрочитанные сообщения из событий, в которых пользователь участвует
     const messages = await this.prisma.eventMessage.findMany({
-      where: whereClause,
+      where: {
+        // Исключаем сообщения самого пользователя
+        userId: { not: userId },
+        // Только из непрочитанных событий, в которых пользователь участвует
+        eventId: { in: unreadEventIds },
+        // Только из активных событий
+        event: { isActive: true },
+      },
       include: {
         event: {
-          select: {
-            id: true,
-            type: true,
-          },
+          select: { id: true, type: true },
         },
       },
     });
 
-    // Группируем и считаем сообщения
+    // Группируем и считаем сообщения по типу события
     const count: Record<string, number> = {};
     let totalEventMessages = 0;
     let totalNotificationMessages = 0;

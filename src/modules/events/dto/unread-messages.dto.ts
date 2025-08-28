@@ -1,31 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsInt } from 'class-validator';
-import { Transform } from 'class-transformer';
 import { Expose } from 'class-transformer';
 
-/**
- * DTO для получения непрочитанных сообщений
- */
-export class GetUnreadMessagesDto {
-  @ApiProperty({
-    description: 'ID пользователя',
-    required: true,
-    example: 1,
-  })
-  @IsInt()
-  @Transform(({ value }) => parseInt(value, 10))
-  userId: number;
-
-  @ApiProperty({
-    description: 'ID события для фильтрации сообщений',
-    required: false,
-    example: 1,
-  })
-  @IsOptional()
-  @IsInt()
-  @Transform(({ value }) => value ? parseInt(value, 10) : undefined)
-  eventId?: number;
-}
+// Removed GetUnreadMessagesDto - endpoint now uses JWT token for authentication
 
 /**
  * DTO для пользователя в сообщении

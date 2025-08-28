@@ -19,9 +19,10 @@ The system determines unread messages by:
 
 #### Get Unread Messages
 ```
-GET /api/events/messages/unread?userId={userId}&eventId={eventId}
+GET /api/events/messages/unread
+Authorization: Bearer {jwt_token}
 ```
-- `eventId` is optional - if provided, returns unread count only for that event
+- Uses JWT token to identify the user (no parameters needed)
 - Returns: `{count: {eventId: messageCount}, EVENT: totalEvents, NOTIFICATION: totalNotifications}`
 
 #### Mark Event as Read
@@ -53,8 +54,9 @@ POST /api/events/{eventId}/messages
   "text": "Test message"
 }
 
-# 2. Check unread count for another user
-GET /api/events/messages/unread?userId={otherUserId}
+# 2. Check unread count as another user (with different Bearer token)
+GET /api/events/messages/unread
+Authorization: Bearer {otherUserToken}
 # Expected: Should show 1 unread message for the event
 ```
 
@@ -73,7 +75,8 @@ POST /api/events/{notificationTypeEventId}/messages
 }
 
 # 3. Check unread count
-GET /api/events/messages/unread?userId={userId}
+GET /api/events/messages/unread
+Authorization: Bearer {userToken}
 # Expected: 
 # {
 #   "count": {"1": 1, "2": 1},

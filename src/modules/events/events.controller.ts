@@ -34,7 +34,7 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { AddMessageDto } from './dto/add-message.dto';
 import { MarkEventReadDto } from './dto/mark-event-read.dto';
 import { IEvent, IEventsList } from './interfaces/event.interface';
-import { GetUnreadMessagesDto, UnreadMessagesResponseDto } from './dto/unread-messages.dto';
+import { UnreadMessagesResponseDto } from './dto/unread-messages.dto';
 import { plainToInstance } from 'class-transformer';
 
 @ApiTags('События')
@@ -407,8 +407,8 @@ export class EventsController {
         },
         NOTIFICATION: {
           type: 'number',
-          description: 'Количество уведомлений (пока всегда 0)',
-          example: 0,
+          description: 'Количество уведомлений',
+          example: 5,
         },
       },
       example: {
@@ -418,21 +418,13 @@ export class EventsController {
           "6": 45
         },
         EVENT: 134,
-        NOTIFICATION: 0
+        NOTIFICATION: 5
       },
     },
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Событие не найдено (если указан eventId)',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Пользователь не является членом сообщества (если указан eventId)',
-  })
   async getUnreadMessages(
-    @Query() query: GetUnreadMessagesDto,
+    @UserId() userId: number,
   ): Promise<UnreadMessagesResponseDto> {
-    return this.eventsService.getUnreadMessages(query.userId, query.eventId);
+    return this.eventsService.getUnreadMessages(userId);
   }
 }

@@ -728,23 +728,7 @@ export class EventsService {
   /**
    * Получает непрочитанные сообщения для пользователя, группированные по событиям
    */
-  async getUnreadMessages(userId: number, eventId?: number): Promise<UnreadMessagesResponseDto> {
-    // Если указан конкретный eventId, проверяем доступ
-    if (eventId) {
-      const event = await this.eventsRepository.findById(eventId);
-      if (!event) {
-        throw new EventNotFoundException();
-      }
-
-      const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
-        userId,
-        event.communityId,
-      );
-      if (!isUserInCommunity) {
-        throw new UserNotInCommunityException();
-      }
-    }
-
-    return this.eventMessagesRepository.getUnreadMessagesGroupedByEvent(userId, eventId);
+  async getUnreadMessages(userId: number): Promise<UnreadMessagesResponseDto> {
+    return this.eventMessagesRepository.getUnreadMessagesGroupedByEvent(userId);
   }
 }
