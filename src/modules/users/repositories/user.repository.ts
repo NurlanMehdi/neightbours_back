@@ -21,9 +21,7 @@ type UserWithBlocking = Users & {
   deletionScheduledAt?: Date | null;
 };
 
-/**
- * Репозиторий для работы с сущностью "User".
- */
+
 @Injectable()
 export class UserRepository {
   private readonly logger = new Logger(UserRepository.name);
@@ -104,9 +102,6 @@ export class UserRepository {
     });
   }
 
-  /**
-   * Создать администратора
-   */
   async createAdmin(dto: CreateAdminDto) {
     return this.prisma.users.create({
       data: {
@@ -388,15 +383,12 @@ export class UserRepository {
         where: { userId: id },
       });
 
-      // 7. Удаляем голоса пользователя
       await tx.voting.deleteMany({
         where: { userId: id },
       });
 
-      // 8. Удаляем отметки о прочтении событий (используем raw query если модель недоступна)
       await tx.$executeRaw`DELETE FROM event_reads WHERE "userId" = ${id}`;
 
-      // 9. Удаляем верификации свойств пользователя
       await tx.propertyVerification.deleteMany({
         where: { userId: id },
       });
@@ -415,7 +407,6 @@ export class UserRepository {
         where: { userId: id },
       });
 
-      // Окончательное удаление пользователя
       return tx.users.delete({
         where: { id },
       });
@@ -432,7 +423,6 @@ export class UserRepository {
     
     let deletedCount = 0;
     
-    // Удаляем каждого пользователя индивидуально для правильной обработки связей
     for (const id of ids) {
       try {
         await this.hardDelete(id);
@@ -440,7 +430,6 @@ export class UserRepository {
         this.logger.log(`Пользователь с id ${id} успешно удален`);
       } catch (error) {
         this.logger.error(`Ошибка при удалении пользователя с id ${id}: ${error.message}`);
-        // Продолжаем удаление других пользователей даже если один не удалился
       }
     }
     
@@ -499,10 +488,9 @@ export class UserRepository {
       lastName: dto.lastName,
       middleName: dto.middleName,
       role: dto.role,
-      isVerified: true, // Все пользователи, созданные админом, верифицированы
+      isVerified: true,
     };
 
-    // Для администраторов добавляем логин и пароль
     if (dto.role === 'ADMIN') {
       userData.login = dto.login;
       userData.password = dto.password;
@@ -548,10 +536,8 @@ export class UserRepository {
     const { sortBy = UserSortBy.CREATED_AT, sortOrder = SortOrder.DESC } =
       filters;
 
-    // Строим условия фильтрации
     const where: any = {};
 
-    // Поиск по тексту
     if (filters.search) {
       where.OR = [
         { firstName: { contains: filters.search, mode: 'insensitive' } },
@@ -561,7 +547,6 @@ export class UserRepository {
       ];
     }
 
-    // Фильтр по датам регистрации
     if (filters.dateFrom || filters.dateTo) {
       where.createdAt = {};
       if (filters.dateFrom) {
@@ -572,7 +557,6 @@ export class UserRepository {
       }
     }
 
-    // Фильтр по статусу верификации
     if (filters.isVerified !== undefined) {
       where.isVerified = filters.isVerified;
       this.logger.log(
@@ -580,14 +564,12 @@ export class UserRepository {
       );
     }
 
-    // Определяем поле для сортировки
     let orderBy: any = {};
     switch (sortBy) {
       case UserSortBy.ID:
         orderBy.id = sortOrder.toLowerCase();
         break;
       case UserSortBy.NAME:
-        // Сортировка по имени (firstName, затем lastName)
         orderBy = [
           { firstName: sortOrder.toLowerCase() },
           { lastName: sortOrder.toLowerCase() },
@@ -629,7 +611,10 @@ export class UserRepository {
   }
 
   /**
-   * Проверяет, принадлежит ли пользователь к сообществу
+   * Проверяет, принадлежит ли пользователь к сообществу.
+   * @param userId Идентификатор пользователя.
+   * @param communityId Идентификатор сообщества.
+   * @returns true, если пользователь принадлежит к сообществу, иначе false.
    */
   async isUserInCommunity(userId: number, communityId: number): Promise<boolean> {
     const userInCommunity = await this.prisma.usersOnCommunities.findUnique({

@@ -180,6 +180,8 @@ export class EventMessagesRepository {
         communityId: {
           in: userCommunityIds,
         },
+        // Учитываем только активные события
+        isActive: true,
       },
     };
 
@@ -276,6 +278,8 @@ export class EventMessagesRepository {
         communityId: {
           in: userCommunityIds,
         },
+        // Учитываем только активные события
+        isActive: true,
       },
     };
 
@@ -300,30 +304,52 @@ export class EventMessagesRepository {
       };
     }
 
-    // Группируем сообщения по eventId и считаем количество
-    const groupedMessages = await this.prisma.eventMessage.groupBy({
-      by: ['eventId'],
+    // Получаем сообщения с информацией о типе события
+    const messages = await this.prisma.eventMessage.findMany({
       where: whereClause,
-      _count: {
-        id: true,
+      include: {
+        event: {
+          select: {
+            id: true,
+            type: true,
+          },
+        },
       },
     });
 
-    // Преобразуем результат в новый формат
+    // Группируем и считаем сообщения
     const count: Record<string, number> = {};
     let totalEventMessages = 0;
-    
-    groupedMessages.forEach(group => {
-      const eventIdStr = group.eventId.toString();
-      const messageCount = group._count.id;
-      count[eventIdStr] = messageCount;
-      totalEventMessages += messageCount;
+    let totalNotificationMessages = 0;
+
+    // Группируем сообщения по eventId
+    const groupedByEvent = messages.reduce((acc, message) => {
+      const eventId = message.eventId;
+      if (!acc[eventId]) {
+        acc[eventId] = {
+          count: 0,
+          type: message.event.type,
+        };
+      }
+      acc[eventId].count++;
+      return acc;
+    }, {} as Record<number, { count: number; type: string }>);
+
+    // Преобразуем в нужный формат и считаем по типам
+    Object.entries(groupedByEvent).forEach(([eventIdStr, data]) => {
+      count[eventIdStr] = data.count;
+      
+      if (data.type === 'EVENT') {
+        totalEventMessages += data.count;
+      } else if (data.type === 'NOTIFICATION') {
+        totalNotificationMessages += data.count;
+      }
     });
 
     return {
       count,
       EVENT: totalEventMessages,
-      NOTIFICATION: 0,
+      NOTIFICATION: totalNotificationMessages,
     };
   }
 }
