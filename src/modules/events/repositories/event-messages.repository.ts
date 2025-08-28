@@ -152,33 +152,33 @@ export class EventMessagesRepository {
 
     const readEventIdList = readEventIds.map(read => read.eventId);
 
-    // Получаем ID сообществ, членом которых является пользователь
-    const userCommunities = await this.prisma.usersOnCommunities.findMany({
+    // Получаем ID событий, в которых пользователь участвует
+    const userParticipations = await this.prisma.usersOnEvents.findMany({
       where: {
         userId,
       },
       select: {
-        communityId: true,
+        eventId: true,
       },
     });
 
-    const userCommunityIds = userCommunities.map(uc => uc.communityId);
+    const userEventIds = userParticipations.map(up => up.eventId);
 
-    // Если у пользователя нет сообществ, возвращаем пустой массив
-    if (userCommunityIds.length === 0) {
+    // Если пользователь не участвует ни в одном событии, возвращаем пустой массив
+    if (userEventIds.length === 0) {
       return [];
     }
 
-    // Получаем сообщения из событий, которые пользователь НЕ читал
+    // Получаем сообщения из событий, в которых пользователь участвует и которые он НЕ читал
     const whereClause: any = {
       // Исключаем сообщения самого пользователя
       userId: {
         not: userId,
       },
-      // Фильтруем только по событиям из сообществ пользователя
+      // Фильтруем только по событиям, в которых пользователь участвует
       event: {
-        communityId: {
-          in: userCommunityIds,
+        id: {
+          in: userEventIds,
         },
         // Учитываем только активные события
         isActive: true,
@@ -246,20 +246,20 @@ export class EventMessagesRepository {
 
     const readEventIdList = readEventIds.map(read => read.eventId);
 
-    // Получаем ID сообществ, членом которых является пользователь
-    const userCommunities = await this.prisma.usersOnCommunities.findMany({
+    // Получаем ID событий, в которых пользователь участвует
+    const userParticipations = await this.prisma.usersOnEvents.findMany({
       where: {
         userId,
       },
       select: {
-        communityId: true,
+        eventId: true,
       },
     });
 
-    const userCommunityIds = userCommunities.map(uc => uc.communityId);
+    const userEventIds = userParticipations.map(up => up.eventId);
 
-    // Если у пользователя нет сообществ, возвращаем пустой результат
-    if (userCommunityIds.length === 0) {
+    // Если пользователь не участвует ни в одном событии, возвращаем пустой результат
+    if (userEventIds.length === 0) {
       return {
         count: {},
         EVENT: 0,
@@ -267,16 +267,16 @@ export class EventMessagesRepository {
       };
     }
 
-    // Получаем сообщения из событий, которые пользователь НЕ читал
+    // Получаем сообщения из событий, в которых пользователь участвует и которые он НЕ читал
     const whereClause: any = {
       // Исключаем сообщения самого пользователя
       userId: {
         not: userId,
       },
-      // Фильтруем только по событиям из сообществ пользователя
+      // Фильтруем только по событиям, в которых пользователь участвует
       event: {
-        communityId: {
-          in: userCommunityIds,
+        id: {
+          in: userEventIds,
         },
         // Учитываем только активные события
         isActive: true,
