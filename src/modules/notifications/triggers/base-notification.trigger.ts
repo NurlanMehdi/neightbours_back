@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { NotificationType } from '@prisma/client';
+import { NotificationType } from '../interfaces/notification.interface';
 import { NotificationService } from '../services/notification.service';
 import { 
   INotificationTrigger, 
