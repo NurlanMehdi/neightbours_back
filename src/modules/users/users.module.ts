@@ -21,6 +21,7 @@ import { ProductsModule } from '../products/products.module';
 import { FamilyTypesModule } from '../family-types/family-types.module';
 import { SmsService } from '../auth/services/sms.service';
 import { JwtModule } from '@nestjs/jwt';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { JwtModule } from '@nestjs/jwt';
     FamilyTypesModule,
     ScheduleModule.forRoot(),
     JwtModule.register({}),
+    NotificationsModule,
   ],
   controllers: [UsersController, UsersAdminController, ProfileDeletionController],
   providers: [
@@ -47,6 +49,6 @@ import { JwtModule } from '@nestjs/jwt';
     PropertyRepository,
     EventsRepository,
   ],
-  exports: [UserRepository, ProfileDeletionRepository],
+  exports: [UserRepository, ProfileDeletionRepository, UserService],
 })
 export class UsersModule {}

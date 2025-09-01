@@ -33,6 +33,8 @@ import { GetEventsAdminDto } from './dto/get-events-admin.dto';
 import { EventsPaginatedAdminDto } from './dto/events-paginated-admin.dto';
 import { transformBoolean } from '../../common/utils/boolean-transformer.util';
 import { Logger } from '@nestjs/common';
+import { NotificationEventService } from '../notifications/services/notification-event.service';
+import { UserService } from '../users/services/user.service';
 
 @Injectable()
 export class EventsService {
@@ -42,6 +44,8 @@ export class EventsService {
     private readonly eventsRepository: EventsRepository,
     private readonly eventMessagesRepository: EventMessagesRepository,
     private readonly votingRepository: VotingRepository,
+    private readonly notificationEventService: NotificationEventService,
+    private readonly userService: UserService,
   ) {}
 
   /**
@@ -304,7 +308,6 @@ export class EventsService {
       this.logger.log(`User ${userId} already participant: ${isParticipant}`);
 
       if (isParticipant) {
-        // Если пользователь уже участник, возвращаем текущее состояние события
         this.logger.log(`User ${userId} is already a participant of event ${eventId}`);
         return this.transformEventToDto(event);
       }
@@ -312,20 +315,34 @@ export class EventsService {
       await this.eventsRepository.addParticipant(userId, eventId);
       this.logger.log(`Successfully added user ${userId} to event ${eventId}`);
       
-      // Получаем обновленное событие с новым участником
       const updatedEvent = await this.eventsRepository.findById(eventId);
+      
+      try {
+        const user = await this.userService.findById(userId);
+        const userName = `${user.firstName} ${user.lastName}`;
+        
+        await this.notificationEventService.notifyUserJoinedEvent({
+          eventId: event.id,
+          eventTitle: event.title,
+          userName,
+          userId,
+        });
+        
+        this.logger.log(`Notification sent for user ${userId} joining event ${eventId}`);
+      } catch (notificationError) {
+        this.logger.error(`Failed to send notification for event join: ${notificationError.message}`);
+      }
+      
       return this.transformEventToDto(updatedEvent);
     } catch (error) {
       this.logger.error(`Error in joinEvent for user ${userId}, event ${eventId}: ${error.message}`);
       this.logger.error(`Error stack: ${error.stack}`);
       
-      // Если это уже наше исключение, пробрасываем его дальше
       if (error instanceof UserNotInCommunityException || 
           error instanceof EventNotFoundException) {
         throw error;
       }
       
-      // Для других ошибок создаем более информативное сообщение
       throw new Error(`Ошибка при присоединении к событию: ${error.message}`);
     }
   }
@@ -341,14 +358,29 @@ export class EventsService {
     );
 
     if (!isParticipant) {
-      // Если пользователь не участник, возвращаем текущее состояние события
       return this.transformEventToDto(event);
     }
 
     await this.eventsRepository.removeParticipant(userId, eventId);
     
-    // Получаем обновленное событие без участника
     const updatedEvent = await this.eventsRepository.findById(eventId);
+    
+    try {
+      const user = await this.userService.findById(userId);
+      const userName = `${user.firstName} ${user.lastName}`;
+      
+      await this.notificationEventService.notifyUserLeftEvent({
+        eventId: event.id,
+        eventTitle: event.title,
+        userName,
+        userId,
+      });
+      
+      this.logger.log(`Notification sent for user ${userId} leaving event ${eventId}`);
+    } catch (notificationError) {
+      this.logger.error(`Failed to send notification for event leave: ${notificationError.message}`);
+    }
+    
     return this.transformEventToDto(updatedEvent);
   }
 

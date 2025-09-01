@@ -16,4 +16,13 @@ export class CommunityCreatorException extends HttpException {
       HttpStatus.BAD_REQUEST,
     );
   }
+}
+
+export class UserAlreadyMemberException extends HttpException {
+  constructor() {
+    super(
+      'Пользователь уже является участником этого сообщества',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
 } 

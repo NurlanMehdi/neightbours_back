@@ -17,6 +17,7 @@ import { QualificationsModule } from './modules/qualifications/qualifications.mo
 import { ProductsModule } from './modules/products/products.module';
 import { FamilyTypesModule } from './modules/family-types/family-types.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
     ProductsModule,
     FamilyTypesModule,
     DocumentsModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [JwtService],

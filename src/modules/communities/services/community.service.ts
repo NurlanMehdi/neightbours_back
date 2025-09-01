@@ -14,6 +14,8 @@ import { CommunityCreatorException } from '../../../common/exceptions/community.
 import { GeoModerationService } from '../../geo-moderation/services/geo-moderation.service';
 import { CommunityUserDto } from '../dto/community-user.dto';
 import { CommunityFullDto } from '../dto/community-full.dto';
+import { NotificationEventService } from '../../notifications/services/notification-event.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class CommunityService {
@@ -22,6 +24,8 @@ export class CommunityService {
   constructor(
     private readonly communityRepository: CommunityRepository,
     private readonly geoModerationService: GeoModerationService,
+    private readonly notificationEventService: NotificationEventService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async findAll(
@@ -239,6 +243,30 @@ export class CommunityService {
 
     // Добавляем пользователя в сообщество
     await this.communityRepository.addUser(community.id, userId);
+
+    // Отправляем уведомление другим участникам сообщества о новом участнике
+    try {
+      // Получаем информацию о пользователе для уведомления
+      const newUser = await this.prisma.users.findUnique({
+        where: { id: userId },
+        select: { firstName: true, lastName: true }
+      });
+      
+      if (newUser) {
+        const userName = `${newUser.firstName} ${newUser.lastName}`;
+        
+        await this.notificationEventService.notifyUserJoinedCommunityToMembers({
+          communityId: community.id,
+          communityName: community.name,
+          newUserName: userName,
+          newUserId: userId,
+        });
+        
+        this.logger.log(`Уведомления отправлены участникам сообщества ${community.id} о присоединении пользователя ${userId}`);
+      }
+    } catch (notificationError) {
+      this.logger.error(`Ошибка отправки уведомления о присоединении к сообществу: ${notificationError.message}`);
+    }
 
     return community;
   }

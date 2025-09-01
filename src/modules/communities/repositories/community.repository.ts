@@ -6,6 +6,7 @@ import {
   CommunitySortBy,
   SortOrder,
 } from '../dto/get-communities-admin.dto';
+import { UserAlreadyMemberException } from '../../../common/exceptions/community.exception';
 
 @Injectable()
 export class CommunityRepository {
@@ -313,6 +314,23 @@ export class CommunityRepository {
     this.logger.log(
       `Репозиторий: добавление пользователя ${userId} в сообщество ${communityId}.`,
     );
+    
+    const existingMembership = await this.prisma.usersOnCommunities.findUnique({
+      where: {
+        userId_communityId: {
+          userId,
+          communityId,
+        },
+      },
+    });
+
+    if (existingMembership) {
+      this.logger.warn(
+        `Пользователь ${userId} уже является участником сообщества ${communityId}.`,
+      );
+      throw new UserAlreadyMemberException();
+    }
+
     await this.prisma.usersOnCommunities.create({
       data: {
         communityId,

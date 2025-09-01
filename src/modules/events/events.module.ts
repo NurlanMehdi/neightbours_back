@@ -8,6 +8,8 @@ import { VotingRepository } from './repositories/voting.repository';
 import { JwtModule } from '@nestjs/jwt';
 import { EventsGateway } from './events.gateway';
 import { MulterConfigModule } from '../files/multer.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { MulterConfigModule } from '../files/multer.module';
       signOptions: { expiresIn: '30d' },
     }),
     MulterConfigModule,
+    NotificationsModule,
+    UsersModule,
   ],
   controllers: [EventsController, EventsAdminController],
   providers: [

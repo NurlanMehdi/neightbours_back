@@ -4,9 +4,10 @@ import { CommunityRepository } from './repositories/community.repository';
 import { CommunityService } from './services/community.service';
 import { CommunitiesAdminController } from './controllers/communities.admin.controller';
 import { GeoModerationModule } from '../geo-moderation/geo-moderation.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [GeoModerationModule],
+  imports: [GeoModerationModule, NotificationsModule],
   controllers: [CommunitiesAdminController],
   providers: [CommunityRepository, PrismaService, CommunityService],
   exports: [CommunityRepository, CommunityService],
