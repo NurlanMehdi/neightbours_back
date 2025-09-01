@@ -14,23 +14,43 @@ export class NotificationRepository implements INotificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Проверяет существование пользователя
+   */
+  async validateUserExists(userId: number): Promise<boolean> {
+    const user = await (this.prisma as any).users.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    return !!user;
+  }
+
+  /**
    * Создает новое уведомление
    */
   async create(data: ICreateNotification): Promise<any> {
     this.logger.log(`Создание уведомления типа ${data.type} для пользователя ${data.userId}`);
 
-    const notification = await (this.prisma as any).notification.create({
-      data: {
-        type: data.type,
-        title: data.title,
-        message: data.message,
-        payload: data.payload || null,
-        userId: data.userId,
-      },
-    });
+    try {
+      const notification = await (this.prisma as any).notification.create({
+        data: {
+          type: data.type,
+          title: data.title,
+          message: data.message,
+          payload: data.payload || null,
+          userId: data.userId,
+        },
+      });
 
-    this.logger.log(`Уведомление создано с ID ${notification.id}`);
-    return notification;
+      this.logger.log(`Уведомление создано с ID ${notification.id}`);
+      return notification;
+    } catch (error) {
+      if (error.code === 'P2003') {
+        this.logger.error(`Пользователь с ID ${data.userId} не найден`);
+        throw new Error(`Пользователь с ID ${data.userId} не существует`);
+      }
+      this.logger.error(`Ошибка создания уведомления: ${error.message}`);
+      throw error;
+    }
   }
 
   /**

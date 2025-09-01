@@ -22,6 +22,12 @@ export class NotificationService implements INotificationService {
   async createNotification(data: ICreateNotification): Promise<NotificationDto> {
     this.logger.log(`Создание уведомления типа ${data.type} для пользователя ${data.userId}`);
 
+    const userExists = await this.notificationRepository.validateUserExists(data.userId);
+    if (!userExists) {
+      this.logger.error(`Попытка создать уведомление для несуществующего пользователя ${data.userId}`);
+      throw new NotFoundException(`Пользователь с ID ${data.userId} не найден`);
+    }
+
     const notification = await this.notificationRepository.create(data);
     return this.transformToDto(notification);
   }
@@ -35,6 +41,23 @@ export class NotificationService implements INotificationService {
     if (notifications.length === 0) {
       this.logger.warn('Попытка создать пустой массив уведомлений');
       return;
+    }
+
+    const uniqueUserIds = [...new Set(notifications.map(n => n.userId))];
+    const userValidations = await Promise.all(
+      uniqueUserIds.map(async (userId) => ({
+        userId,
+        exists: await this.notificationRepository.validateUserExists(userId)
+      }))
+    );
+
+    const invalidUsers = userValidations
+      .filter(validation => !validation.exists)
+      .map(validation => validation.userId);
+
+    if (invalidUsers.length > 0) {
+      this.logger.error(`Найдены несуществующие пользователи: ${invalidUsers.join(', ')}`);
+      throw new NotFoundException(`Пользователи с ID ${invalidUsers.join(', ')} не найдены`);
     }
 
     await this.notificationRepository.createMany(notifications);
