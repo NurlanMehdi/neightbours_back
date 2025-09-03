@@ -536,7 +536,6 @@ export class PropertyRepository {
     return this.prisma.property.findMany({
       where: {
         isActive: true,
-        verificationStatus: 'UNVERIFIED',
         NOT: { userId },
       },
       include: {

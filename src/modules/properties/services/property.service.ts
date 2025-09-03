@@ -418,8 +418,9 @@ export class PropertyService {
     const verifiedUserIds = property.verifications?.map((verification: any) => verification.userId) || [];
     const verificationCount = property.verifications?.length || 0;
     
-    // Используем статус верификации из базы данных
-    const verificationStatus = property.verificationStatus;
+    // Определяем статус проверки на основе количества подтверждений
+    // Статус VERIFIED только если есть минимум 2 подтверждения
+    const verificationStatus = verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
     
     return plainToInstance(PropertyDto, {
       id: property.id,
@@ -510,12 +511,18 @@ export class PropertyService {
   async getUnverifiedOthers(params: GetUnverifiedOthersParams): Promise<PropertyDto[]> {
     const { userId, latitude, longitude, radius } = params;
     let properties = await this.propertyRepository.findUnverifiedOthers(userId);
+    
+    // Применяем фильтрацию по радиусу на уровне базы данных
     if (latitude !== undefined && longitude !== undefined && radius !== undefined) {
       properties = properties.filter((property) =>
         isWithinRadius(latitude, longitude, property.latitude, property.longitude, radius)
       );
     }
-    return properties.map((property) => this.transformToUserDto(property));
+    
+    // Трансформируем в DTO и фильтруем только неподтвержденные (< 2 подтверждений)
+    return properties
+      .map((property) => this.transformToUserDto(property))
+      .filter((property) => property.verificationStatus === 'UNVERIFIED');
   }
 
   /**
