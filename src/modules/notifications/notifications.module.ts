@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { FirebaseModule } from '../../firebase/firebase.module';
 
 // Controllers
 import { NotificationsController } from './controllers/notifications.controller';
@@ -26,7 +27,7 @@ import { CommunityNotificationTrigger } from './triggers/community-notification.
  * - Расширяемой архитектуры для новых типов событий
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, FirebaseModule],
   controllers: [NotificationsController],
   providers: [
     // Основные сервисы

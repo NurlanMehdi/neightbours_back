@@ -25,6 +25,36 @@ export class NotificationRepository implements INotificationRepository {
   }
 
   /**
+   * Получает пользователя с настройками push-уведомлений
+   */
+  async getUserWithPushSettings(userId: number): Promise<{ id: number; fcmToken?: string; pushNotificationsEnabled: boolean } | null> {
+    const user = await (this.prisma as any).users.findUnique({
+      where: { id: userId },
+      select: { 
+        id: true, 
+        fcmToken: true, 
+        pushNotificationsEnabled: true 
+      },
+    });
+    return user;
+  }
+
+  /**
+   * Получает пользователей с настройками push-уведомлений
+   */
+  async getUsersWithPushSettings(userIds: number[]): Promise<{ id: number; fcmToken?: string; pushNotificationsEnabled: boolean }[]> {
+    const users = await (this.prisma as any).users.findMany({
+      where: { id: { in: userIds } },
+      select: { 
+        id: true, 
+        fcmToken: true, 
+        pushNotificationsEnabled: true 
+      },
+    });
+    return users;
+  }
+
+  /**
    * Создает новое уведомление
    */
   async create(data: ICreateNotification): Promise<any> {

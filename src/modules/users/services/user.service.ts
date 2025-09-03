@@ -43,6 +43,7 @@ import { GetUserEventsDto } from '../dto/get-user-events.dto';
 import { UserEventsPaginatedDto } from '../dto/user-events-paginated.dto';
 import { BulkDeleteUsersDto } from '../dto/bulk-delete-users.dto';
 import { DeleteResponseDto } from '../dto/delete-response.dto';
+import { UpdateFcmTokenDto, PushNotificationSettingsDto, FcmTokenResponseDto } from '../dto/fcm-token.dto';
 
 type UserWithBlocking = Users & {
   Blocking?: Blocking[];
@@ -1144,6 +1145,73 @@ export class UserService {
       success: true,
       message: 'Пользователи успешно удалены',
       deletedCount,
+    };
+  }
+
+  async updateFcmToken(userId: number, updateFcmTokenDto: UpdateFcmTokenDto): Promise<FcmTokenResponseDto> {
+    this.logger.log(`Обновление FCM токена для пользователя ${userId}`);
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    const updateData: any = {
+      fcmToken: updateFcmTokenDto.fcmToken,
+    };
+
+    if (updateFcmTokenDto.pushNotificationsEnabled !== undefined) {
+      updateData.pushNotificationsEnabled = updateFcmTokenDto.pushNotificationsEnabled;
+    }
+
+    await this.userRepository.update(userId, updateData);
+
+    this.logger.log(`FCM токен для пользователя ${userId} успешно обновлен`);
+    
+    return {
+      message: 'FCM токен успешно обновлен',
+      pushNotificationsEnabled: updateFcmTokenDto.pushNotificationsEnabled ?? (user as any).pushNotificationsEnabled,
+    };
+  }
+
+  async updatePushNotificationSettings(userId: number, settings: PushNotificationSettingsDto): Promise<FcmTokenResponseDto> {
+    this.logger.log(`Обновление настроек push-уведомлений для пользователя ${userId}`);
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    await this.userRepository.update(userId, {
+      pushNotificationsEnabled: settings.pushNotificationsEnabled,
+    });
+
+    this.logger.log(`Настройки push-уведомлений для пользователя ${userId} успешно обновлены`);
+    
+    return {
+      message: 'Настройки push-уведомлений успешно обновлены',
+      pushNotificationsEnabled: settings.pushNotificationsEnabled,
+    };
+  }
+
+  async removeFcmToken(userId: number): Promise<FcmTokenResponseDto> {
+    this.logger.log(`Удаление FCM токена для пользователя ${userId}`);
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    await this.userRepository.update(userId, {
+      fcmToken: null,
+      pushNotificationsEnabled: false,
+    });
+
+    this.logger.log(`FCM токен для пользователя ${userId} успешно удален`);
+    
+    return {
+      message: 'FCM токен успешно удален',
+      pushNotificationsEnabled: false,
     };
   }
 }

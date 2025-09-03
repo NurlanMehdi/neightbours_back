@@ -46,6 +46,7 @@ import { GetUserVerificationsDto } from '../dto/get-user-verifications.dto';
 import { UserVerificationsPaginatedDto } from '../dto/user-verifications-paginated.dto';
 import { GetUserEventsDto } from '../dto/get-user-events.dto';
 import { UserEventsPaginatedDto } from '../dto/user-events-paginated.dto';
+import { UpdateFcmTokenDto, PushNotificationSettingsDto, FcmTokenResponseDto } from '../dto/fcm-token.dto';
 
 @ApiTags('Пользователи')
 @Controller('users')
@@ -402,5 +403,71 @@ export class UsersController {
     @Query() filters: GetUserEventsDto,
   ): Promise<UserEventsPaginatedDto> {
     return this.userService.getUserEvents(userId, filters);
+  }
+
+  @Patch('fcm-token')
+  @ApiOperation({
+    summary: 'Обновить FCM токен',
+    description: 'Обновляет FCM токен пользователя для получения push-уведомлений',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'FCM токен успешно обновлен',
+    type: FcmTokenResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  @ApiStandardResponses()
+  @UseGuards(JwtAuthGuard)
+  async updateFcmToken(
+    @UserId() userId: number,
+    @Body() updateFcmTokenDto: UpdateFcmTokenDto,
+  ): Promise<FcmTokenResponseDto> {
+    return this.userService.updateFcmToken(userId, updateFcmTokenDto);
+  }
+
+  @Patch('push-notifications')
+  @ApiOperation({
+    summary: 'Настройки push-уведомлений',
+    description: 'Включает или отключает push-уведомления для пользователя',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Настройки push-уведомлений успешно обновлены',
+    type: FcmTokenResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  @ApiStandardResponses()
+  @UseGuards(JwtAuthGuard)
+  async updatePushNotificationSettings(
+    @UserId() userId: number,
+    @Body() settings: PushNotificationSettingsDto,
+  ): Promise<FcmTokenResponseDto> {
+    return this.userService.updatePushNotificationSettings(userId, settings);
+  }
+
+  @Post('fcm-token/remove')
+  @ApiOperation({
+    summary: 'Удалить FCM токен',
+    description: 'Удаляет FCM токен пользователя и отключает push-уведомления',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'FCM токен успешно удален',
+    type: FcmTokenResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  @ApiStandardResponses()
+  @UseGuards(JwtAuthGuard)
+  async removeFcmToken(@UserId() userId: number): Promise<FcmTokenResponseDto> {
+    return this.userService.removeFcmToken(userId);
   }
 }

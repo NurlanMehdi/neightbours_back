@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { NotificationRepository } from '../repositories/notification.repository';
+import { FirebasePushService } from '../../../firebase/firebase-push.service';
 import { 
   INotificationService, 
   ICreateNotification, 
@@ -14,7 +15,10 @@ import { NotificationDto, NotificationsPaginatedDto, UnreadCountDto } from '../d
 export class NotificationService implements INotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
-  constructor(private readonly notificationRepository: NotificationRepository) {}
+  constructor(
+    private readonly notificationRepository: NotificationRepository,
+    private readonly firebasePushService: FirebasePushService,
+  ) {}
 
   /**
    * Создает новое уведомление
@@ -22,13 +26,22 @@ export class NotificationService implements INotificationService {
   async createNotification(data: ICreateNotification): Promise<NotificationDto> {
     this.logger.log(`Создание уведомления типа ${data.type} для пользователя ${data.userId}`);
 
-    const userExists = await this.notificationRepository.validateUserExists(data.userId);
-    if (!userExists) {
+    const user = await this.notificationRepository.getUserWithPushSettings(data.userId);
+    if (!user) {
       this.logger.error(`Попытка создать уведомление для несуществующего пользователя ${data.userId}`);
       throw new NotFoundException(`Пользователь с ID ${data.userId} не найден`);
     }
 
     const notification = await this.notificationRepository.create(data);
+
+    await this.sendPushNotificationIfEnabled(user, {
+      title: data.title,
+      body: data.message,
+      userId: data.userId,
+      type: data.type,
+      payload: data.payload,
+    });
+
     return this.transformToDto(notification);
   }
 
@@ -44,16 +57,10 @@ export class NotificationService implements INotificationService {
     }
 
     const uniqueUserIds = [...new Set(notifications.map(n => n.userId))];
-    const userValidations = await Promise.all(
-      uniqueUserIds.map(async (userId) => ({
-        userId,
-        exists: await this.notificationRepository.validateUserExists(userId)
-      }))
-    );
-
-    const invalidUsers = userValidations
-      .filter(validation => !validation.exists)
-      .map(validation => validation.userId);
+    const users = await this.notificationRepository.getUsersWithPushSettings(uniqueUserIds);
+    
+    const foundUserIds = users.map(user => user.id);
+    const invalidUsers = uniqueUserIds.filter(userId => !foundUserIds.includes(userId));
 
     if (invalidUsers.length > 0) {
       this.logger.error(`Найдены несуществующие пользователи: ${invalidUsers.join(', ')}`);
@@ -61,6 +68,9 @@ export class NotificationService implements INotificationService {
     }
 
     await this.notificationRepository.createMany(notifications);
+
+    await this.sendBulkPushNotifications(users, notifications);
+
     this.logger.log(`Создано ${notifications.length} уведомлений`);
   }
 
@@ -276,5 +286,69 @@ export class NotificationService implements INotificationService {
     };
 
     return typeMapping[type.toUpperCase()] || NotificationType.INFO;
+  }
+
+  /**
+   * Отправляет push-уведомление, если оно включено у пользователя
+   */
+  private async sendPushNotificationIfEnabled(
+    user: { id: number; fcmToken?: string; pushNotificationsEnabled: boolean },
+    data: { title: string; body: string; userId: number; type: NotificationType; payload?: any },
+  ): Promise<void> {
+    if (user.pushNotificationsEnabled && user.fcmToken) {
+      await this.firebasePushService.sendPushNotificationToUser(
+        {
+          userId: user.id,
+          fcmToken: user.fcmToken,
+          pushNotificationsEnabled: user.pushNotificationsEnabled,
+        },
+        data,
+      );
+    }
+  }
+
+  /**
+   * Отправляет множественные push-уведомления
+   */
+  private async sendBulkPushNotifications(
+    users: { id: number; fcmToken?: string; pushNotificationsEnabled: boolean }[],
+    notifications: ICreateNotification[],
+  ): Promise<void> {
+    const notificationsByUser = new Map<number, ICreateNotification[]>();
+    
+    notifications.forEach(notification => {
+      if (!notificationsByUser.has(notification.userId)) {
+        notificationsByUser.set(notification.userId, []);
+      }
+      notificationsByUser.get(notification.userId)!.push(notification);
+    });
+
+    const pushPromises: Promise<void>[] = [];
+
+    for (const user of users) {
+      const userNotifications = notificationsByUser.get(user.id);
+      if (userNotifications && user.pushNotificationsEnabled && user.fcmToken) {
+        for (const notification of userNotifications) {
+          pushPromises.push(
+            this.firebasePushService.sendPushNotificationToUser(
+              {
+                userId: user.id,
+                fcmToken: user.fcmToken,
+                pushNotificationsEnabled: user.pushNotificationsEnabled,
+              },
+              {
+                title: notification.title,
+                body: notification.message,
+                userId: notification.userId,
+                type: notification.type,
+                payload: notification.payload,
+              },
+            ).then(() => {})
+          );
+        }
+      }
+    }
+
+    await Promise.all(pushPromises);
   }
 }

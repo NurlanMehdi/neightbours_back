@@ -535,8 +535,7 @@ export class PropertyRepository {
   async findUnverifiedOthers(userId: number) {
     return this.prisma.property.findMany({
       where: {
-        isActive: true, // Фильтруем только активные объекты
-        verificationStatus: 'UNVERIFIED',
+        isActive: true,
         NOT: { userId },
       },
       include: {
