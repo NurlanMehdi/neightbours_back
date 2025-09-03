@@ -18,6 +18,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { FamilyTypesModule } from './modules/family-types/family-types.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { FirebaseModule } from './firebase/firebase.module'; // ← BU SATIRI EKLEYİN
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     FamilyTypesModule,
     DocumentsModule,
     NotificationsModule,
+    FirebaseModule, // ← BU SATIRI EKLEYİN
   ],
   controllers: [],
   providers: [JwtService],
