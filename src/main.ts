@@ -25,6 +25,7 @@ async function bootstrap() {
     .setDescription('API для приложения Neighbours')
     .setVersion('1.0')
     .addBearerAuth()
+    .addServer('/')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
