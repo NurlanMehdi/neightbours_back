@@ -7,14 +7,26 @@ export class FirebaseService implements OnModuleInit {
 
   onModuleInit() {
     if (!admin.apps.length) {
+      const projectId = process.env.FIREBASE_PROJECT_ID;
+      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+      let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+      if (!projectId || !clientEmail || !privateKey) {
+        throw new Error('Firebase ENV variables are missing!');
+      }
+
+      // \n stringlərini real newline-a çeviririk
+      privateKey = privateKey.replace(/\\n/g, '\n');
+
       this.app = admin.initializeApp({
         credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          projectId,
+          clientEmail,
+          privateKey,
         }),
-        projectId: process.env.FIREBASE_PROJECT_ID,
       });
+
+      console.log('✅ Firebase initialized with project:', projectId);
     }
   }
 
@@ -32,24 +44,20 @@ export class FirebaseService implements OnModuleInit {
 
   async verifyIdToken(idToken: string) {
     try {
-      const decodedToken = await this.getAuth().verifyIdToken(idToken);
-      return decodedToken;
+      return await this.getAuth().verifyIdToken(idToken);
     } catch (error) {
-      throw new Error('Invalid Firebase token');
+      throw new Error('Invalid Firebase token: ' + error.message);
     }
   }
 
   async sendNotification(token: string, title: string, body: string) {
-    const message = {
-      notification: { title, body },
-      token,
-    };
-
     try {
-      const response = await this.getMessaging().send(message);
-      return response;
+      return await this.getMessaging().send({
+        notification: { title, body },
+        token,
+      });
     } catch (error) {
-      throw new Error('Failed to send notification');
+      throw new Error('Failed to send notification: ' + error.message);
     }
   }
 }
