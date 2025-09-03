@@ -418,9 +418,8 @@ export class PropertyService {
     const verifiedUserIds = property.verifications?.map((verification: any) => verification.userId) || [];
     const verificationCount = property.verifications?.length || 0;
     
-    // Определяем статус проверки на основе количества подтверждений
-    // Статус VERIFIED только если есть минимум 2 подтверждения
-    const verificationStatus = verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
+    // Используем статус верификации из базы данных
+    const verificationStatus = property.verificationStatus;
     
     return plainToInstance(PropertyDto, {
       id: property.id,
