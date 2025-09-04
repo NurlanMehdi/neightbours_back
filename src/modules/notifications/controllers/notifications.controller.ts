@@ -195,6 +195,27 @@ export class NotificationsController {
   }
 
   /**
+   * Удаление всех уведомлений пользователя
+   */
+  @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Удалить все уведомления',
+    description: 'Удаляет все уведомления текущего пользователя',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Все уведомления удалены',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  async deleteAllSelfNotifications(@UserId() userId: number): Promise<void> {
+    await this.notificationService.deleteAllSelfNotifications(userId);
+  }
+
+  /**
    * Создание нового уведомления
    */
   @Post()

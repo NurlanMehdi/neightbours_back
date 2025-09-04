@@ -195,6 +195,16 @@ export class NotificationService implements INotificationService {
   }
 
   /**
+   * Удаляет все уведомления пользователя
+   */
+  async deleteAllSelfNotifications(userId: number): Promise<void> {
+    this.logger.log(`Удаление всех уведомлений пользователя ${userId}`);
+
+    const deletedCount = await this.notificationRepository.deleteAllByUserId(userId);
+    this.logger.log(`Удалено ${deletedCount} уведомлений пользователя ${userId}`);
+  }
+
+  /**
    * Очищает старые прочитанные уведомления
    */
   async cleanupOldNotifications(olderThanDays: number = 30): Promise<number> {

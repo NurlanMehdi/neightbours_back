@@ -237,6 +237,20 @@ export class NotificationRepository implements INotificationRepository {
   }
 
   /**
+   * Удаляет все уведомления пользователя
+   */
+  async deleteAllByUserId(userId: number): Promise<number> {
+    this.logger.log(`Удаление всех уведомлений пользователя ${userId}`);
+
+    const result = await (this.prisma as any).notification.deleteMany({
+      where: { userId },
+    });
+
+    this.logger.log(`Удалено ${result.count} уведомлений пользователя ${userId}`);
+    return result.count;
+  }
+
+  /**
    * Создает множественные уведомления для разных пользователей
    */
   async createMany(notifications: ICreateNotification[]): Promise<void> {
