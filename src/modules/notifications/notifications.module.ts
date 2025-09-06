@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { FirebaseModule } from '../../firebase/firebase.module';
 
@@ -12,6 +13,9 @@ import { NotificationEventService } from './services/notification-event.service'
 
 // Repositories
 import { NotificationRepository } from './repositories/notification.repository';
+
+// Gateways
+import { NotificationsGateway } from './gateways/notifications.gateway';
 
 // Triggers
 import { EventNotificationTrigger } from './triggers/event-notification.trigger';
@@ -27,7 +31,14 @@ import { CommunityNotificationTrigger } from './triggers/community-notification.
  * - Расширяемой архитектуры для новых типов событий
  */
 @Module({
-  imports: [PrismaModule, FirebaseModule],
+  imports: [
+    PrismaModule, 
+    FirebaseModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '30d' },
+    }),
+  ],
   controllers: [NotificationsController],
   providers: [
     // Основные сервисы
@@ -38,6 +49,9 @@ import { CommunityNotificationTrigger } from './triggers/community-notification.
     // Репозиторий
     NotificationRepository,
     
+    // WebSocket Gateway
+    NotificationsGateway,
+    
     // Триггеры уведомлений
     EventNotificationTrigger,
     CommunityNotificationTrigger,
@@ -47,6 +61,7 @@ import { CommunityNotificationTrigger } from './triggers/community-notification.
     NotificationTriggerService,
     NotificationEventService,
     NotificationRepository,
+    NotificationsGateway,
   ],
 })
 export class NotificationsModule {}

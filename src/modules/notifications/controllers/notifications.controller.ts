@@ -38,6 +38,7 @@ import {
   NotificationTypesDto,
   UsersSelectionDto,
 } from '../dto';
+import { NotificationType } from '../interfaces/notification.interface';
 
 /**
  * Контроллер для управления уведомлениями пользователя
@@ -375,5 +376,34 @@ export class NotificationsController {
     return this.notificationService.createNotification(createNotificationDto);
   }
 
-
+  /**
+   * Тестовый эндпоинт для проверки уведомлений в реальном времени
+   */
+  @Post('test-realtime')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Тестовая отправка уведомления в реальном времени',
+    description: 'Отправляет тестовое уведомление текущему пользователю для проверки WebSocket соединения',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Тестовое уведомление отправлено',
+    type: NotificationDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  async testRealtimeNotification(@UserId() userId: number): Promise<NotificationDto> {
+    return this.notificationService.createNotification({
+      type: NotificationType.INFO,
+      title: 'Тестовое уведомление',
+      message: 'Это тестовое уведомление для проверки работы в реальном времени',
+      userId,
+      payload: {
+        isTest: true,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
 }

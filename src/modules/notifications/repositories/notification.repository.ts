@@ -253,7 +253,7 @@ export class NotificationRepository implements INotificationRepository {
   /**
    * Создает множественные уведомления для разных пользователей
    */
-  async createMany(notifications: ICreateNotification[]): Promise<void> {
+  async createMany(notifications: ICreateNotification[]): Promise<any[]> {
     this.logger.log(`Создание ${notifications.length} уведомлений`);
 
     const data = notifications.map(notification => ({
@@ -264,8 +264,14 @@ export class NotificationRepository implements INotificationRepository {
       userId: notification.userId,
     }));
 
-    await (this.prisma as any).notification.createMany({ data });
+    const createPromises = data.map(notificationData => 
+      (this.prisma as any).notification.create({ data: notificationData })
+    );
+
+    const createdNotifications = await Promise.all(createPromises);
     this.logger.log(`Создано ${notifications.length} уведомлений`);
+    
+    return createdNotifications;
   }
 
 

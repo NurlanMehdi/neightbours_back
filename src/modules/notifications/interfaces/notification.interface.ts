@@ -120,6 +120,7 @@ export interface INotificationService {
  */
 export interface INotificationRepository {
   create(data: ICreateNotification): Promise<any>;
+  createMany(notifications: ICreateNotification[]): Promise<any[]>;
   findByUserId(filters: INotificationFilters): Promise<{ data: any[]; total: number }>;
   findById(id: number): Promise<any>;
   update(id: number, data: IUpdateNotification): Promise<any>;

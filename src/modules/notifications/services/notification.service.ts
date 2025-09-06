@@ -1,7 +1,8 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { NotificationRepository } from '../repositories/notification.repository';
 import { FirebasePushService } from '../../../firebase/firebase-push.service';
+import { NotificationsGateway } from '../gateways/notifications.gateway';
 import { 
   INotificationService, 
   ICreateNotification, 
@@ -27,6 +28,8 @@ export class NotificationService implements INotificationService {
   constructor(
     private readonly notificationRepository: NotificationRepository,
     private readonly firebasePushService: FirebasePushService,
+    @Inject(forwardRef(() => NotificationsGateway))
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   /**
@@ -42,6 +45,7 @@ export class NotificationService implements INotificationService {
     }
 
     const notification = await this.notificationRepository.create(data);
+    const notificationDto = this.transformToDto(notification);
 
     await this.sendPushNotificationIfEnabled(user, {
       title: data.title,
@@ -51,7 +55,9 @@ export class NotificationService implements INotificationService {
       payload: data.payload,
     });
 
-    return this.transformToDto(notification);
+    this.sendRealtimeNotification(data.userId, notificationDto);
+
+    return notificationDto;
   }
 
   /**
@@ -76,9 +82,11 @@ export class NotificationService implements INotificationService {
       throw new NotFoundException(`Пользователи с ID ${invalidUsers.join(', ')} не найдены`);
     }
 
-    await this.notificationRepository.createMany(notifications);
+    const createdNotifications = await this.notificationRepository.createMany(notifications);
 
     await this.sendBulkPushNotifications(users, notifications);
+
+    this.sendBulkRealtimeNotifications(notifications, createdNotifications);
 
     this.logger.log(`Создано ${notifications.length} уведомлений`);
   }
@@ -130,6 +138,10 @@ export class NotificationService implements INotificationService {
     }
 
     await this.notificationRepository.markAsRead(notificationId);
+    
+    const updatedUnreadCount = await this.notificationRepository.getUnreadCountForUser(userId);
+    this.sendUnreadCountUpdate(userId, updatedUnreadCount);
+    
     this.logger.log(`Уведомление ${notificationId} отмечено как прочитанное`);
   }
 
@@ -140,6 +152,9 @@ export class NotificationService implements INotificationService {
     this.logger.log(`Отметка всех уведомлений как прочитанных для пользователя ${userId}`);
 
     await this.notificationRepository.markAllAsReadForUser(userId);
+    
+    this.sendUnreadCountUpdate(userId, 0);
+    
     this.logger.log(`Все уведомления пользователя ${userId} отмечены как прочитанные`);
   }
 
@@ -451,5 +466,68 @@ export class NotificationService implements INotificationService {
     }
 
     await Promise.all(pushPromises);
+  }
+
+  /**
+   * Отправляет уведомление в реальном времени через WebSocket
+   */
+  private sendRealtimeNotification(userId: number, notification: NotificationDto): void {
+    try {
+      if (this.notificationsGateway.isUserConnected(userId)) {
+        this.notificationsGateway.sendNotificationToUser(userId, notification);
+        this.logger.log(`Уведомление отправлено в реальном времени пользователю ${userId}`);
+      } else {
+        this.logger.log(`Пользователь ${userId} не подключен к WebSocket, уведомление будет доставлено при следующем подключении`);
+      }
+    } catch (error) {
+      this.logger.error(`Ошибка отправки уведомления в реальном времени пользователю ${userId}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Отправляет множественные уведомления в реальном времени
+   */
+  private sendBulkRealtimeNotifications(
+    notifications: ICreateNotification[],
+    createdNotifications: any[],
+  ): void {
+    try {
+      const notificationsByUser = new Map<number, NotificationDto[]>();
+      
+      createdNotifications.forEach((notification, index) => {
+        const userId = notifications[index].userId;
+        const notificationDto = this.transformToDto(notification);
+        
+        if (!notificationsByUser.has(userId)) {
+          notificationsByUser.set(userId, []);
+        }
+        notificationsByUser.get(userId)!.push(notificationDto);
+      });
+
+      notificationsByUser.forEach((userNotifications, userId) => {
+        if (this.notificationsGateway.isUserConnected(userId)) {
+          userNotifications.forEach(notification => {
+            this.notificationsGateway.sendNotificationToUser(userId, notification);
+          });
+          this.logger.log(`Отправлено ${userNotifications.length} уведомлений в реальном времени пользователю ${userId}`);
+        }
+      });
+    } catch (error) {
+      this.logger.error(`Ошибка отправки множественных уведомлений в реальном времени: ${error.message}`);
+    }
+  }
+
+  /**
+   * Отправляет обновление счетчика непрочитанных уведомлений
+   */
+  private sendUnreadCountUpdate(userId: number, count: number): void {
+    try {
+      if (this.notificationsGateway.isUserConnected(userId)) {
+        this.notificationsGateway.sendUnreadCountUpdate(userId, count);
+        this.logger.log(`Обновлен счетчик непрочитанных уведомлений для пользователя ${userId}: ${count}`);
+      }
+    } catch (error) {
+      this.logger.error(`Ошибка обновления счетчика непрочитанных уведомлений для пользователя ${userId}: ${error.message}`);
+    }
   }
 }
