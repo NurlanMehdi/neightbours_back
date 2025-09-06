@@ -4,3 +4,7 @@ export * from './mark-notification-read.dto';
 export * from './notifications-paginated.dto';
 export * from './unread-count.dto';
 export * from './create-notification.dto';
+export * from './send-notification.dto';
+export * from './send-notification-response.dto';
+export * from './notification-types.dto';
+export * from './user-selection.dto';

@@ -291,4 +291,30 @@ export class NotificationRepository implements INotificationRepository {
     this.logger.log(`Удалено ${result.count} старых прочитанных уведомлений`);
     return result.count;
   }
+
+  /**
+   * Получает список всех пользователей для выбора
+   */
+  async getAllUsersForSelection(): Promise<{ id: number; firstName: string; lastName: string; email: string; avatar: string | null }[]> {
+    this.logger.log('Получение списка пользователей для выбора');
+
+    const users = await (this.prisma as any).users.findMany({
+      where: {
+        status: 'ACTIVE',
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        avatar: true,
+      },
+      orderBy: [
+        { firstName: 'asc' },
+        { lastName: 'asc' },
+      ],
+    });
+
+    return users;
+  }
 }

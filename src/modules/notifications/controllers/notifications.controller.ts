@@ -33,6 +33,10 @@ import {
   NotificationDto,
   UnreadCountDto,
   CreateNotificationDto,
+  SendNotificationDto,
+  SendNotificationResponseDto,
+  NotificationTypesDto,
+  UsersSelectionDto,
 } from '../dto';
 
 /**
@@ -213,6 +217,128 @@ export class NotificationsController {
   })
   async deleteAllSelfNotifications(@UserId() userId: number): Promise<void> {
     await this.notificationService.deleteAllSelfNotifications(userId);
+  }
+
+  /**
+   * Получение списка типов уведомлений
+   */
+  @Get('types')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Получить список типов уведомлений',
+    description: 'Возвращает список доступных типов уведомлений для администраторов',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Список типов уведомлений',
+    type: NotificationTypesDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Недостаточно прав доступа',
+  })
+  async getNotificationTypes(): Promise<NotificationTypesDto> {
+    return this.notificationService.getNotificationTypes();
+  }
+
+  /**
+   * Получение списка пользователей для выбора
+   */
+  @Get('users')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Получить список пользователей',
+    description: 'Возвращает список пользователей для выбора получателей уведомлений',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Список пользователей',
+    type: UsersSelectionDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Недостаточно прав доступа',
+  })
+  async getUsersForSelection(): Promise<UsersSelectionDto> {
+    return this.notificationService.getUsersForSelection();
+  }
+
+  /**
+   * Отправка уведомления выбранным пользователям
+   */
+  @Post('send')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Отправить уведомление пользователям',
+    description: 'Отправляет уведомление выбранным пользователям. Доступно только администраторам.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Уведомления успешно отправлены',
+    type: SendNotificationResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Некорректные данные запроса',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Недостаточно прав доступа',
+  })
+  async sendNotification(
+    @Body(ValidationPipe) sendNotificationDto: SendNotificationDto,
+  ): Promise<SendNotificationResponseDto> {
+    return this.notificationService.sendNotificationToUsers(sendNotificationDto);
+  }
+
+  /**
+   * Массовая отправка уведомлений (альтернативный путь)
+   */
+  @Post('bulk')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Массовая отправка уведомлений',
+    description: 'Отправляет уведомление выбранным пользователям (альтернативный путь). Доступно только администраторам.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Уведомления успешно отправлены',
+    type: SendNotificationResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Некорректные данные запроса',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Пользователь не авторизован',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Недостаточно прав доступа',
+  })
+  async sendBulkNotification(
+    @Body(ValidationPipe) sendNotificationDto: SendNotificationDto,
+  ): Promise<SendNotificationResponseDto> {
+    return this.notificationService.sendNotificationToUsers(sendNotificationDto);
   }
 
   /**

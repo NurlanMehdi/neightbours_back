@@ -9,7 +9,16 @@ import {
   IGlobalNotificationData,
   NotificationType
 } from '../interfaces/notification.interface';
-import { NotificationDto, NotificationsPaginatedDto, UnreadCountDto } from '../dto';
+import { 
+  NotificationDto, 
+  NotificationsPaginatedDto, 
+  UnreadCountDto, 
+  SendNotificationDto, 
+  NotificationTypesDto, 
+  NotificationTypeDto, 
+  UsersSelectionDto, 
+  UserSelectionDto 
+} from '../dto';
 
 @Injectable()
 export class NotificationService implements INotificationService {
@@ -214,6 +223,88 @@ export class NotificationService implements INotificationService {
     this.logger.log(`Удалено ${deletedCount} старых уведомлений`);
     
     return deletedCount;
+  }
+
+  /**
+   * Получает список доступных типов уведомлений
+   */
+  async getNotificationTypes(): Promise<NotificationTypesDto> {
+    this.logger.log('Получение списка типов уведомлений');
+
+    const typeLabels: Record<NotificationType, string> = {
+      [NotificationType.INFO]: 'Информационное',
+      [NotificationType.EVENT_CREATED]: 'Событие создано',
+      [NotificationType.EVENT_UPDATED]: 'Событие обновлено',
+      [NotificationType.EVENT_CANCELLED]: 'Событие отменено',
+      [NotificationType.EVENT_DELETED]: 'Событие удалено',
+      [NotificationType.USER_JOINED_EVENT]: 'Пользователь присоединился к событию',
+      [NotificationType.USER_LEFT_EVENT]: 'Пользователь покинул событие',
+      [NotificationType.USER_MENTIONED]: 'Пользователь упомянут',
+      [NotificationType.MESSAGE_RECEIVED]: 'Получено сообщение',
+      [NotificationType.COMMUNITY_INVITE]: 'Приглашение в сообщество',
+      [NotificationType.COMMUNITY_APPROVED]: 'Сообщество одобрено',
+      [NotificationType.COMMUNITY_REJECTED]: 'Сообщество отклонено',
+      [NotificationType.USER_JOINED_COMMUNITY]: 'Пользователь присоединился к сообществу',
+      [NotificationType.SYSTEM_MAINTENANCE]: 'Техническое обслуживание',
+      [NotificationType.SYSTEM_UPDATE]: 'Обновление системы',
+    };
+
+    const types: NotificationTypeDto[] = Object.values(NotificationType).map(type => 
+      plainToInstance(NotificationTypeDto, {
+        value: type,
+        label: typeLabels[type],
+      })
+    );
+
+    return plainToInstance(NotificationTypesDto, { types });
+  }
+
+  /**
+   * Получает список пользователей для выбора
+   */
+  async getUsersForSelection(): Promise<UsersSelectionDto> {
+    this.logger.log('Получение списка пользователей для выбора');
+
+    const users = await this.notificationRepository.getAllUsersForSelection();
+    
+    const userSelectionDtos: UserSelectionDto[] = users.map(user => 
+      plainToInstance(UserSelectionDto, {
+        id: user.id,
+        fullName: `${user.firstName} ${user.lastName}`.trim(),
+        email: user.email,
+        avatar: user.avatar,
+      })
+    );
+
+    return plainToInstance(UsersSelectionDto, { users: userSelectionDtos });
+  }
+
+  /**
+   * Отправляет уведомление выбранным пользователям
+   */
+  async sendNotificationToUsers(data: SendNotificationDto): Promise<{ success: boolean; message: string; count: number }> {
+    this.logger.log(`Отправка уведомления ${data.notificationType} для ${data.toUserIds.length} пользователей`);
+
+    const notifications: ICreateNotification[] = data.toUserIds.map(userId => ({
+      type: data.notificationType,
+      title: data.title,
+      message: data.message,
+      userId,
+      payload: {
+        isAdminMessage: true,
+        sentAt: new Date().toISOString(),
+        adminAction: 'MANUAL_NOTIFICATION',
+      },
+    }));
+
+    await this.createMultipleNotifications(notifications);
+    this.logger.log(`Отправлено ${notifications.length} уведомлений`);
+
+    return {
+      success: true,
+      message: `Уведомления успешно отправлены ${notifications.length} пользователям`,
+      count: notifications.length,
+    };
   }
 
   /**
