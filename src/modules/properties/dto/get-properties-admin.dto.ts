@@ -11,7 +11,11 @@ import {
 import { Type } from 'class-transformer';
 import { PropertyCategory } from '@prisma/client';
 import { PaginationQueryDto } from '../../../common/models/paginated-query.dto';
-import { TransformToFloat, TransformToInt, TransformToBoolean } from '../../../common/utils/form-data-transformers.util';
+import {
+  TransformToFloat,
+  TransformToInt,
+  TransformToBoolean,
+} from '../../../common/utils/form-data-transformers.util';
 
 export class GetPropertiesAdminDto extends PaginationQueryDto {
   @ApiProperty({

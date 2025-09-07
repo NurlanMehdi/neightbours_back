@@ -1,13 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsLatitude, IsLongitude, IsString, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsLatitude,
+  IsLongitude,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { PropertyCategory } from '@prisma/client';
 import { TransformToFloat } from '../../../common/utils/form-data-transformers.util';
 
 export class CreatePropertyDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Название объекта недвижимости',
     example: 'Мой дом',
-    type: 'string'
+    type: 'string',
   })
   @IsString()
   @MaxLength(255)
@@ -17,42 +23,42 @@ export class CreatePropertyDto {
     description: 'Категория объекта недвижимости',
     enum: PropertyCategory,
     example: PropertyCategory.PRIVATE_HOUSE,
-    type: 'string'
+    type: 'string',
   })
   @IsEnum(PropertyCategory)
   category: PropertyCategory;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Широта объекта недвижимости',
     example: 55.7558,
-    type: 'number'
+    type: 'number',
   })
   @IsLatitude()
   @TransformToFloat()
   latitude: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Долгота объекта недвижимости',
     example: 37.6176,
-    type: 'number'
+    type: 'number',
   })
   @IsLongitude()
   @TransformToFloat()
   longitude: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Широта местоположения пользователя',
     example: 55.7558,
-    type: 'number'
+    type: 'number',
   })
   @IsLatitude()
   @TransformToFloat()
   userLatitude: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Долгота местоположения пользователя',
     example: 37.6176,
-    type: 'number'
+    type: 'number',
   })
   @IsLongitude()
   @TransformToFloat()
@@ -62,7 +68,7 @@ export class CreatePropertyDto {
     description: 'Фотография объекта недвижимости',
     type: 'string',
     format: 'binary',
-    required: false
+    required: false,
   })
   photo?: Express.Multer.File;
-} 
+}

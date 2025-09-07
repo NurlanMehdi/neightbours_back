@@ -20,4 +20,4 @@ export class EventsPaginatedAdminDto implements Paginated<EventDto> {
 
   @ApiProperty({ description: 'Общее количество страниц' })
   totalPages: number;
-} 
+}

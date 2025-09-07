@@ -8,7 +8,9 @@ import { IGlobalNotificationData } from '../interfaces/notification.interface';
  */
 @Injectable()
 export class NotificationUsageService {
-  constructor(private readonly notificationEventService: NotificationEventService) {}
+  constructor(
+    private readonly notificationEventService: NotificationEventService,
+  ) {}
 
   /**
    * Пример 1: Пользователь присоединился к мероприятию
@@ -120,7 +122,9 @@ export class NotificationUsageService {
       },
     };
 
-    await this.notificationEventService.createCustomNotification(customNotification);
+    await this.notificationEventService.createCustomNotification(
+      customNotification,
+    );
   }
 
   /**

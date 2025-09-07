@@ -12,4 +12,4 @@ export class EventCategoryDto {
   @ApiProperty({ description: 'Название категории' })
   @Expose()
   name: string;
-} 
+}

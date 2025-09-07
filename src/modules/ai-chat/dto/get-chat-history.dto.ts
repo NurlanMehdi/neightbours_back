@@ -7,7 +7,7 @@ export class GetChatHistoryDto {
     description: 'Номер страницы',
     example: 1,
     required: false,
-    minimum: 1
+    minimum: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -20,7 +20,7 @@ export class GetChatHistoryDto {
     example: 50,
     required: false,
     minimum: 1,
-    maximum: 100
+    maximum: 100,
   })
   @IsOptional()
   @Type(() => Number)
@@ -28,4 +28,4 @@ export class GetChatHistoryDto {
   @Min(1, { message: 'Лимит не может быть меньше 1' })
   @Max(100, { message: 'Лимит не может быть больше 100' })
   limit?: number = 50;
-} 
+}

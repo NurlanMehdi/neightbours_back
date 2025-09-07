@@ -25,7 +25,7 @@ export class CommunityDto {
 
   @ApiProperty({
     description: 'ФИО создателя сообщества',
-    example: 'Иван Иванов'
+    example: 'Иван Иванов',
   })
   @Expose()
   createdBy: string;

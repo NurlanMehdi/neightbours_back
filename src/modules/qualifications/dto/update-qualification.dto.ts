@@ -46,4 +46,4 @@ export class UpdateQualificationDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
-} 
+}

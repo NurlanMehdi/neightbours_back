@@ -1,7 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsBoolean, IsDateString, ValidateNested, ArrayMinSize } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsDateString,
+  ValidateNested,
+  ArrayMinSize,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { TransformToFloat, TransformToInt, TransformToBoolean, TransformVotingOptions } from '../../../common/utils/form-data-transformers.util';
+import {
+  TransformToFloat,
+  TransformToInt,
+  TransformToBoolean,
+  TransformVotingOptions,
+} from '../../../common/utils/form-data-transformers.util';
 
 /**
  * DTO для варианта голосования
@@ -46,7 +59,10 @@ export class CreateEventDto {
   @TransformToInt()
   categoryId: number;
 
-  @ApiProperty({ description: 'Тип мероприятия', enum: ['EVENT', 'NOTIFICATION'] })
+  @ApiProperty({
+    description: 'Тип мероприятия',
+    enum: ['EVENT', 'NOTIFICATION'],
+  })
   @IsString()
   type: string;
 
@@ -56,7 +72,10 @@ export class CreateEventDto {
   @TransformToBoolean()
   hasVoting?: boolean = false;
 
-  @ApiPropertyOptional({ description: 'Вопрос для голосования', required: false })
+  @ApiPropertyOptional({
+    description: 'Вопрос для голосования',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   votingQuestion?: string;
@@ -88,7 +107,8 @@ export class CreateEventDto {
   communityId: number;
 
   @ApiPropertyOptional({
-    description: 'Варианты ответов для голосования (можно передавать как строки через запятую или объекты)',
+    description:
+      'Варианты ответов для голосования (можно передавать как строки через запятую или объекты)',
     type: 'string',
     required: false,
     example: 'Да,Нет,Возможно',

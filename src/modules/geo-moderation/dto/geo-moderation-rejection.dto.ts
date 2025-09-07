@@ -17,63 +17,63 @@ export class GeoModerationRejectionDto {
   @Expose()
   userId: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Тип действия',
     enum: GeoModerationAction,
-    example: GeoModerationAction.COMMUNITY_JOIN
+    example: GeoModerationAction.COMMUNITY_JOIN,
   })
   @Expose()
   action: GeoModerationAction;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Фактическое расстояние в метрах',
-    example: 620
+    example: 620,
   })
   @Expose()
   distance: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Максимально допустимое расстояние в метрах',
-    example: 500
+    example: 500,
   })
   @Expose()
   maxDistance: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Причина отказа',
-    example: 'Радиус > 500м'
+    example: 'Радиус > 500м',
   })
   @Expose()
   reason: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Широта пользователя',
     example: 55.7558,
-    required: false
+    required: false,
   })
   @Expose()
   userLatitude?: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Долгота пользователя',
     example: 37.6176,
-    required: false
+    required: false,
   })
   @Expose()
   userLongitude?: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Широта цели',
     example: 55.7558,
-    required: false
+    required: false,
   })
   @Expose()
   targetLatitude?: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Долгота цели',
     example: 37.6176,
-    required: false
+    required: false,
   })
   @Expose()
   targetLongitude?: number;
@@ -83,15 +83,15 @@ export class GeoModerationRejectionDto {
   createdAt: Date;
 
   // Информация о пользователе
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Информация о пользователе',
     type: 'object',
     properties: {
       id: { type: 'number' },
       firstName: { type: 'string' },
       lastName: { type: 'string' },
-      phone: { type: 'string' }
-    }
+      phone: { type: 'string' },
+    },
   })
   @Expose()
   @Type(() => Object)
@@ -101,4 +101,4 @@ export class GeoModerationRejectionDto {
     lastName: string;
     phone: string;
   };
-} 
+}

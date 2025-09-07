@@ -45,13 +45,15 @@ export class NotificationsGateway
       this.logger.log(`Новое подключение: ${client.id}`);
 
       let token = client.handshake.auth.token;
-      
+
       if (!token) {
         token = client.handshake.query.token as string;
       }
 
       if (!token) {
-        this.logger.warn(`Подключение ${client.id} отклонено: отсутствует токен`);
+        this.logger.warn(
+          `Подключение ${client.id} отклонено: отсутствует токен`,
+        );
         client.disconnect();
         return;
       }
@@ -62,37 +64,44 @@ export class NotificationsGateway
       if (!this.userSockets.has(userId)) {
         this.userSockets.set(userId, new Set());
       }
-      
+
       this.userSockets.get(userId)!.add(client.id);
       this.socketUser.set(client.id, userId);
 
       client.join(`user:${userId}`);
 
-      this.logger.log(`Пользователь ${userId} подключился к уведомлениям (сокет: ${client.id})`);
-      
-      client.emit('connected', { message: 'Подключение к уведомлениям установлено' });
+      this.logger.log(
+        `Пользователь ${userId} подключился к уведомлениям (сокет: ${client.id})`,
+      );
 
+      client.emit('connected', {
+        message: 'Подключение к уведомлениям установлено',
+      });
     } catch (error) {
-      this.logger.error(`Ошибка при подключении ${client.id}: ${error.message}`);
+      this.logger.error(
+        `Ошибка при подключении ${client.id}: ${error.message}`,
+      );
       client.disconnect();
     }
   }
 
   handleDisconnect(client: Socket) {
     const userId = this.socketUser.get(client.id);
-    
+
     if (userId) {
       const userSocketSet = this.userSockets.get(userId);
       if (userSocketSet) {
         userSocketSet.delete(client.id);
-        
+
         if (userSocketSet.size === 0) {
           this.userSockets.delete(userId);
         }
       }
-      
+
       this.socketUser.delete(client.id);
-      this.logger.log(`Пользователь ${userId} отключился от уведомлений (сокет: ${client.id})`);
+      this.logger.log(
+        `Пользователь ${userId} отключился от уведомлений (сокет: ${client.id})`,
+      );
     }
   }
 
@@ -100,20 +109,27 @@ export class NotificationsGateway
    * Отправляет уведомление конкретному пользователю в реальном времени
    */
   sendNotificationToUser(userId: number, notification: NotificationDto): void {
-    this.logger.log(`Отправка уведомления пользователю ${userId}: ${notification.title}`);
-    
+    this.logger.log(
+      `Отправка уведомления пользователю ${userId}: ${notification.title}`,
+    );
+
     this.server.to(`user:${userId}`).emit('newNotification', notification);
-    
+
     this.logger.log(`Уведомление отправлено пользователю ${userId}`);
   }
 
   /**
    * Отправляет уведомления нескольким пользователям
    */
-  sendNotificationToUsers(userIds: number[], notification: NotificationDto): void {
-    this.logger.log(`Отправка уведомления ${userIds.length} пользователям: ${notification.title}`);
-    
-    userIds.forEach(userId => {
+  sendNotificationToUsers(
+    userIds: number[],
+    notification: NotificationDto,
+  ): void {
+    this.logger.log(
+      `Отправка уведомления ${userIds.length} пользователям: ${notification.title}`,
+    );
+
+    userIds.forEach((userId) => {
       this.sendNotificationToUser(userId, notification);
     });
   }
@@ -122,8 +138,10 @@ export class NotificationsGateway
    * Отправляет обновление счетчика непрочитанных уведомлений
    */
   sendUnreadCountUpdate(userId: number, count: number): void {
-    this.logger.log(`Обновление счетчика непрочитанных для пользователя ${userId}: ${count}`);
-    
+    this.logger.log(
+      `Обновление счетчика непрочитанных для пользователя ${userId}: ${count}`,
+    );
+
     this.server.to(`user:${userId}`).emit('unreadCountUpdate', { count });
   }
 
@@ -131,7 +149,9 @@ export class NotificationsGateway
    * Проверяет, подключен ли пользователь
    */
   isUserConnected(userId: number): boolean {
-    return this.userSockets.has(userId) && this.userSockets.get(userId)!.size > 0;
+    return (
+      this.userSockets.has(userId) && this.userSockets.get(userId)!.size > 0
+    );
   }
 
   /**
@@ -153,7 +173,7 @@ export class NotificationsGateway
    */
   getTotalSocketsCount(): number {
     let total = 0;
-    this.userSockets.forEach(sockets => {
+    this.userSockets.forEach((sockets) => {
       total += sockets.size;
     });
     return total;

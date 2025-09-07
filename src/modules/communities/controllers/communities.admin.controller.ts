@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -31,7 +42,8 @@ export class CommunitiesAdminController {
   @Post()
   @ApiOperation({
     summary: 'Создание нового сообщества администратором',
-    description: 'Создает новое сообщество и возвращает его данные включая код для присоединения',
+    description:
+      'Создает новое сообщество и возвращает его данные включая код для присоединения',
   })
   @ApiBody({
     type: CreateCommunityAdminDto,
@@ -155,7 +167,11 @@ export class CommunitiesAdminController {
   @Get(':id/full')
   @ApiOperation({ summary: 'Получить полную информацию о сообществе' })
   @ApiParam({ name: 'id', type: 'number', description: 'ID сообщества' })
-  @ApiResponse({ status: 200, description: 'Информация о сообществе', type: CommunityFullDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Информация о сообществе',
+    type: CommunityFullDto,
+  })
   async getCommunityFull(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<CommunityFullDto> {
@@ -195,7 +211,8 @@ export class CommunitiesAdminController {
   @Delete(':id')
   @ApiOperation({
     summary: 'Мягкое удаление сообщества',
-    description: 'Устанавливает флаг isActive = false для сообщества (мягкое удаление)',
+    description:
+      'Устанавливает флаг isActive = false для сообщества (мягкое удаление)',
   })
   @ApiParam({
     name: 'id',

@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NotificationTriggerService } from './notification-trigger.service';
 import { NotificationService } from './notification.service';
-import { ISystemEventData, SystemEventType, IGlobalNotificationData } from '../interfaces/notification.interface';
+import {
+  ISystemEventData,
+  SystemEventType,
+  IGlobalNotificationData,
+} from '../interfaces/notification.interface';
 
 /**
  * Сервис для отправки событий в систему уведомлений
@@ -149,8 +153,6 @@ export class NotificationEventService {
     await this.triggerService.processSystemEvent(eventData);
   }
 
-
-
   /**
    * Уведомление о новом сообщении
    */
@@ -174,8 +176,6 @@ export class NotificationEventService {
     await this.triggerService.processSystemEvent(eventData);
   }
 
-
-
   /**
    * Уведомление об удалении мероприятия
    */
@@ -184,8 +184,14 @@ export class NotificationEventService {
     eventTitle: string;
     participantIds: number[];
     deletedByName: string;
+    deletedById?: number;
   }): Promise<void> {
-    if (data.participantIds.length === 0) {
+    // Исключаем пользователя, который удалил событие
+    const targetUserIds = data.deletedById
+      ? data.participantIds.filter((id) => id !== data.deletedById)
+      : data.participantIds;
+
+    if (targetUserIds.length === 0) {
       this.logger.log('Нет участников для уведомления об удалении мероприятия');
       return;
     }
@@ -194,7 +200,7 @@ export class NotificationEventService {
       type: 'EVENT_DELETED',
       title: 'Мероприятие удалено',
       message: `Мероприятие "${data.eventTitle}" было удалено`,
-      userId: data.participantIds,
+      userId: targetUserIds,
       payload: {
         eventId: data.eventId,
         eventTitle: data.eventTitle,
@@ -285,8 +291,10 @@ export class NotificationEventService {
     authorName: string;
     participantIds: number[];
   }): Promise<void> {
-    const recipientIds = data.participantIds.filter(id => id !== data.authorId);
-    
+    const recipientIds = data.participantIds.filter(
+      (id) => id !== data.authorId,
+    );
+
     if (recipientIds.length === 0) {
       this.logger.log('Нет участников для уведомления о новом сообщении');
       return;
@@ -300,7 +308,9 @@ export class NotificationEventService {
       payload: {
         eventId: data.eventId,
         eventTitle: data.eventTitle,
-        messageText: data.messageText.substring(0, 100) + (data.messageText.length > 100 ? '...' : ''),
+        messageText:
+          data.messageText.substring(0, 100) +
+          (data.messageText.length > 100 ? '...' : ''),
         senderName: data.authorName,
       },
     };

@@ -31,4 +31,4 @@ export class UserEventsPaginatedDto {
     example: 3,
   })
   totalPages: number;
-} 
+}

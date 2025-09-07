@@ -40,4 +40,4 @@ export class EventHasNoVotingException extends BaseException {
   constructor() {
     super('Мероприятие не содержит голосования', 400);
   }
-} 
+}

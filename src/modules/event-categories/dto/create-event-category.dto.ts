@@ -30,4 +30,4 @@ export class CreateEventCategoryDto {
   @IsString()
   @IsOptional()
   color?: string;
-} 
+}

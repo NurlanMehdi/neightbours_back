@@ -142,7 +142,7 @@ export class EventNotificationsDto {
 export class UnreadMessagesResponseDto {
   @ApiProperty({
     description: 'Объект с количеством непрочитанных сообщений по событиям',
-    example: { "1": 33, "2": 56, "6": 45 },
+    example: { '1': 33, '2': 56, '6': 45 },
     type: 'object',
     additionalProperties: {
       type: 'number',

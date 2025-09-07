@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsLatitude, IsLongitude, IsEnum } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsLatitude,
+  IsLongitude,
+  IsEnum,
+} from 'class-validator';
 import { CommunityStatus } from '@prisma/client';
 import { TransformToFloat } from '../../../common/utils/form-data-transformers.util';
 
@@ -51,4 +57,4 @@ export class UpdateCommunityAdminDto {
   @IsEnum(CommunityStatus)
   @IsOptional()
   status?: CommunityStatus;
-} 
+}

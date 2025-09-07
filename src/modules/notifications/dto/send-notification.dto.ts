@@ -1,4 +1,12 @@
-import { IsEnum, IsString, IsNotEmpty, IsArray, IsInt, IsOptional, ArrayMinSize } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  IsNotEmpty,
+  IsArray,
+  IsInt,
+  IsOptional,
+  ArrayMinSize,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { NotificationType } from '../interfaces/notification.interface';
@@ -13,9 +21,14 @@ export class SendNotificationDto {
     type: [Number],
   })
   @IsArray({ message: 'Список пользователей должен быть массивом' })
-  @ArrayMinSize(1, { message: 'Необходимо выбрать хотя бы одного пользователя' })
+  @ArrayMinSize(1, {
+    message: 'Необходимо выбрать хотя бы одного пользователя',
+  })
   @Type(() => Number)
-  @IsInt({ each: true, message: 'Каждый ID пользователя должен быть целым числом' })
+  @IsInt({
+    each: true,
+    message: 'Каждый ID пользователя должен быть целым числом',
+  })
   toUserIds: number[];
 
   @ApiProperty({

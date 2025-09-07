@@ -3,10 +3,10 @@ import { Expose } from 'class-transformer';
 import { UserDto } from './user.dto';
 
 export class RegistrationStep4ResponseDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Данные пользователя с информацией о сообществе',
-    type: UserDto
+    type: UserDto,
   })
   @Expose()
   user: UserDto;
-} 
+}

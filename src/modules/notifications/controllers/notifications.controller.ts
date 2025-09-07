@@ -19,7 +19,6 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -56,7 +55,8 @@ export class NotificationsController {
   @Get()
   @ApiOperation({
     summary: 'Получить список уведомлений',
-    description: 'Получает список уведомлений текущего пользователя с возможностью фильтрации и пагинации',
+    description:
+      'Получает список уведомлений текущего пользователя с возможностью фильтрации и пагинации',
   })
   @ApiResponse({
     status: 200,
@@ -87,7 +87,8 @@ export class NotificationsController {
   @Get('unread-count')
   @ApiOperation({
     summary: 'Получить количество непрочитанных уведомлений',
-    description: 'Возвращает количество непрочитанных уведомлений текущего пользователя',
+    description:
+      'Возвращает количество непрочитанных уведомлений текущего пользователя',
   })
   @ApiResponse({
     status: 200,
@@ -101,8 +102,6 @@ export class NotificationsController {
   async getUnreadCount(@UserId() userId: number): Promise<UnreadCountDto> {
     return this.notificationService.getUnreadCount(userId);
   }
-
-
 
   /**
    * Отметка уведомления как прочитанного
@@ -228,7 +227,8 @@ export class NotificationsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Получить список типов уведомлений',
-    description: 'Возвращает список доступных типов уведомлений для администраторов',
+    description:
+      'Возвращает список доступных типов уведомлений для администраторов',
   })
   @ApiResponse({
     status: 200,
@@ -255,7 +255,8 @@ export class NotificationsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Получить список пользователей',
-    description: 'Возвращает список пользователей для выбора получателей уведомлений',
+    description:
+      'Возвращает список пользователей для выбора получателей уведомлений',
   })
   @ApiResponse({
     status: 200,
@@ -283,7 +284,8 @@ export class NotificationsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Отправить уведомление пользователям',
-    description: 'Отправляет уведомление выбранным пользователям. Доступно только администраторам.',
+    description:
+      'Отправляет уведомление выбранным пользователям. Доступно только администраторам.',
   })
   @ApiResponse({
     status: 201,
@@ -305,7 +307,9 @@ export class NotificationsController {
   async sendNotification(
     @Body(ValidationPipe) sendNotificationDto: SendNotificationDto,
   ): Promise<SendNotificationResponseDto> {
-    return this.notificationService.sendNotificationToUsers(sendNotificationDto);
+    return this.notificationService.sendNotificationToUsers(
+      sendNotificationDto,
+    );
   }
 
   /**
@@ -317,7 +321,8 @@ export class NotificationsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Массовая отправка уведомлений',
-    description: 'Отправляет уведомление выбранным пользователям (альтернативный путь). Доступно только администраторам.',
+    description:
+      'Отправляет уведомление выбранным пользователям (альтернативный путь). Доступно только администраторам.',
   })
   @ApiResponse({
     status: 201,
@@ -339,7 +344,9 @@ export class NotificationsController {
   async sendBulkNotification(
     @Body(ValidationPipe) sendNotificationDto: SendNotificationDto,
   ): Promise<SendNotificationResponseDto> {
-    return this.notificationService.sendNotificationToUsers(sendNotificationDto);
+    return this.notificationService.sendNotificationToUsers(
+      sendNotificationDto,
+    );
   }
 
   /**
@@ -351,7 +358,8 @@ export class NotificationsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Создать новое уведомление',
-    description: 'Создает новое уведомление для указанного пользователя. Доступно только администраторам.',
+    description:
+      'Создает новое уведомление для указанного пользователя. Доступно только администраторам.',
   })
   @ApiResponse({
     status: 201,
@@ -383,7 +391,8 @@ export class NotificationsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Тестовая отправка уведомления в реальном времени',
-    description: 'Отправляет тестовое уведомление текущему пользователю для проверки WebSocket соединения',
+    description:
+      'Отправляет тестовое уведомление текущему пользователю для проверки WebSocket соединения',
   })
   @ApiResponse({
     status: 201,
@@ -394,11 +403,14 @@ export class NotificationsController {
     status: 401,
     description: 'Пользователь не авторизован',
   })
-  async testRealtimeNotification(@UserId() userId: number): Promise<NotificationDto> {
+  async testRealtimeNotification(
+    @UserId() userId: number,
+  ): Promise<NotificationDto> {
     return this.notificationService.createNotification({
       type: NotificationType.INFO,
       title: 'Тестовое уведомление',
-      message: 'Это тестовое уведомление для проверки работы в реальном времени',
+      message:
+        'Это тестовое уведомление для проверки работы в реальном времени',
       userId,
       payload: {
         isTest: true,

@@ -61,7 +61,8 @@ export class PropertiesController {
   @Post('my')
   @ApiOperation({
     summary: 'Создать новый объект недвижимости',
-    description: 'Создает новый объект недвижимости для текущего пользователя. Поддерживает загрузку фотографии. Пользователь должен находиться не дальше 100 метров от добавляемого объекта.',
+    description:
+      'Создает новый объект недвижимости для текущего пользователя. Поддерживает загрузку фотографии. Пользователь должен находиться не дальше 100 метров от добавляемого объекта.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({
@@ -93,7 +94,8 @@ export class PropertiesController {
   @Patch('my/:id')
   @ApiOperation({
     summary: 'Обновить объект недвижимости текущего пользователя',
-    description: 'Обновляет объект недвижимости текущего пользователя. Поддерживает частичное обновление и загрузку фотографии.',
+    description:
+      'Обновляет объект недвижимости текущего пользователя. Поддерживает частичное обновление и загрузку фотографии.',
   })
   @ApiParam({
     name: 'id',
@@ -201,7 +203,8 @@ export class PropertiesController {
   })
   @ApiResponse({
     status: 404,
-    description: 'Сообщество не найдено или пользователь не является участником',
+    description:
+      'Сообщество не найдено или пользователь не является участником',
   })
   async getCommunityProperties(
     @Query() query: GetCommunityPropertiesDto,
@@ -213,7 +216,8 @@ export class PropertiesController {
   @Post(':id/verify')
   @ApiOperation({
     summary: 'Подтвердить объект недвижимости',
-    description: 'Подтверждает объект недвижимости. Пользователь должен находиться не дальше 100 метров от объекта и не может подтверждать собственный объект. После 3 подтверждений объект становится подтвержденным.',
+    description:
+      'Подтверждает объект недвижимости. Пользователь должен находиться не дальше 100 метров от объекта и не может подтверждать собственный объект. После 3 подтверждений объект становится подтвержденным.',
   })
   @ApiParam({
     name: 'id',
@@ -227,7 +231,8 @@ export class PropertiesController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Некорректные данные, расстояние превышает 100 метров, пользователь уже подтверждал объект или пытается подтвердить собственный объект',
+    description:
+      'Некорректные данные, расстояние превышает 100 метров, пользователь уже подтверждал объект или пытается подтвердить собственный объект',
   })
   @ApiResponse({
     status: 401,
@@ -255,7 +260,8 @@ export class PropertiesController {
   @Get('unverified-others')
   @ApiOperation({
     summary: 'Получить все чужие неподтвержденные объекты недвижимости',
-    description: 'Возвращает список всех объектов недвижимости, которые не принадлежат текущему пользователю и имеют статус UNVERIFIED. Можно фильтровать по радиусу на карте.'
+    description:
+      'Возвращает список всех объектов недвижимости, которые не принадлежат текущему пользователю и имеют статус UNVERIFIED. Можно фильтровать по радиусу на карте.',
   })
   @ApiQuery({
     name: 'latitude',
@@ -293,6 +299,11 @@ export class PropertiesController {
     @Query('longitude') longitude?: number,
     @Query('radius') radius?: number,
   ): Promise<PropertyDto[]> {
-    return this.propertyService.getUnverifiedOthers({ userId, latitude, longitude, radius });
+    return this.propertyService.getUnverifiedOthers({
+      userId,
+      latitude,
+      longitude,
+      radius,
+    });
   }
 }

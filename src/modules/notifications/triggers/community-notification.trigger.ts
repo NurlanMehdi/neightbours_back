@@ -3,10 +3,10 @@ import { NotificationType } from '../interfaces/notification.interface';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { BaseNotificationTrigger } from './base-notification.trigger';
 import { NotificationService } from '../services/notification.service';
-import { 
-  ISystemEventData, 
+import {
+  ISystemEventData,
   SystemEventType,
-  ICreateNotification 
+  ICreateNotification,
 } from '../interfaces/notification.interface';
 
 /**
@@ -28,7 +28,7 @@ export class CommunityNotificationTrigger extends BaseNotificationTrigger {
     this.logger.log(`Обработка события ${eventData.eventType}`);
 
     const targetUserIds = await this.getTargetUserIds(eventData);
-    
+
     if (targetUserIds.length === 0) {
       this.logger.log('Нет пользователей для уведомления');
       return;
@@ -38,12 +38,14 @@ export class CommunityNotificationTrigger extends BaseNotificationTrigger {
     const title = this.generateTitle(eventData);
     const message = this.generateMessage(eventData);
 
-    const notifications: ICreateNotification[] = targetUserIds.map(userId => ({
-      ...this.createBaseNotificationData(eventData, userId),
-      type: notificationType,
-      title,
-      message,
-    }));
+    const notifications: ICreateNotification[] = targetUserIds.map(
+      (userId) => ({
+        ...this.createBaseNotificationData(eventData, userId),
+        type: notificationType,
+        title,
+        message,
+      }),
+    );
 
     await this.createMultipleNotifications(notifications);
   }
@@ -52,9 +54,7 @@ export class CommunityNotificationTrigger extends BaseNotificationTrigger {
    * Проверяет, должен ли триггер обрабатывать событие
    */
   protected shouldHandle(eventType: SystemEventType): boolean {
-    return [
-      SystemEventType.USER_JOINED_COMMUNITY,
-    ].includes(eventType);
+    return [SystemEventType.USER_JOINED_COMMUNITY].includes(eventType);
   }
 
   /**
@@ -74,7 +74,8 @@ export class CommunityNotificationTrigger extends BaseNotificationTrigger {
    */
   protected generateMessage(eventData: ISystemEventData): string {
     const newUserName = eventData.additionalData?.newUserName || 'Пользователь';
-    const communityName = eventData.additionalData?.communityName || 'сообщество';
+    const communityName =
+      eventData.additionalData?.communityName || 'сообщество';
 
     switch (eventData.eventType) {
       case SystemEventType.USER_JOINED_COMMUNITY:
@@ -99,7 +100,9 @@ export class CommunityNotificationTrigger extends BaseNotificationTrigger {
   /**
    * Получает список пользователей для уведомления
    */
-  protected async getTargetUserIds(eventData: ISystemEventData): Promise<number[]> {
+  protected async getTargetUserIds(
+    eventData: ISystemEventData,
+  ): Promise<number[]> {
     if (!eventData.relatedEntityId) {
       this.logger.warn('Отсутствует ID связанного сообщества');
       return [];
@@ -129,21 +132,25 @@ export class CommunityNotificationTrigger extends BaseNotificationTrigger {
 
       // Уведомляем всех участников сообщества, кроме того кто присоединился
       let targetUserIds = [
-        ...community.users.map(u => u.userId),
+        ...community.users.map((u) => u.userId),
         community.creator.id,
       ];
 
       // Исключаем пользователя, который присоединился
       if (triggererUserId) {
-        targetUserIds = targetUserIds.filter(userId => userId !== triggererUserId);
+        targetUserIds = targetUserIds.filter(
+          (userId) => userId !== triggererUserId,
+        );
       }
 
       // Убираем дубликаты
       const uniqueUserIds = Array.from(new Set(targetUserIds));
       return this.filterUsers(uniqueUserIds);
-
     } catch (error) {
-      this.logger.error(`Ошибка получения пользователей для уведомления: ${error.message}`, error.stack);
+      this.logger.error(
+        `Ошибка получения пользователей для уведомления: ${error.message}`,
+        error.stack,
+      );
       return [];
     }
   }

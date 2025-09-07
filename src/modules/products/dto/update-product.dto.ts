@@ -22,7 +22,7 @@ export class UpdateProductDto {
 
   @ApiProperty({
     description: 'Цена продукта',
-    example: 1500.50,
+    example: 1500.5,
     required: false,
   })
   @IsNumber()
@@ -46,4 +46,4 @@ export class UpdateProductDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
-} 
+}

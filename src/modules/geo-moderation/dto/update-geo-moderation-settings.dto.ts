@@ -1,12 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsBoolean, IsNumber, Min, Max } from 'class-validator';
-import { TransformToBoolean, TransformToInt } from '../../../common/utils/form-data-transformers.util';
+import {
+  TransformToBoolean,
+  TransformToInt,
+} from '../../../common/utils/form-data-transformers.util';
 
 export class UpdateGeoModerationSettingsDto {
   @ApiProperty({
     description: 'Включить гео-модерацию вступления в сообщество',
     example: true,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsBoolean({ message: 'Значение должно быть булевым' })
@@ -14,11 +17,12 @@ export class UpdateGeoModerationSettingsDto {
   communityJoinEnabled?: boolean;
 
   @ApiProperty({
-    description: 'Максимальное расстояние для вступления в сообщество (в метрах)',
+    description:
+      'Максимальное расстояние для вступления в сообщество (в метрах)',
     example: 500,
     required: false,
     minimum: 10,
-    maximum: 10000
+    maximum: 10000,
   })
   @IsOptional()
   @IsNumber({}, { message: 'Расстояние должно быть числом' })
@@ -30,7 +34,7 @@ export class UpdateGeoModerationSettingsDto {
   @ApiProperty({
     description: 'Включить гео-модерацию подтверждения объекта',
     example: true,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsBoolean({ message: 'Значение должно быть булевым' })
@@ -42,7 +46,7 @@ export class UpdateGeoModerationSettingsDto {
     example: 100,
     required: false,
     minimum: 10,
-    maximum: 1000
+    maximum: 1000,
   })
   @IsOptional()
   @IsNumber({}, { message: 'Расстояние должно быть числом' })
@@ -54,7 +58,7 @@ export class UpdateGeoModerationSettingsDto {
   @ApiProperty({
     description: 'Включить гео-модерацию добавления объекта',
     example: true,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsBoolean({ message: 'Значение должно быть булевым' })
@@ -66,7 +70,7 @@ export class UpdateGeoModerationSettingsDto {
     example: 100,
     required: false,
     minimum: 10,
-    maximum: 1000
+    maximum: 1000,
   })
   @IsOptional()
   @IsNumber({}, { message: 'Расстояние должно быть числом' })

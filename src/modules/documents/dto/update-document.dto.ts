@@ -5,7 +5,7 @@ export class UpdateDocumentDto {
   @ApiProperty({
     description: 'Document title',
     example: 'Лицензионное соглашение',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -14,7 +14,7 @@ export class UpdateDocumentDto {
   @ApiProperty({
     description: 'Document content',
     example: 'Содержание лицензионного соглашения...',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()

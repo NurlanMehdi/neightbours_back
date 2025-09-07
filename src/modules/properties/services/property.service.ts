@@ -13,7 +13,10 @@ import { VerifyPropertyDto } from '../dto/verify-property.dto';
 import { plainToInstance } from 'class-transformer';
 import { isWithinRadius } from '../../../common/utils/geo.utils';
 import { UserNotFoundException } from '../../../common/exceptions/user.exception';
-import { PropertyAlreadyVerifiedException, PropertyOwnVerificationException } from '../../../common/exceptions/property.exception';
+import {
+  PropertyAlreadyVerifiedException,
+  PropertyOwnVerificationException,
+} from '../../../common/exceptions/property.exception';
 import { GeoModerationService } from '../../geo-moderation/services/geo-moderation.service';
 
 /**
@@ -41,7 +44,10 @@ export class PropertyService {
     createPropertyDto: CreatePropertyAdminDto,
     photo?: Express.Multer.File,
   ): Promise<PropertyAdminDto> {
-    console.log('Service createProperty called with:', { createPropertyDto, photo });
+    console.log('Service createProperty called with:', {
+      createPropertyDto,
+      photo,
+    });
     const propertyData = {
       ...createPropertyDto,
       photo: photo?.filename || null,
@@ -133,8 +139,12 @@ export class PropertyService {
     updatePropertyDto: UpdatePropertyAdminDto,
     photo?: Express.Multer.File,
   ): Promise<PropertyAdminDto> {
-    console.log('updatePropertyByAdmin called with:', { id, updatePropertyDto, photo });
-    
+    console.log('updatePropertyByAdmin called with:', {
+      id,
+      updatePropertyDto,
+      photo,
+    });
+
     // Проверяем существование объекта
     const existingProperty = await this.propertyRepository.findById(id);
     if (!existingProperty) {
@@ -161,9 +171,13 @@ export class PropertyService {
     }
     if (updatePropertyDto.userId !== undefined) {
       // Проверяем существование нового владельца
-      const newOwner = await this.userRepository.findById(updatePropertyDto.userId);
+      const newOwner = await this.userRepository.findById(
+        updatePropertyDto.userId,
+      );
       if (!newOwner) {
-        throw new NotFoundException(`Пользователь с ID ${updatePropertyDto.userId} не найден`);
+        throw new NotFoundException(
+          `Пользователь с ID ${updatePropertyDto.userId} не найден`,
+        );
       }
       updateData.userId = updatePropertyDto.userId;
     }
@@ -181,7 +195,7 @@ export class PropertyService {
       id,
       updateData,
     );
-    
+
     return this.transformToAdminDto(property);
   }
 
@@ -374,9 +388,9 @@ export class PropertyService {
    */
   private transformToAdminDto(property: any): PropertyAdminDto {
     const ownerName =
-      property.user.firstName && property.user.lastName
-        ? `${property.user.firstName} ${property.user.lastName}`
-        : property.user.firstName || property.user.lastName || 'Не указано';
+      property.user.firstName || property.user.lastName
+        ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
+        : 'Не указано';
 
     const communityName =
       property.user.Communities?.[0]?.community?.name || 'Не указано';
@@ -384,7 +398,7 @@ export class PropertyService {
     // Подсчитываем количество подтверждений
     const verificationCount = property.verifications?.length || 0;
     const confirmations = `${verificationCount}/2`;
-    
+
     // Определяем статус проверки на основе количества подтверждений
     const isVerified = verificationCount >= 2;
 
@@ -413,15 +427,18 @@ export class PropertyService {
     const createdBy = property.user
       ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
       : '';
-    
+
     // Извлекаем список ID пользователей, которые подтвердили объект
-    const verifiedUserIds = property.verifications?.map((verification: any) => verification.userId) || [];
+    const verifiedUserIds =
+      property.verifications?.map((verification: any) => verification.userId) ||
+      [];
     const verificationCount = property.verifications?.length || 0;
-    
+
     // Определяем статус проверки на основе количества подтверждений
     // Статус VERIFIED только если есть минимум 2 подтверждения
-    const verificationStatus = verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
-    
+    const verificationStatus =
+      verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
+
     return plainToInstance(PropertyDto, {
       id: property.id,
       name: property.name,
@@ -469,7 +486,10 @@ export class PropertyService {
     }
 
     // Проверяем, не подтверждал ли пользователь уже этот объект
-    const hasVerified = await this.propertyRepository.hasUserVerified(propertyId, userId);
+    const hasVerified = await this.propertyRepository.hasUserVerified(
+      propertyId,
+      userId,
+    );
     if (hasVerified) {
       throw new PropertyAlreadyVerifiedException();
     }
@@ -491,15 +511,20 @@ export class PropertyService {
     await this.propertyRepository.addVerification(propertyId, userId);
 
     // Получаем количество подтверждений
-    const verificationCount = await this.propertyRepository.getVerificationCount(propertyId);
+    const verificationCount =
+      await this.propertyRepository.getVerificationCount(propertyId);
 
     // Если достигнуто 3 подтверждения, обновляем статус
     if (verificationCount >= 3) {
-      await this.propertyRepository.updateVerificationStatus(propertyId, 'VERIFIED');
+      await this.propertyRepository.updateVerificationStatus(
+        propertyId,
+        'VERIFIED',
+      );
     }
 
     // Возвращаем обновленный объект
-    const updatedProperty = await this.propertyRepository.findByIdWithVerifications(propertyId);
+    const updatedProperty =
+      await this.propertyRepository.findByIdWithVerifications(propertyId);
     return this.transformToUserDto(updatedProperty);
   }
 
@@ -508,17 +533,29 @@ export class PropertyService {
    * @param params Параметры фильтрации
    * @returns Список чужих неподтвержденных объектов недвижимости
    */
-  async getUnverifiedOthers(params: GetUnverifiedOthersParams): Promise<PropertyDto[]> {
+  async getUnverifiedOthers(
+    params: GetUnverifiedOthersParams,
+  ): Promise<PropertyDto[]> {
     const { userId, latitude, longitude, radius } = params;
     let properties = await this.propertyRepository.findUnverifiedOthers(userId);
-    
+
     // Применяем фильтрацию по радиусу на уровне базы данных
-    if (latitude !== undefined && longitude !== undefined && radius !== undefined) {
+    if (
+      latitude !== undefined &&
+      longitude !== undefined &&
+      radius !== undefined
+    ) {
       properties = properties.filter((property) =>
-        isWithinRadius(latitude, longitude, property.latitude, property.longitude, radius)
+        isWithinRadius(
+          latitude,
+          longitude,
+          property.latitude,
+          property.longitude,
+          radius,
+        ),
       );
     }
-    
+
     // Трансформируем в DTO и фильтруем только неподтвержденные (< 2 подтверждений)
     return properties
       .map((property) => this.transformToUserDto(property))

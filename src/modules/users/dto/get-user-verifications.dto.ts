@@ -30,8 +30,6 @@ export class GetUserVerificationsDto extends PaginationQueryDto {
   @Type(() => Boolean)
   isVerified?: boolean;
 
-
-
   @ApiPropertyOptional({
     description: 'Дата подтверждения от (YYYY-MM-DD)',
     example: '2024-01-01',
@@ -47,4 +45,4 @@ export class GetUserVerificationsDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   dateTo?: string;
-} 
+}

@@ -10,4 +10,4 @@ export function transformBoolean(value: any): boolean {
     return trimmed === 'true' || trimmed === '1' || trimmed === 'on';
   }
   return Boolean(value);
-} 
+}

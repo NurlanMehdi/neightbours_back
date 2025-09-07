@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { PropertyCategory, PropertyVerificationStatus, Prisma } from '@prisma/client';
+import {
+  PropertyCategory,
+  PropertyVerificationStatus,
+  Prisma,
+} from '@prisma/client';
 import { GetPropertiesAdminDto } from '../dto/get-properties-admin.dto';
 
 @Injectable()
@@ -207,7 +211,7 @@ export class PropertyRepository {
    */
   async findById(id: number) {
     return this.prisma.property.findFirst({
-      where: { 
+      where: {
         id,
         isActive: true,
       },
@@ -244,7 +248,7 @@ export class PropertyRepository {
    */
   async findByUserId(userId: number) {
     return this.prisma.property.findMany({
-      where: { 
+      where: {
         userId,
         isActive: true,
       },
@@ -451,7 +455,7 @@ export class PropertyRepository {
    */
   async findByIdWithVerifications(id: number) {
     return this.prisma.property.findFirst({
-      where: { 
+      where: {
         id,
         isActive: true,
       },
@@ -520,7 +524,10 @@ export class PropertyRepository {
   /**
    * Обновляет статус подтверждения объекта
    */
-  async updateVerificationStatus(propertyId: number, status: 'UNVERIFIED' | 'VERIFIED') {
+  async updateVerificationStatus(
+    propertyId: number,
+    status: 'UNVERIFIED' | 'VERIFIED',
+  ) {
     return this.prisma.property.update({
       where: { id: propertyId },
       data: { verificationStatus: status },
@@ -573,8 +580,19 @@ export class PropertyRepository {
   /**
    * Получает объекты недвижимости, подтвержденные пользователем
    */
-  async findUserVerifications(userId: number, filters: any): Promise<{ data: any[]; total: number }> {
-    const { page = 1, limit = 10, search, category, isVerified, dateFrom, dateTo } = filters;
+  async findUserVerifications(
+    userId: number,
+    filters: any,
+  ): Promise<{ data: any[]; total: number }> {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      category,
+      isVerified,
+      dateFrom,
+      dateTo,
+    } = filters;
     const skip = (page - 1) * limit;
 
     // Базовые условия для поиска подтверждений пользователя

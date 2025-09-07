@@ -3,17 +3,24 @@ import { QualificationsRepository } from '../repositories/qualifications.reposit
 import { CreateQualificationDto } from '../dto/create-qualification.dto';
 import { UpdateQualificationDto } from '../dto/update-qualification.dto';
 import { GetQualificationsDto } from '../dto/get-qualifications.dto';
-import { QualificationDto, QualificationsListDto } from '../dto/qualification.dto';
+import {
+  QualificationDto,
+  QualificationsListDto,
+} from '../dto/qualification.dto';
 import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class QualificationsService {
-  constructor(private readonly qualificationsRepository: QualificationsRepository) {}
+  constructor(
+    private readonly qualificationsRepository: QualificationsRepository,
+  ) {}
 
   /**
    * Создает новую квалификацию
    */
-  async createQualification(dto: CreateQualificationDto): Promise<QualificationDto> {
+  async createQualification(
+    dto: CreateQualificationDto,
+  ): Promise<QualificationDto> {
     const qualification = await this.qualificationsRepository.create(dto);
     return this.transformQualificationToDto(qualification);
   }
@@ -21,11 +28,13 @@ export class QualificationsService {
   /**
    * Получает все квалификации с фильтрацией и пагинацией
    */
-  async getQualifications(filters: GetQualificationsDto): Promise<QualificationsListDto> {
+  async getQualifications(
+    filters: GetQualificationsDto,
+  ): Promise<QualificationsListDto> {
     const result = await this.qualificationsRepository.findMany(filters);
     return {
-      data: result.qualifications.map(qualification => 
-        this.transformQualificationToDto(qualification)
+      data: result.qualifications.map((qualification) =>
+        this.transformQualificationToDto(qualification),
       ),
       total: result.total,
       page: filters.page,
@@ -45,7 +54,10 @@ export class QualificationsService {
   /**
    * Обновляет квалификацию
    */
-  async updateQualification(id: number, dto: UpdateQualificationDto): Promise<QualificationDto> {
+  async updateQualification(
+    id: number,
+    dto: UpdateQualificationDto,
+  ): Promise<QualificationDto> {
     const qualification = await this.qualificationsRepository.update(id, dto);
     return this.transformQualificationToDto(qualification);
   }
@@ -62,22 +74,37 @@ export class QualificationsService {
    * Получает квалификации пользователя
    */
   async getUserQualifications(userId: number): Promise<QualificationDto[]> {
-    const userQualifications = await this.qualificationsRepository.getUserQualifications(userId);
-    return userQualifications.map(item => this.transformQualificationToDto(item.qualification));
+    const userQualifications =
+      await this.qualificationsRepository.getUserQualifications(userId);
+    return userQualifications.map((item) =>
+      this.transformQualificationToDto(item.qualification),
+    );
   }
 
   /**
    * Добавляет квалификацию пользователю
    */
-  async addUserQualification(userId: number, qualificationId: number): Promise<void> {
-    await this.qualificationsRepository.addUserQualification(userId, qualificationId);
+  async addUserQualification(
+    userId: number,
+    qualificationId: number,
+  ): Promise<void> {
+    await this.qualificationsRepository.addUserQualification(
+      userId,
+      qualificationId,
+    );
   }
 
   /**
    * Удаляет квалификацию у пользователя
    */
-  async removeUserQualification(userId: number, qualificationId: number): Promise<void> {
-    await this.qualificationsRepository.removeUserQualification(userId, qualificationId);
+  async removeUserQualification(
+    userId: number,
+    qualificationId: number,
+  ): Promise<void> {
+    await this.qualificationsRepository.removeUserQualification(
+      userId,
+      qualificationId,
+    );
   }
 
   /**
@@ -88,4 +115,4 @@ export class QualificationsService {
       excludeExtraneousValues: true,
     });
   }
-} 
+}

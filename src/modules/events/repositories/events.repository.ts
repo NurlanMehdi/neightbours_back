@@ -9,7 +9,6 @@ import { Prisma } from '@prisma/client';
 import { CreateVotingOptionDto } from '../dto/create-event.dto';
 import { Event } from '@prisma/client';
 
-
 @Injectable()
 export class EventsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -18,7 +17,7 @@ export class EventsRepository {
    * Создает новое событие
    */
   async create(
-    data: CreateEventDto & { createdBy: number; image?: string }
+    data: CreateEventDto & { createdBy: number; image?: string },
   ): Promise<any> {
     const eventData: any = {
       title: data.title,
@@ -40,7 +39,9 @@ export class EventsRepository {
       where: { id: data.categoryId },
     });
     if (!category) {
-      throw new BadRequestException(`Категория события с ID ${data.categoryId} не найдена`);
+      throw new BadRequestException(
+        `Категория события с ID ${data.categoryId} не найдена`,
+      );
     }
     eventData.category = { connect: { id: data.categoryId } };
     const event = await this.prisma.event.create({ data: eventData });
@@ -109,13 +110,17 @@ export class EventsRepository {
           where: { id: data.categoryId },
         });
         if (!category) {
-          throw new BadRequestException(`Категория события с ID ${data.categoryId} не найдена`);
+          throw new BadRequestException(
+            `Категория события с ID ${data.categoryId} не найдена`,
+          );
         }
         eventData.category = { connect: { id: data.categoryId } };
         const event = await prisma.event.create({ data: eventData });
         for (const option of votingOptions) {
           if (!option.text || typeof option.text !== 'string') {
-            throw new BadRequestException(`Некорректный текст варианта голосования: ${JSON.stringify(option)}`);
+            throw new BadRequestException(
+              `Некорректный текст варианта голосования: ${JSON.stringify(option)}`,
+            );
           }
           await prisma.votingOption.create({
             data: {
@@ -232,7 +237,7 @@ export class EventsRepository {
   async findById(id: number): Promise<any> {
     try {
       const event = await this.prisma.event.findFirst({
-        where: { 
+        where: {
           id,
           isActive: true,
         },
@@ -280,7 +285,9 @@ export class EventsRepository {
         throw error;
       }
       console.error(`Database error in findById for event ${id}:`, error);
-      throw new Error(`Ошибка базы данных при поиске события: ${error.message}`);
+      throw new Error(
+        `Ошибка базы данных при поиске события: ${error.message}`,
+      );
     }
   }
 
@@ -288,12 +295,13 @@ export class EventsRepository {
    * Обновляет событие
    */
   async update(id: number, data: UpdateEventDto): Promise<any> {
-    const { categoryId, communityId, votingOptions, eventDateTime, ...rest } = data;
+    const { categoryId, communityId, votingOptions, eventDateTime, ...rest } =
+      data;
     const updateData: any = { ...rest };
     if (eventDateTime !== undefined) {
       updateData.eventDateTime = eventDateTime;
     }
-    
+
     // Обработка категории
     if (categoryId !== undefined) {
       if (categoryId === null) {
@@ -302,42 +310,48 @@ export class EventsRepository {
         updateData.category = { connect: { id: categoryId } };
       }
     }
-    
+
     // Обработка сообщества
     if (communityId !== undefined) {
       updateData.community = { connect: { id: communityId } };
     }
-    
+
     // Обработка голосования
     if (data.hasVoting !== undefined) {
       if (data.hasVoting === false) {
         // Если голосование отключено, удаляем все связанные данные
         updateData.votingQuestion = null;
         updateData.votingOptions = { deleteMany: {} };
-      } else if (data.hasVoting === true && votingOptions && votingOptions.length > 0) {
+      } else if (
+        data.hasVoting === true &&
+        votingOptions &&
+        votingOptions.length > 0
+      ) {
         // Если голосование включено и есть варианты, обновляем их
-        const validOptions = votingOptions.filter(option => 
-          option.text && typeof option.text === 'string'
+        const validOptions = votingOptions.filter(
+          (option) => option.text && typeof option.text === 'string',
         );
-        
+
         if (validOptions.length < 2) {
-          throw new BadRequestException('Необходимо указать минимум 2 корректных варианта ответа');
+          throw new BadRequestException(
+            'Необходимо указать минимум 2 корректных варианта ответа',
+          );
         }
-        
+
         updateData.votingOptions = {
           deleteMany: {},
-          create: validOptions.map(option => ({
+          create: validOptions.map((option) => ({
             text: option.text,
           })),
         };
       }
     }
-    
+
     await this.prisma.event.update({
       where: { id },
       data: updateData,
     });
-    
+
     return this.findById(id);
   }
 
@@ -377,7 +391,7 @@ export class EventsRepository {
    */
   async checkEventAccess(userId: number, eventId: number): Promise<boolean> {
     const event = await this.prisma.event.findFirst({
-      where: { 
+      where: {
         id: eventId,
         isActive: true,
       },
@@ -446,7 +460,9 @@ export class EventsRepository {
   /**
    * Получает все события с фильтрами и пагинацией (для админ-панели)
    */
-  async findAllWithPaginationForAdmin(query: import('../dto/get-events-admin.dto').GetEventsAdminDto): Promise<{ data: any[]; total: number }> {
+  async findAllWithPaginationForAdmin(
+    query: import('../dto/get-events-admin.dto').GetEventsAdminDto,
+  ): Promise<{ data: any[]; total: number }> {
     const {
       page = 1,
       limit = 10,
@@ -497,10 +513,10 @@ export class EventsRepository {
         take: limit,
         include: {
           creator: {
-            select: { 
-              id: true, 
-              firstName: true, 
-              lastName: true, 
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
               avatar: true,
               latitude: true,
               longitude: true,
@@ -510,10 +526,10 @@ export class EventsRepository {
           participants: {
             include: {
               user: {
-                select: { 
-                  id: true, 
-                  firstName: true, 
-                  lastName: true, 
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
                   avatar: true,
                   latitude: true,
                   longitude: true,
@@ -536,8 +552,21 @@ export class EventsRepository {
   /**
    * Получает события, созданные пользователем
    */
-  async findUserEvents(userId: number, filters: any): Promise<{ data: any[]; total: number }> {
-    const { page = 1, limit = 10, search, type, communityId, categoryId, dateFrom, dateTo, includeParticipating } = filters;
+  async findUserEvents(
+    userId: number,
+    filters: any,
+  ): Promise<{ data: any[]; total: number }> {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      type,
+      communityId,
+      categoryId,
+      dateFrom,
+      dateTo,
+      includeParticipating,
+    } = filters;
     const skip = (page - 1) * limit;
 
     // Базовые условия для поиска событий пользователя

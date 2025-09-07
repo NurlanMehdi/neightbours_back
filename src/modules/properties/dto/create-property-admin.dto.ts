@@ -2,7 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PropertyCategory } from '@prisma/client';
-import { TransformToFloat, TransformToInt } from '../../../common/utils/form-data-transformers.util';
+import {
+  TransformToFloat,
+  TransformToInt,
+} from '../../../common/utils/form-data-transformers.util';
 
 export class CreatePropertyAdminDto {
   @ApiProperty({

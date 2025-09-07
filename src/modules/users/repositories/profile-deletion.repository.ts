@@ -30,7 +30,9 @@ export class ProfileDeletionRepository {
     });
   }
 
-  async findActiveRequestByUserId(userId: number): Promise<ProfileDeletionRequest | null> {
+  async findActiveRequestByUserId(
+    userId: number,
+  ): Promise<ProfileDeletionRequest | null> {
     return this.prisma.profileDeletionRequest.findFirst({
       where: {
         userId,

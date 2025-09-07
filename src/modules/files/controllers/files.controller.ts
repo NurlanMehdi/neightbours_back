@@ -30,11 +30,11 @@ export class FilesController {
   })
   async getFile(@Param('filename') filename: string, @Res() res: Response) {
     const file = await this.filesService.getFile(filename);
-    
+
     // Определяем MIME-тип на основе расширения файла
     const extension = extname(filename).toLowerCase();
     let contentType = 'application/octet-stream';
-    
+
     switch (extension) {
       case '.svg':
         contentType = 'image/svg+xml';
@@ -55,11 +55,11 @@ export class FilesController {
       default:
         contentType = 'application/octet-stream';
     }
-    
+
     // Устанавливаем заголовки
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Кэширование на 1 год
-    
+
     file.pipe(res);
   }
 }

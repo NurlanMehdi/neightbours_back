@@ -24,31 +24,32 @@ export class RegistrationStep4Dto {
   @Expose()
   communityName?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Широта местоположения пользователя',
     example: 55.7558,
-    type: 'number'
+    type: 'number',
   })
   @IsLatitude()
   @TransformToFloat()
   @Expose()
   userLatitude: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Долгота местоположения пользователя',
     example: 37.6176,
-    type: 'number'
+    type: 'number',
   })
   @IsLongitude()
   @TransformToFloat()
   @Expose()
   userLongitude: number;
 
-  @ApiProperty({ 
-    description: 'Широта местоположения сообщества (используется при создании нового сообщества)',
+  @ApiProperty({
+    description:
+      'Широта местоположения сообщества (используется при создании нового сообщества)',
     example: 55.7558,
     type: 'number',
-    required: false
+    required: false,
   })
   @IsLatitude()
   @IsOptional()
@@ -56,11 +57,12 @@ export class RegistrationStep4Dto {
   @Expose()
   communityLatitude?: number;
 
-  @ApiProperty({ 
-    description: 'Долгота местоположения сообщества (используется при создании нового сообщества)',
+  @ApiProperty({
+    description:
+      'Долгота местоположения сообщества (используется при создании нового сообщества)',
     example: 37.6176,
     type: 'number',
-    required: false
+    required: false,
   })
   @IsLongitude()
   @IsOptional()

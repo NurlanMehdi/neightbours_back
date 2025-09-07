@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -33,11 +28,13 @@ export class QualificationsUserController {
     description: 'Список активных квалификаций',
     type: QualificationsListDto,
   })
-  async findAll(@Query() filters: GetQualificationsDto): Promise<QualificationsListDto> {
+  async findAll(
+    @Query() filters: GetQualificationsDto,
+  ): Promise<QualificationsListDto> {
     // Для публичного API показываем только активные квалификации
     return this.qualificationsService.getQualifications({
       ...filters,
       isActive: true,
     });
   }
-} 
+}

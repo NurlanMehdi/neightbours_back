@@ -23,4 +23,4 @@ export class GetEventCategoriesAdminDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(EventType)
   type?: EventType;
-} 
+}

@@ -17,11 +17,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
     PrismaModule,
   ],
   controllers: [AiChatController],
-  providers: [
-    AiChatService,
-    AiApiService,
-    AiChatRepository,
-  ],
+  providers: [AiChatService, AiApiService, AiChatRepository],
   exports: [AiChatService, AiApiService],
 })
-export class AiChatModule {} 
+export class AiChatModule {}

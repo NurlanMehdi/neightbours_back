@@ -11,4 +11,4 @@ import { MulterConfigModule } from '../files/multer.module';
   providers: [EventCategoriesService, EventCategoriesRepository],
   exports: [EventCategoriesService],
 })
-export class EventCategoriesModule {} 
+export class EventCategoriesModule {}

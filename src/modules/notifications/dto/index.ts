@@ -8,3 +8,4 @@ export * from './send-notification.dto';
 export * from './send-notification-response.dto';
 export * from './notification-types.dto';
 export * from './user-selection.dto';
+export * from './grouped-message-notification.dto';

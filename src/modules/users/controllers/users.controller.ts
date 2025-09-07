@@ -46,7 +46,11 @@ import { GetUserVerificationsDto } from '../dto/get-user-verifications.dto';
 import { UserVerificationsPaginatedDto } from '../dto/user-verifications-paginated.dto';
 import { GetUserEventsDto } from '../dto/get-user-events.dto';
 import { UserEventsPaginatedDto } from '../dto/user-events-paginated.dto';
-import { UpdateFcmTokenDto, PushNotificationSettingsDto, FcmTokenResponseDto } from '../dto/fcm-token.dto';
+import {
+  UpdateFcmTokenDto,
+  PushNotificationSettingsDto,
+  FcmTokenResponseDto,
+} from '../dto/fcm-token.dto';
 
 @ApiTags('Пользователи')
 @Controller('users')
@@ -236,16 +240,19 @@ export class UsersController {
   @Post('registration/step-four')
   @ApiOperation({
     summary: 'Четвертый шаг регистрации - вступление в сообщество',
-    description: 'Вступление в существующее сообщество по коду или создание нового сообщества. Пользователь должен находиться не дальше 500 метров от границы сообщества. При создании нового сообщества можно указать координаты сообщества (communityLatitude, communityLongitude), иначе будут использованы координаты пользователя.',
+    description:
+      'Вступление в существующее сообщество по коду или создание нового сообщества. Пользователь должен находиться не дальше 500 метров от границы сообщества. При создании нового сообщества можно указать координаты сообщества (communityLatitude, communityLongitude), иначе будут использованы координаты пользователя.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Пользователь успешно вступил в сообщество или создал новое с кодом для присоединения',
+    description:
+      'Пользователь успешно вступил в сообщество или создал новое с кодом для присоединения',
     type: RegistrationStep4ResponseDto,
   })
   @ApiResponse({
     status: 400,
-    description: 'Неверные данные, шаг регистрации или расстояние превышает 500 метров',
+    description:
+      'Неверные данные, шаг регистрации или расстояние превышает 500 метров',
   })
   @ApiResponse({
     status: 401,
@@ -301,7 +308,8 @@ export class UsersController {
   @Post('join-community')
   @ApiOperation({
     summary: 'Вступление в сообщество по коду',
-    description: 'Вступление в существующее сообщество по коду. Пользователь должен находиться не дальше 500 метров от границы сообщества и не может вступить в сообщество, которое создал сам.',
+    description:
+      'Вступление в существующее сообщество по коду. Пользователь должен находиться не дальше 500 метров от границы сообщества и не может вступить в сообщество, которое создал сам.',
   })
   @ApiResponse({
     status: 200,
@@ -310,7 +318,8 @@ export class UsersController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Неверный код сообщества, пользователь уже в сообществе, расстояние превышает 500 метров или пользователь пытается вступить в созданное им сообщество',
+    description:
+      'Неверный код сообщества, пользователь уже в сообществе, расстояние превышает 500 метров или пользователь пытается вступить в созданное им сообщество',
   })
   @ApiResponse({
     status: 401,
@@ -321,14 +330,20 @@ export class UsersController {
     @UserId() userId: number,
     @Body() dto: JoinCommunityDto,
   ): Promise<UserDto> {
-    await this.userService.joinCommunity(userId, dto.communityCode, dto.userLatitude, dto.userLongitude);
+    await this.userService.joinCommunity(
+      userId,
+      dto.communityCode,
+      dto.userLatitude,
+      dto.userLongitude,
+    );
     return this.userService.findById(userId);
   }
 
   @Get('communities/:id/users')
   @ApiOperation({
     summary: 'Получить список пользователей сообщества',
-    description: 'Возвращает список пользователей указанного сообщества с их базовой информацией. Доступно только участникам и создателям сообщества.',
+    description:
+      'Возвращает список пользователей указанного сообщества с их базовой информацией. Доступно только участникам и создателям сообщества.',
   })
   @ApiParam({
     name: 'id',
@@ -350,7 +365,8 @@ export class UsersController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Доступ запрещен - пользователь не является участником или создателем сообщества',
+    description:
+      'Доступ запрещен - пользователь не является участником или создателем сообщества',
   })
   @ApiStandardResponses()
   @UseGuards(JwtAuthGuard)
@@ -364,7 +380,8 @@ export class UsersController {
   @Get('verifications')
   @ApiOperation({
     summary: 'Получить подтверждения объектов пользователя',
-    description: 'Возвращает список объектов недвижимости, подтвержденных текущим пользователем, с пагинацией и фильтрацией.',
+    description:
+      'Возвращает список объектов недвижимости, подтвержденных текущим пользователем, с пагинацией и фильтрацией.',
   })
   @ApiResponse({
     status: 200,
@@ -386,7 +403,8 @@ export class UsersController {
   @Get('events')
   @ApiOperation({
     summary: 'Получить события пользователя',
-    description: 'Возвращает список событий и уведомлений, созданных текущим пользователем. При включении параметра includeParticipating=true также возвращает события, где пользователь является участником.',
+    description:
+      'Возвращает список событий и уведомлений, созданных текущим пользователем. При включении параметра includeParticipating=true также возвращает события, где пользователь является участником.',
   })
   @ApiResponse({
     status: 200,
@@ -408,7 +426,8 @@ export class UsersController {
   @Patch('fcm-token')
   @ApiOperation({
     summary: 'Обновить FCM токен',
-    description: 'Обновляет FCM токен пользователя для получения push-уведомлений',
+    description:
+      'Обновляет FCM токен пользователя для получения push-уведомлений',
   })
   @ApiResponse({
     status: 200,

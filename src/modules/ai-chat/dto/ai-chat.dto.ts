@@ -19,11 +19,11 @@ export class AiChatDto {
   @Expose()
   updatedAt: Date;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Сообщения в чате',
-    type: [AiChatMessageDto]
+    type: [AiChatMessageDto],
   })
   @Expose()
   @Type(() => AiChatMessageDto)
   messages: AiChatMessageDto[];
-} 
+}

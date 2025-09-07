@@ -31,4 +31,4 @@ export class PropertyOwnVerificationException extends HttpException {
       HttpStatus.BAD_REQUEST,
     );
   }
-} 
+}

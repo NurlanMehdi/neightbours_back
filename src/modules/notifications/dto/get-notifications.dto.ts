@@ -1,4 +1,13 @@
-import { IsOptional, IsBoolean, IsEnum, IsDateString, IsInt, Min, Max, IsObject } from 'class-validator';
+import {
+  IsOptional,
+  IsBoolean,
+  IsEnum,
+  IsDateString,
+  IsInt,
+  Min,
+  Max,
+  IsObject,
+} from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { NotificationType } from '../interfaces/notification.interface';
@@ -76,7 +85,7 @@ export class GetNotificationsDto {
 
   @ApiProperty({
     description: 'Фильтр по содержимому payload (JSON объект для поиска)',
-    example: { "eventId": 123 },
+    example: { eventId: 123 },
     required: false,
     type: Object,
   })

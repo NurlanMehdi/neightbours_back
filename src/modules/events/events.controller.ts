@@ -59,20 +59,66 @@ export class EventsController {
       properties: {
         title: { type: 'string', description: 'Название мероприятия' },
         description: { type: 'string', description: 'Описание' },
-        latitude: { type: 'string', description: 'Широта (число в виде строки)' },
-        longitude: { type: 'string', description: 'Долгота (число в виде строки)' },
-        categoryId: { type: 'string', description: 'ID категории (число в виде строки, обязательно)' },
-        type: { type: 'string', description: 'Тип события (EVENT или NOTIFICATION)' },
-        communityId: { type: 'string', description: 'ID сообщества (число в виде строки)' },
-        hasVoting: { type: 'string', description: 'Нужно ли голосование (true/false в виде строки)' },
-        votingQuestion: { type: 'string', description: 'Вопрос для голосования' },
-        votingOptions: { type: 'string', description: 'Варианты ответов (строки через запятую, например: "Да,Нет,Возможно")' },
-        hasMoneyCollection: { type: 'string', description: 'Нужен ли сбор денег (true/false в виде строки)' },
-        moneyAmount: { type: 'string', description: 'Сумма сбора (число в виде строки)' },
-        eventDateTime: { type: 'string', format: 'date-time', description: 'Дата и время проведения мероприятия (ISO 8601)' },
-        image: { type: 'string', format: 'binary', description: 'Картинка мероприятия' },
+        latitude: {
+          type: 'string',
+          description: 'Широта (число в виде строки)',
+        },
+        longitude: {
+          type: 'string',
+          description: 'Долгота (число в виде строки)',
+        },
+        categoryId: {
+          type: 'string',
+          description: 'ID категории (число в виде строки, обязательно)',
+        },
+        type: {
+          type: 'string',
+          description: 'Тип события (EVENT или NOTIFICATION)',
+        },
+        communityId: {
+          type: 'string',
+          description: 'ID сообщества (число в виде строки)',
+        },
+        hasVoting: {
+          type: 'string',
+          description: 'Нужно ли голосование (true/false в виде строки)',
+        },
+        votingQuestion: {
+          type: 'string',
+          description: 'Вопрос для голосования',
+        },
+        votingOptions: {
+          type: 'string',
+          description:
+            'Варианты ответов (строки через запятую, например: "Да,Нет,Возможно")',
+        },
+        hasMoneyCollection: {
+          type: 'string',
+          description: 'Нужен ли сбор денег (true/false в виде строки)',
+        },
+        moneyAmount: {
+          type: 'string',
+          description: 'Сумма сбора (число в виде строки)',
+        },
+        eventDateTime: {
+          type: 'string',
+          format: 'date-time',
+          description: 'Дата и время проведения мероприятия (ISO 8601)',
+        },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Картинка мероприятия',
+        },
       },
-      required: ['title', 'latitude', 'longitude', 'categoryId', 'type', 'communityId'],
+      required: [
+        'title',
+        'latitude',
+        'longitude',
+        'categoryId',
+        'type',
+        'communityId',
+      ],
     },
   })
   async create(
@@ -124,17 +170,53 @@ export class EventsController {
       properties: {
         title: { type: 'string', description: 'Название мероприятия' },
         description: { type: 'string', description: 'Описание' },
-        latitude: { type: 'string', description: 'Широта (число в виде строки)' },
-        longitude: { type: 'string', description: 'Долгота (число в виде строки)' },
-        categoryId: { type: 'string', description: 'ID категории (число в виде строки, обязательно)' },
-        type: { type: 'string', description: 'Тип события (EVENT или NOTIFICATION)' },
-        hasVoting: { type: 'string', description: 'Нужно ли голосование (true/false в виде строки)' },
-        votingQuestion: { type: 'string', description: 'Вопрос для голосования' },
-        votingOptions: { type: 'string', description: 'Варианты ответов (строки через запятую, например: "Да,Нет,Возможно")' },
-        hasMoneyCollection: { type: 'string', description: 'Нужен ли сбор денег (true/false в виде строки)' },
-        moneyAmount: { type: 'string', description: 'Сумма сбора (число в виде строки)' },
-        eventDateTime: { type: 'string', format: 'date-time', description: 'Дата и время проведения мероприятия (ISO 8601)' },
-        image: { type: 'string', format: 'binary', description: 'Картинка мероприятия' },
+        latitude: {
+          type: 'string',
+          description: 'Широта (число в виде строки)',
+        },
+        longitude: {
+          type: 'string',
+          description: 'Долгота (число в виде строки)',
+        },
+        categoryId: {
+          type: 'string',
+          description: 'ID категории (число в виде строки, обязательно)',
+        },
+        type: {
+          type: 'string',
+          description: 'Тип события (EVENT или NOTIFICATION)',
+        },
+        hasVoting: {
+          type: 'string',
+          description: 'Нужно ли голосование (true/false в виде строки)',
+        },
+        votingQuestion: {
+          type: 'string',
+          description: 'Вопрос для голосования',
+        },
+        votingOptions: {
+          type: 'string',
+          description:
+            'Варианты ответов (строки через запятую, например: "Да,Нет,Возможно")',
+        },
+        hasMoneyCollection: {
+          type: 'string',
+          description: 'Нужен ли сбор денег (true/false в виде строки)',
+        },
+        moneyAmount: {
+          type: 'string',
+          description: 'Сумма сбора (число в виде строки)',
+        },
+        eventDateTime: {
+          type: 'string',
+          format: 'date-time',
+          description: 'Дата и время проведения мероприятия (ISO 8601)',
+        },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Картинка мероприятия',
+        },
       },
     },
   })
@@ -160,7 +242,10 @@ export class EventsController {
     description: 'Успешно присоединились к событию',
     type: EventDto,
   })
-  async joinEvent(@UserId() userId: number, @Param('id') id: string): Promise<IEvent> {
+  async joinEvent(
+    @UserId() userId: number,
+    @Param('id') id: string,
+  ): Promise<IEvent> {
     return this.eventsService.joinEvent(userId, +id);
   }
 
@@ -171,7 +256,10 @@ export class EventsController {
     description: 'Успешно покинули событие',
     type: EventDto,
   })
-  async leaveEvent(@UserId() userId: number, @Param('id') id: string): Promise<IEvent> {
+  async leaveEvent(
+    @UserId() userId: number,
+    @Param('id') id: string,
+  ): Promise<IEvent> {
     return this.eventsService.leaveEvent(userId, +id);
   }
 
@@ -237,7 +325,8 @@ export class EventsController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Пользователь уже проголосовал или мероприятие не содержит голосования',
+    description:
+      'Пользователь уже проголосовал или мероприятие не содержит голосования',
   })
   @ApiResponse({
     status: 403,
@@ -263,7 +352,8 @@ export class EventsController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Пользователь не голосовал или мероприятие не содержит голосования',
+    description:
+      'Пользователь не голосовал или мероприятие не содержит голосования',
   })
   @ApiResponse({
     status: 403,
@@ -299,7 +389,9 @@ export class EventsController {
   }
 
   @Get(':id/voting-options')
-  @ApiOperation({ summary: 'Получить варианты ответов для голосования в мероприятии' })
+  @ApiOperation({
+    summary: 'Получить варианты ответов для голосования в мероприятии',
+  })
   @ApiResponse({
     status: 200,
     description: 'Варианты ответов для голосования',
@@ -355,7 +447,9 @@ export class EventsController {
     status: 403,
     description: 'Пользователь не является членом сообщества',
   })
-  async markEventAsReadByMessage(@Body() markEventReadDto: MarkEventReadDto): Promise<{ success: boolean }> {
+  async markEventAsReadByMessage(
+    @Body() markEventReadDto: MarkEventReadDto,
+  ): Promise<{ success: boolean }> {
     await this.eventsService.markEventAsReadByDto(markEventReadDto);
     return { success: true };
   }
@@ -393,16 +487,18 @@ export class EventsController {
       properties: {
         count: {
           type: 'object',
-          description: 'Объект с количеством непрочитанных сообщений по событиям',
+          description:
+            'Объект с количеством непрочитанных сообщений по событиям',
           additionalProperties: {
             type: 'number',
             description: 'Количество непрочитанных сообщений для события',
           },
-          example: { "1": 33, "2": 56, "6": 45 },
+          example: { '1': 33, '2': 56, '6': 45 },
         },
         EVENT: {
           type: 'number',
-          description: 'Общее количество непрочитанных сообщений во всех событиях',
+          description:
+            'Общее количество непрочитанных сообщений во всех событиях',
           example: 134,
         },
         NOTIFICATION: {
@@ -413,12 +509,12 @@ export class EventsController {
       },
       example: {
         count: {
-          "1": 33,
-          "2": 56,
-          "6": 45
+          '1': 33,
+          '2': 56,
+          '6': 45,
         },
         EVENT: 134,
-        NOTIFICATION: 5
+        NOTIFICATION: 5,
       },
     },
   })

@@ -31,7 +31,7 @@ export interface INotificationPayload extends Record<string, any> {
   communityId?: number;
   propertyId?: number;
   messageId?: number;
-  
+
   // Дополнительные данные
   eventTitle?: string;
   communityName?: string;
@@ -109,7 +109,9 @@ export interface INotificationTrigger {
  */
 export interface INotificationService {
   createNotification(data: ICreateNotification): Promise<any>;
-  getUserNotifications(filters: INotificationFilters): Promise<{ data: any[]; total: number }>;
+  getUserNotifications(
+    filters: INotificationFilters,
+  ): Promise<{ data: any[]; total: number }>;
   markAsRead(notificationId: number, userId: number): Promise<void>;
   markAllAsRead(userId: number): Promise<void>;
   getUnreadCount(userId: number): Promise<UnreadCountDto>;
@@ -121,7 +123,9 @@ export interface INotificationService {
 export interface INotificationRepository {
   create(data: ICreateNotification): Promise<any>;
   createMany(notifications: ICreateNotification[]): Promise<any[]>;
-  findByUserId(filters: INotificationFilters): Promise<{ data: any[]; total: number }>;
+  findByUserId(
+    filters: INotificationFilters,
+  ): Promise<{ data: any[]; total: number }>;
   findById(id: number): Promise<any>;
   update(id: number, data: IUpdateNotification): Promise<any>;
   markAsRead(id: number): Promise<void>;

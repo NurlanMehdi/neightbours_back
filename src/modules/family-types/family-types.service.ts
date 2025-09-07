@@ -13,7 +13,9 @@ export class FamilyTypesService {
 
   async findAll(): Promise<FamilyTypeDto[]> {
     const familyTypes = await this.familyTypesRepository.findAllActive();
-    return plainToInstance(FamilyTypeDto, familyTypes, { excludeExtraneousValues: true });
+    return plainToInstance(FamilyTypeDto, familyTypes, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async findById(id: number): Promise<FamilyTypeDto> {
@@ -21,22 +23,37 @@ export class FamilyTypesService {
     if (!familyType) {
       throw new NotFoundException('Тип семьи не найден');
     }
-    return plainToInstance(FamilyTypeDto, familyType, { excludeExtraneousValues: true });
+    return plainToInstance(FamilyTypeDto, familyType, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async create(createFamilyTypeDto: CreateFamilyTypeDto): Promise<FamilyTypeDto> {
-    const familyType = await this.familyTypesRepository.create(createFamilyTypeDto);
-    return plainToInstance(FamilyTypeDto, familyType, { excludeExtraneousValues: true });
+  async create(
+    createFamilyTypeDto: CreateFamilyTypeDto,
+  ): Promise<FamilyTypeDto> {
+    const familyType =
+      await this.familyTypesRepository.create(createFamilyTypeDto);
+    return plainToInstance(FamilyTypeDto, familyType, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async update(id: number, updateFamilyTypeDto: UpdateFamilyTypeDto): Promise<FamilyTypeDto> {
+  async update(
+    id: number,
+    updateFamilyTypeDto: UpdateFamilyTypeDto,
+  ): Promise<FamilyTypeDto> {
     const existingFamilyType = await this.familyTypesRepository.findById(id);
     if (!existingFamilyType) {
       throw new NotFoundException('Тип семьи не найден');
     }
 
-    const familyType = await this.familyTypesRepository.update(id, updateFamilyTypeDto);
-    return plainToInstance(FamilyTypeDto, familyType, { excludeExtraneousValues: true });
+    const familyType = await this.familyTypesRepository.update(
+      id,
+      updateFamilyTypeDto,
+    );
+    return plainToInstance(FamilyTypeDto, familyType, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async delete(id: number): Promise<FamilyTypeDto> {
@@ -46,10 +63,14 @@ export class FamilyTypesService {
     }
 
     const familyType = await this.familyTypesRepository.delete(id);
-    return plainToInstance(FamilyTypeDto, familyType, { excludeExtraneousValues: true });
+    return plainToInstance(FamilyTypeDto, familyType, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async findAllAdmin(query: GetFamilyTypesAdminDto): Promise<FamilyTypesPaginatedDto> {
+  async findAllAdmin(
+    query: GetFamilyTypesAdminDto,
+  ): Promise<FamilyTypesPaginatedDto> {
     const { page = 1, limit = 50, search } = query;
     const skip = (page - 1) * limit;
 
@@ -66,12 +87,18 @@ export class FamilyTypesService {
 
     const totalPages = Math.ceil(total / limit);
 
-    return plainToInstance(FamilyTypesPaginatedDto, {
-      data: plainToInstance(FamilyTypeDto, familyTypes, { excludeExtraneousValues: true }),
-      total,
-      page,
-      limit,
-      totalPages,
-    }, { excludeExtraneousValues: true });
+    return plainToInstance(
+      FamilyTypesPaginatedDto,
+      {
+        data: plainToInstance(FamilyTypeDto, familyTypes, {
+          excludeExtraneousValues: true,
+        }),
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+      { excludeExtraneousValues: true },
+    );
   }
-} 
+}

@@ -19,7 +19,9 @@ export class UpdateFcmTokenDto {
     required: false,
   })
   @IsOptional()
-  @IsBoolean({ message: 'Настройка push-уведомлений должна быть булевым значением' })
+  @IsBoolean({
+    message: 'Настройка push-уведомлений должна быть булевым значением',
+  })
   pushNotificationsEnabled?: boolean;
 }
 
@@ -31,7 +33,9 @@ export class PushNotificationSettingsDto {
     description: 'Включить push-уведомления',
     example: true,
   })
-  @IsBoolean({ message: 'Настройка push-уведомлений должна быть булевым значением' })
+  @IsBoolean({
+    message: 'Настройка push-уведомлений должна быть булевым значением',
+  })
   pushNotificationsEnabled: boolean;
 }
 

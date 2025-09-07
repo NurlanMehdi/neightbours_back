@@ -98,7 +98,10 @@ export class PropertiesAdminController {
     @Body() createPropertyDto: CreatePropertyAdminDto,
     @UploadedFile() photo?: Express.Multer.File,
   ): Promise<PropertyAdminDto> {
-    console.log('Controller createProperty called with:', { createPropertyDto, photo });
+    console.log('Controller createProperty called with:', {
+      createPropertyDto,
+      photo,
+    });
     return this.propertyService.createProperty(createPropertyDto, photo);
   }
 
@@ -324,8 +327,16 @@ export class PropertiesAdminController {
     @Body() updatePropertyDto: UpdatePropertyAdminDto,
     @UploadedFile() photo?: Express.Multer.File,
   ): Promise<PropertyAdminDto> {
-    console.log('Controller updateProperty called with:', { id, updatePropertyDto, photo });
-    return this.propertyService.updatePropertyByAdmin(id, updatePropertyDto, photo);
+    console.log('Controller updateProperty called with:', {
+      id,
+      updatePropertyDto,
+      photo,
+    });
+    return this.propertyService.updatePropertyByAdmin(
+      id,
+      updatePropertyDto,
+      photo,
+    );
   }
 
   @Delete(':id')
@@ -334,7 +345,8 @@ export class PropertiesAdminController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Мягкое удаление объекта недвижимости',
-    description: 'Устанавливает флаг isActive = false для объекта недвижимости (мягкое удаление)',
+    description:
+      'Устанавливает флаг isActive = false для объекта недвижимости (мягкое удаление)',
   })
   @ApiParam({
     name: 'id',

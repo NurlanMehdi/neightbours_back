@@ -33,4 +33,4 @@ export class FamilyTypeDto {
   @ApiProperty({ description: 'Дата обновления' })
   @Expose()
   updatedAt: Date;
-} 
+}

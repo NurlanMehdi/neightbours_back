@@ -31,7 +31,7 @@ export class PropertyDto {
   @Expose()
   photo?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Статус подтверждения объекта',
     enum: ['UNVERIFIED', 'VERIFIED'],
     example: 'UNVERIFIED',
@@ -39,7 +39,7 @@ export class PropertyDto {
   @Expose()
   verificationStatus: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Количество подтверждений объекта',
     example: 2,
   })
@@ -78,7 +78,7 @@ export class PropertyDto {
   @Expose()
   updatedAt: Date;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Дата подтверждения объекта текущим пользователем',
     required: false,
   })

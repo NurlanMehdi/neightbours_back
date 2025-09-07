@@ -44,8 +44,14 @@ export class EventsAdminController {
 
   @Get()
   @ApiOperation({ summary: 'Получить список событий с фильтрами и пагинацией' })
-  @ApiResponse({ status: 200, description: 'Список событий', type: EventsPaginatedAdminDto })
-  async getEvents(@Query() query: GetEventsAdminDto): Promise<EventsPaginatedAdminDto> {
+  @ApiResponse({
+    status: 200,
+    description: 'Список событий',
+    type: EventsPaginatedAdminDto,
+  })
+  async getEvents(
+    @Query() query: GetEventsAdminDto,
+  ): Promise<EventsPaginatedAdminDto> {
     return this.eventsService.findAllEventsForAdmin(query);
   }
 
@@ -81,22 +87,65 @@ export class EventsAdminController {
       properties: {
         title: { type: 'string', description: 'Название мероприятия' },
         description: { type: 'string', description: 'Описание' },
-        latitude: { type: 'string', description: 'Широта (число в виде строки)' },
-        longitude: { type: 'string', description: 'Долгота (число в виде строки)' },
-                     categoryId: { type: 'string', description: 'ID категории (число в виде строки, обязательно)' },
-        communityId: { type: 'string', description: 'ID сообщества (число в виде строки, необязательно)' },
-        type: { type: 'string', description: 'Тип события (EVENT или NOTIFICATION)' },
-        hasVoting: { type: 'string', description: 'Нужно ли голосование (true/false в виде строки)' },
-        votingQuestion: { type: 'string', description: 'Вопрос для голосования' },
-        votingOptions: { type: 'string', description: 'Варианты ответов (строки через запятую, например: "Да,Нет,Возможно")' },
-        hasMoneyCollection: { type: 'string', description: 'Нужен ли сбор денег (true/false в виде строки)' },
-        moneyAmount: { type: 'string', description: 'Сумма сбора (число в виде строки)' },
-        eventDateTime: { type: 'string', format: 'date-time', description: 'Дата и время проведения мероприятия (ISO 8601)' },
-        image: { type: 'string', format: 'binary', description: 'Картинка мероприятия' },
+        latitude: {
+          type: 'string',
+          description: 'Широта (число в виде строки)',
+        },
+        longitude: {
+          type: 'string',
+          description: 'Долгота (число в виде строки)',
+        },
+        categoryId: {
+          type: 'string',
+          description: 'ID категории (число в виде строки, обязательно)',
+        },
+        communityId: {
+          type: 'string',
+          description: 'ID сообщества (число в виде строки, необязательно)',
+        },
+        type: {
+          type: 'string',
+          description: 'Тип события (EVENT или NOTIFICATION)',
+        },
+        hasVoting: {
+          type: 'string',
+          description: 'Нужно ли голосование (true/false в виде строки)',
+        },
+        votingQuestion: {
+          type: 'string',
+          description: 'Вопрос для голосования',
+        },
+        votingOptions: {
+          type: 'string',
+          description:
+            'Варианты ответов (строки через запятую, например: "Да,Нет,Возможно")',
+        },
+        hasMoneyCollection: {
+          type: 'string',
+          description: 'Нужен ли сбор денег (true/false в виде строки)',
+        },
+        moneyAmount: {
+          type: 'string',
+          description: 'Сумма сбора (число в виде строки)',
+        },
+        eventDateTime: {
+          type: 'string',
+          format: 'date-time',
+          description: 'Дата и время проведения мероприятия (ISO 8601)',
+        },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Картинка мероприятия',
+        },
       },
     },
   })
-  @ApiResponse({ status: 200, description: 'Событие обновлено', type: EventDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Событие обновлено',
+    type: EventDto,
+  })
   async updateEvent(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEventDto,

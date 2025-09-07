@@ -24,8 +24,8 @@ export class ProductsService {
   async getProducts(filters: GetProductsDto): Promise<ProductsListDto> {
     const result = await this.productsRepository.findMany(filters);
     return {
-      data: result.products.map(product => 
-        this.transformProductToDto(product)
+      data: result.products.map((product) =>
+        this.transformProductToDto(product),
       ),
       total: result.total,
       page: filters.page,
@@ -63,7 +63,7 @@ export class ProductsService {
    */
   async getUserProducts(userId: number): Promise<ProductDto[]> {
     const userProducts = await this.productsRepository.getUserProducts(userId);
-    return userProducts.map(item => this.transformProductToDto(item.product));
+    return userProducts.map((item) => this.transformProductToDto(item.product));
   }
 
   /**
@@ -88,4 +88,4 @@ export class ProductsService {
       excludeExtraneousValues: true,
     });
   }
-} 
+}

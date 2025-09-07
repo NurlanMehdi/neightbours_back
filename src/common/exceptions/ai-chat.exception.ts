@@ -22,4 +22,4 @@ export class AiMessageTooLongException extends HttpException {
   constructor(message: string = 'Сообщение слишком длинное') {
     super(message, HttpStatus.BAD_REQUEST);
   }
-} 
+}

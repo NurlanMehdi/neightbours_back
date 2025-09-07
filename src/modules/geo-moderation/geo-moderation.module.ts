@@ -7,10 +7,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 @Module({
   imports: [PrismaModule],
   controllers: [GeoModerationAdminController],
-  providers: [
-    GeoModerationService,
-    GeoModerationRepository,
-  ],
+  providers: [GeoModerationService, GeoModerationRepository],
   exports: [GeoModerationService],
 })
-export class GeoModerationModule {} 
+export class GeoModerationModule {}

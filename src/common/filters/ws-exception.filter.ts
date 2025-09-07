@@ -45,7 +45,8 @@ export class WsExceptionFilter implements ExceptionFilter {
     // Логируем ошибку
     console.error('WebSocket Exception:', {
       clientId: client.id,
-      exception: exception instanceof Error ? exception.message : String(exception),
+      exception:
+        exception instanceof Error ? exception.message : String(exception),
       stack: exception instanceof Error ? exception.stack : undefined,
     });
   }

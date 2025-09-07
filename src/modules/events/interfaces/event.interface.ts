@@ -128,4 +128,4 @@ export interface IEventFilters {
   categoryId?: number;
   page?: number;
   limit?: number;
-} 
+}

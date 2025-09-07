@@ -22,9 +22,9 @@ export class FamilyTypesRepository {
 
   async findById(id: number): Promise<FamilyType | null> {
     return this.prisma.familyType.findFirst({
-      where: { 
+      where: {
         id,
-        isActive: true 
+        isActive: true,
       },
     });
   }
@@ -72,7 +72,11 @@ export class FamilyTypesRepository {
     });
   }
 
-  async findAllAdmin(where: any, skip: number, take: number): Promise<FamilyType[]> {
+  async findAllAdmin(
+    where: any,
+    skip: number,
+    take: number,
+  ): Promise<FamilyType[]> {
     return this.prisma.familyType.findMany({
       where: {
         ...where,
@@ -85,11 +89,11 @@ export class FamilyTypesRepository {
   }
 
   async count(where: any): Promise<number> {
-    return this.prisma.familyType.count({ 
+    return this.prisma.familyType.count({
       where: {
         ...where,
         isActive: true, // Всегда считаем только активные
-      }
+      },
     });
   }
-} 
+}

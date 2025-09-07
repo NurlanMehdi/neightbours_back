@@ -1,8 +1,21 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsBoolean, IsDateString, ValidateNested, ArrayMinSize } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsDateString,
+  ValidateNested,
+  ArrayMinSize,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateVotingOptionDto } from './create-event.dto';
-import { TransformToFloat, TransformToInt, TransformToBoolean, TransformVotingOptions } from '../../../common/utils/form-data-transformers.util';
+import {
+  TransformToFloat,
+  TransformToInt,
+  TransformToBoolean,
+  TransformVotingOptions,
+} from '../../../common/utils/form-data-transformers.util';
 
 export class UpdateEventDto {
   @ApiPropertyOptional({ description: 'Название мероприятия' })
@@ -15,7 +28,11 @@ export class UpdateEventDto {
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ description: 'Картинка мероприятия', type: 'string', format: 'binary' })
+  @ApiPropertyOptional({
+    description: 'Картинка мероприятия',
+    type: 'string',
+    format: 'binary',
+  })
   @IsOptional()
   image?: any;
 
@@ -31,13 +48,19 @@ export class UpdateEventDto {
   @TransformToFloat()
   longitude?: number;
 
-  @ApiPropertyOptional({ description: 'ID категории мероприятия', required: false })
+  @ApiPropertyOptional({
+    description: 'ID категории мероприятия',
+    required: false,
+  })
   @IsOptional()
   @IsNumber()
   @TransformToInt()
   categoryId?: number;
 
-  @ApiPropertyOptional({ description: 'Тип мероприятия', enum: ['EVENT', 'NOTIFICATION'] })
+  @ApiPropertyOptional({
+    description: 'Тип мероприятия',
+    enum: ['EVENT', 'NOTIFICATION'],
+  })
   @IsString()
   @IsOptional()
   type?: string;
@@ -48,7 +71,10 @@ export class UpdateEventDto {
   @TransformToBoolean()
   hasVoting?: boolean;
 
-  @ApiPropertyOptional({ description: 'Вопрос для голосования', required: false })
+  @ApiPropertyOptional({
+    description: 'Вопрос для голосования',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   votingQuestion?: string;
@@ -81,7 +107,8 @@ export class UpdateEventDto {
   communityId?: number;
 
   @ApiPropertyOptional({
-    description: 'Варианты ответов для голосования (можно передавать как строки через запятую или объекты)',
+    description:
+      'Варианты ответов для голосования (можно передавать как строки через запятую или объекты)',
     type: 'string',
     required: false,
     example: 'Да,Нет,Возможно',

@@ -19,7 +19,7 @@ export class GeoModerationRepository {
    */
   async getSettings() {
     let settings = await this.prisma.geoModerationSettings.findFirst();
-    
+
     if (!settings) {
       settings = await this.prisma.geoModerationSettings.create({
         data: {
@@ -32,7 +32,7 @@ export class GeoModerationRepository {
         },
       });
     }
-    
+
     return settings;
   }
 
@@ -41,7 +41,7 @@ export class GeoModerationRepository {
    */
   async updateSettings(dto: UpdateGeoModerationSettingsDto) {
     const settings = await this.getSettings();
-    
+
     return this.prisma.geoModerationSettings.update({
       where: { id: settings.id },
       data: dto,
@@ -81,14 +81,7 @@ export class GeoModerationRepository {
    * Получает список отказов с фильтрацией и пагинацией
    */
   async getRejections(query: GetGeoModerationRejectionsDto) {
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      action,
-      dateFrom,
-      dateTo,
-    } = query;
+    const { page = 1, limit = 20, search, action, dateFrom, dateTo } = query;
 
     const skip = (page - 1) * limit;
     const where: any = {};
@@ -197,4 +190,4 @@ export class GeoModerationRepository {
       recentRejections,
     };
   }
-} 
+}

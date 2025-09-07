@@ -15,7 +15,9 @@ import { JwtService } from '@nestjs/jwt';
   },
   namespace: '/profile-deletion',
 })
-export class ProfileDeletionGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ProfileDeletionGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -37,8 +39,10 @@ export class ProfileDeletionGateway implements OnGatewayConnection, OnGatewayDis
 
       this.connectedUsers.set(userId, client.id);
       client.join(`user-${userId}`);
-      
-      this.logger.log(`Пользователь ${userId} подключен к мониторингу удаления профиля`);
+
+      this.logger.log(
+        `Пользователь ${userId} подключен к мониторингу удаления профиля`,
+      );
     } catch (error) {
       this.logger.error(`Ошибка подключения: ${error.message}`);
       client.disconnect();
@@ -46,12 +50,15 @@ export class ProfileDeletionGateway implements OnGatewayConnection, OnGatewayDis
   }
 
   handleDisconnect(client: Socket) {
-    const userId = Array.from(this.connectedUsers.entries())
-      .find(([, socketId]) => socketId === client.id)?.[0];
-    
+    const userId = Array.from(this.connectedUsers.entries()).find(
+      ([, socketId]) => socketId === client.id,
+    )?.[0];
+
     if (userId) {
       this.connectedUsers.delete(userId);
-      this.logger.log(`Пользователь ${userId} отключен от мониторинга удаления профиля`);
+      this.logger.log(
+        `Пользователь ${userId} отключен от мониторинга удаления профиля`,
+      );
     }
   }
 

@@ -33,4 +33,4 @@ export class UpdateEventCategoryDto {
   @IsString()
   @IsOptional()
   color?: string;
-} 
+}

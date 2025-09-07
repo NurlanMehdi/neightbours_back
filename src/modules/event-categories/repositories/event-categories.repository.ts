@@ -12,11 +12,11 @@ export class EventCategoriesRepository {
   /**
    * Создает новую категорию события
    */
-  async create(data: { 
-    name: string; 
-    icon: string; 
-    type: EventType; 
-    color?: string; 
+  async create(data: {
+    name: string;
+    icon: string;
+    type: EventType;
+    color?: string;
   }): Promise<any> {
     return this.prisma.eventCategory.create({
       data,
@@ -38,11 +38,11 @@ export class EventCategoriesRepository {
    */
   async findAllByType(type?: EventType): Promise<any[]> {
     const where: any = { isActive: true };
-    
+
     if (type) {
       where.type = type;
     }
-    
+
     return this.prisma.eventCategory.findMany({
       where,
       orderBy: { name: 'asc' },
@@ -61,7 +61,9 @@ export class EventCategoriesRepository {
   /**
    * Получает все категории событий (включая неактивные) с пагинацией для админки
    */
-  async findAllWithPaginationForAdmin(query: GetEventCategoriesAdminDto): Promise<{
+  async findAllWithPaginationForAdmin(
+    query: GetEventCategoriesAdminDto,
+  ): Promise<{
     data: any[];
     total: number;
   }> {
@@ -69,14 +71,14 @@ export class EventCategoriesRepository {
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    
+
     if (search) {
       where.name = {
         contains: search,
         mode: 'insensitive' as const,
       };
     }
-    
+
     if (type) {
       where.type = type;
     }
@@ -107,14 +109,14 @@ export class EventCategoriesRepository {
     const where: any = {
       isActive: true,
     };
-    
+
     if (search) {
       where.name = {
         contains: search,
         mode: 'insensitive' as const,
       };
     }
-    
+
     if (type) {
       where.type = type;
     }
@@ -162,13 +164,16 @@ export class EventCategoriesRepository {
   /**
    * Обновляет категорию события
    */
-  async update(id: number, data: Partial<{ 
-    name: string; 
-    icon: string; 
-    type: EventType; 
-    color?: string; 
-    isActive: boolean; 
-  }>): Promise<any> {
+  async update(
+    id: number,
+    data: Partial<{
+      name: string;
+      icon: string;
+      type: EventType;
+      color?: string;
+      isActive: boolean;
+    }>,
+  ): Promise<any> {
     return this.prisma.eventCategory.update({
       where: { id },
       data,
@@ -194,4 +199,4 @@ export class EventCategoriesRepository {
     });
     return eventsCount > 0;
   }
-} 
+}

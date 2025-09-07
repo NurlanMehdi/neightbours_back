@@ -13,7 +13,7 @@ export class GetGeoModerationRejectionsDto extends PaginationQueryDto {
   @ApiProperty({
     description: 'Поиск по сообществу, объекту или пользователю',
     required: false,
-    example: 'user123'
+    example: 'user123',
   })
   @IsOptional()
   @IsString({ message: 'Поисковый запрос должен быть строкой' })
@@ -23,7 +23,7 @@ export class GetGeoModerationRejectionsDto extends PaginationQueryDto {
     description: 'Фильтр по типу действия',
     enum: GeoModerationAction,
     required: false,
-    example: GeoModerationAction.COMMUNITY_JOIN
+    example: GeoModerationAction.COMMUNITY_JOIN,
   })
   @IsOptional()
   @IsEnum(GeoModerationAction, { message: 'Неверный тип действия' })
@@ -32,7 +32,7 @@ export class GetGeoModerationRejectionsDto extends PaginationQueryDto {
   @ApiProperty({
     description: 'Дата начала периода (YYYY-MM-DD)',
     required: false,
-    example: '2025-01-01'
+    example: '2025-01-01',
   })
   @IsOptional()
   @IsString({ message: 'Дата должна быть строкой' })
@@ -41,7 +41,7 @@ export class GetGeoModerationRejectionsDto extends PaginationQueryDto {
   @ApiProperty({
     description: 'Дата окончания периода (YYYY-MM-DD)',
     required: false,
-    example: '2025-01-31'
+    example: '2025-01-31',
   })
   @IsOptional()
   @IsString({ message: 'Дата должна быть строкой' })

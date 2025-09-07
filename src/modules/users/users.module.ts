@@ -25,16 +25,20 @@ import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
-    FilesModule, 
-    GeoModerationModule, 
-    QualificationsModule, 
-    ProductsModule, 
+    FilesModule,
+    GeoModerationModule,
+    QualificationsModule,
+    ProductsModule,
     FamilyTypesModule,
     ScheduleModule.forRoot(),
     JwtModule.register({}),
     NotificationsModule,
   ],
-  controllers: [UsersController, UsersAdminController, ProfileDeletionController],
+  controllers: [
+    UsersController,
+    UsersAdminController,
+    ProfileDeletionController,
+  ],
   providers: [
     UserRepository,
     ProfileDeletionRepository,

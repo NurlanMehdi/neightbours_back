@@ -20,7 +20,7 @@ export class CreateProductDto {
 
   @ApiProperty({
     description: 'Цена продукта',
-    example: 1500.50,
+    example: 1500.5,
     required: false,
   })
   @IsNumber()
@@ -44,4 +44,4 @@ export class CreateProductDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean = true;
-} 
+}

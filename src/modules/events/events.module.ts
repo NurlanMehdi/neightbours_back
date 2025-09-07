@@ -10,6 +10,7 @@ import { EventsGateway } from './events.gateway';
 import { MulterConfigModule } from '../files/multer.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UsersModule } from '../users/users.module';
     MulterConfigModule,
     NotificationsModule,
     UsersModule,
+    PrismaModule,
   ],
   controllers: [EventsController, EventsAdminController],
   providers: [

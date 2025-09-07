@@ -97,4 +97,4 @@ export class QualificationsListDto {
   })
   @Expose()
   totalPages: number;
-} 
+}

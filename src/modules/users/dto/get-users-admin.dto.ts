@@ -9,7 +9,10 @@ import {
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TransformToInt, TransformToBoolean } from '../../../common/utils/form-data-transformers.util';
+import {
+  TransformToInt,
+  TransformToBoolean,
+} from '../../../common/utils/form-data-transformers.util';
 
 export enum UserSortBy {
   ID = 'id',

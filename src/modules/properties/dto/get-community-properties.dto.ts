@@ -8,7 +8,10 @@ import {
   IsPositive,
 } from 'class-validator';
 import { PropertyCategory } from '@prisma/client';
-import { TransformToFloat, TransformToInt } from '../../../common/utils/form-data-transformers.util';
+import {
+  TransformToFloat,
+  TransformToInt,
+} from '../../../common/utils/form-data-transformers.util';
 
 export class GetCommunityPropertiesDto {
   @ApiProperty({

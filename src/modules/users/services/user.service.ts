@@ -43,7 +43,11 @@ import { GetUserEventsDto } from '../dto/get-user-events.dto';
 import { UserEventsPaginatedDto } from '../dto/user-events-paginated.dto';
 import { BulkDeleteUsersDto } from '../dto/bulk-delete-users.dto';
 import { DeleteResponseDto } from '../dto/delete-response.dto';
-import { UpdateFcmTokenDto, PushNotificationSettingsDto, FcmTokenResponseDto } from '../dto/fcm-token.dto';
+import {
+  UpdateFcmTokenDto,
+  PushNotificationSettingsDto,
+  FcmTokenResponseDto,
+} from '../dto/fcm-token.dto';
 
 type UserWithBlocking = Users & {
   Blocking?: Blocking[];
@@ -80,7 +84,7 @@ export class UserService {
         numberOfUsers: 0, // TODO: добавить подсчет пользователей
         status: c.community.status,
         createdBy: c.community.creator
-          ? `${c.community.creator.firstName} ${c.community.creator.lastName}`.trim()
+          ? `${c.community.creator.firstName || ''} ${c.community.creator.lastName || ''}`.trim()
           : 'Неизвестный пользователь',
         createdAt: c.community.createdAt,
         latitude: c.community.latitude ? Number(c.community.latitude) : null,
@@ -99,7 +103,9 @@ export class UserService {
         photo: p.photo,
         verificationStatus: p.verificationStatus,
         verificationCount: p.verifications?.length || 0,
-        verifiedUserIds: p.verifications?.map((verification: any) => verification.userId) || [],
+        verifiedUserIds:
+          p.verifications?.map((verification: any) => verification.userId) ||
+          [],
         createdById: p.userId,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
@@ -112,7 +118,7 @@ export class UserService {
         description: c.description,
         numberOfUsers: c.users?.length || 0,
         status: c.status,
-        createdBy: `${user.firstName} ${user.lastName}`.trim(),
+        createdBy: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
         createdAt: c.createdAt,
         latitude: c.latitude ? Number(c.latitude) : null,
         longitude: c.longitude ? Number(c.longitude) : null,
@@ -152,7 +158,7 @@ export class UserService {
         numberOfUsers: 0, // TODO: добавить подсчет пользователей
         status: c.community.status,
         createdBy: c.community.creator
-          ? `${c.community.creator.firstName} ${c.community.creator.lastName}`.trim()
+          ? `${c.community.creator.firstName || ''} ${c.community.creator.lastName || ''}`.trim()
           : 'Неизвестный пользователь',
         createdAt: c.community.createdAt,
         latitude: c.community.latitude ? Number(c.community.latitude) : null,
@@ -444,7 +450,9 @@ export class UserService {
         try {
           await this.familyTypesService.findById(updateUserDto.familyTypeId);
         } catch (error) {
-          throw new BadRequestException('Указанный тип семьи не найден или неактивен');
+          throw new BadRequestException(
+            'Указанный тип семьи не найден или неактивен',
+          );
         }
       }
 
@@ -471,49 +479,60 @@ export class UserService {
 
     // Обрабатываем квалификации
     if (updateUserDto.qualificationIds !== undefined) {
-      this.logger.log(`Обновление квалификаций: ${JSON.stringify(updateUserDto.qualificationIds)}`);
+      this.logger.log(
+        `Обновление квалификаций: ${JSON.stringify(updateUserDto.qualificationIds)}`,
+      );
 
       // Получаем текущие квалификации пользователя
-      const currentQualifications = await this.qualificationsService.getUserQualifications(id);
-      const currentQualificationIds = currentQualifications.map(q => q.id);
+      const currentQualifications =
+        await this.qualificationsService.getUserQualifications(id);
+      const currentQualificationIds = currentQualifications.map((q) => q.id);
 
       // Находим квалификации для добавления
       const qualificationsToAdd = updateUserDto.qualificationIds.filter(
-        qId => !currentQualificationIds.includes(qId)
+        (qId) => !currentQualificationIds.includes(qId),
       );
 
       // Находим квалификации для удаления
       const qualificationsToRemove = currentQualificationIds.filter(
-        qId => !updateUserDto.qualificationIds.includes(qId)
+        (qId) => !updateUserDto.qualificationIds.includes(qId),
       );
 
       // Добавляем новые квалификации
       for (const qualificationId of qualificationsToAdd) {
-        await this.qualificationsService.addUserQualification(id, qualificationId);
+        await this.qualificationsService.addUserQualification(
+          id,
+          qualificationId,
+        );
       }
 
       // Удаляем старые квалификации
       for (const qualificationId of qualificationsToRemove) {
-        await this.qualificationsService.removeUserQualification(id, qualificationId);
+        await this.qualificationsService.removeUserQualification(
+          id,
+          qualificationId,
+        );
       }
     }
 
     // Обрабатываем продукты
     if (updateUserDto.productIds !== undefined) {
-      this.logger.log(`Обновление продуктов: ${JSON.stringify(updateUserDto.productIds)}`);
+      this.logger.log(
+        `Обновление продуктов: ${JSON.stringify(updateUserDto.productIds)}`,
+      );
 
       // Получаем текущие продукты пользователя
       const currentProducts = await this.productsService.getUserProducts(id);
-      const currentProductIds = currentProducts.map(p => p.id);
+      const currentProductIds = currentProducts.map((p) => p.id);
 
       // Находим продукты для добавления
       const productsToAdd = updateUserDto.productIds.filter(
-        pId => !currentProductIds.includes(pId)
+        (pId) => !currentProductIds.includes(pId),
       );
 
       // Находим продукты для удаления
       const productsToRemove = currentProductIds.filter(
-        pId => !updateUserDto.productIds.includes(pId)
+        (pId) => !updateUserDto.productIds.includes(pId),
       );
 
       // Добавляем новые продукты
@@ -671,8 +690,10 @@ export class UserService {
     const updatedUser = await this.updateUser(userId, updateUserDto, avatar);
 
     // Обновляем шаг регистрации
-    const finalUpdatedUser = await this.userRepository.update(userId, { registrationStep: 3 });
-    
+    const finalUpdatedUser = await this.userRepository.update(userId, {
+      registrationStep: 3,
+    });
+
     // Возвращаем обновленные данные пользователя с правильным шагом регистрации
     return this.buildUserDto(finalUpdatedUser);
   }
@@ -714,7 +735,8 @@ export class UserService {
     });
 
     // Получаем количество подтверждений для созданного объекта
-    const verificationCount = await this.propertyRepository.getVerificationCount(createdProperty.id);
+    const verificationCount =
+      await this.propertyRepository.getVerificationCount(createdProperty.id);
 
     // Обновляем шаг регистрации
     await this.userRepository.update(userId, {
@@ -733,7 +755,10 @@ export class UserService {
       updatedAt: createdProperty.updatedAt,
       verificationStatus: createdProperty.verificationStatus,
       verificationCount: verificationCount,
-      verifiedUserIds: createdProperty.verifications?.map((verification: any) => verification.userId) || [],
+      verifiedUserIds:
+        createdProperty.verifications?.map(
+          (verification: any) => verification.userId,
+        ) || [],
       createdById: createdProperty.userId,
       createdBy: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
     });
@@ -766,12 +791,14 @@ export class UserService {
     // Проверяем, что у пользователя есть подтвержденный объект недвижимости
     const userProperties = await this.propertyRepository.findByUserId(userId);
     if (!userProperties || userProperties.length === 0) {
-      throw new BadRequestException('У вас должен быть объект недвижимости для вступления в сообщество');
+      throw new BadRequestException(
+        'У вас должен быть объект недвижимости для вступления в сообщество',
+      );
     }
 
     // Проверяем, что хотя бы один объект подтвержден
-    const hasVerifiedProperty = userProperties.some((property: any) =>
-      property.verificationStatus === 'VERIFIED'
+    const hasVerifiedProperty = userProperties.some(
+      (property: any) => property.verificationStatus === 'VERIFIED',
     );
 
     // if (!hasVerifiedProperty) {
@@ -789,7 +816,7 @@ export class UserService {
         userId,
         dto.communityCode,
         dto.userLatitude,
-        dto.userLongitude
+        dto.userLongitude,
       );
       communityId = community.id;
       communityName = community.name;
@@ -805,7 +832,7 @@ export class UserService {
         userId,
         dto.communityName,
         latitude,
-        longitude
+        longitude,
       );
       communityId = community.id;
       communityJoinCode = community.joinCode;
@@ -844,7 +871,7 @@ export class UserService {
     userId: number,
     communityCode: string,
     userLatitude: number,
-    userLongitude: number
+    userLongitude: number,
   ): Promise<void> {
     this.logger.log(
       `Сервис: вступление в сообщество пользователем с id: ${userId}.`,
@@ -859,7 +886,7 @@ export class UserService {
       userId,
       communityCode,
       userLatitude,
-      userLongitude
+      userLongitude,
     );
   }
 
@@ -892,7 +919,9 @@ export class UserService {
    * @returns Пользователь со всеми связанными данными
    */
   async getUserForAdmin(id: number): Promise<UserDto> {
-    this.logger.log(`Получение полной информации о пользователе ${id} для администратора.`);
+    this.logger.log(
+      `Получение полной информации о пользователе ${id} для администратора.`,
+    );
 
     const user = await this.userRepository.findByIdForAdmin(id);
     if (!user) {
@@ -925,15 +954,27 @@ export class UserService {
   /**
    * Добавляет квалификацию пользователю
    */
-  async addUserQualification(userId: number, qualificationId: number): Promise<void> {
-    await this.qualificationsService.addUserQualification(userId, qualificationId);
+  async addUserQualification(
+    userId: number,
+    qualificationId: number,
+  ): Promise<void> {
+    await this.qualificationsService.addUserQualification(
+      userId,
+      qualificationId,
+    );
   }
 
   /**
    * Удаляет квалификацию у пользователя
    */
-  async removeUserQualification(userId: number, qualificationId: number): Promise<void> {
-    await this.qualificationsService.removeUserQualification(userId, qualificationId);
+  async removeUserQualification(
+    userId: number,
+    qualificationId: number,
+  ): Promise<void> {
+    await this.qualificationsService.removeUserQualification(
+      userId,
+      qualificationId,
+    );
   }
 
   /**
@@ -967,13 +1008,18 @@ export class UserService {
     this.logger.log(`Получение подтверждений пользователя ${userId}`);
 
     const { page = 1, limit = 10 } = filters;
-    const { data, total } = await this.propertyRepository.findUserVerifications(userId, filters);
+    const { data, total } = await this.propertyRepository.findUserVerifications(
+      userId,
+      filters,
+    );
     const totalPages = Math.ceil(total / limit);
- 
+
     return {
-      data: data.map(property => {
+      data: data.map((property) => {
         // Находим дату подтверждения текущим пользователем
-        const currentUserVerification = property.verifications?.find((v: any) => v.userId === userId);
+        const currentUserVerification = property.verifications?.find(
+          (v: any) => v.userId === userId,
+        );
         const verifiedAt = currentUserVerification?.createdAt;
 
         return {
@@ -986,9 +1032,14 @@ export class UserService {
             photo: property.photo,
             verificationStatus: property.verificationStatus,
             verificationCount: property.verifications?.length || 0,
-            verifiedUserIds: property.verifications?.map((verification: any) => verification.userId) || [],
+            verifiedUserIds:
+              property.verifications?.map(
+                (verification: any) => verification.userId,
+              ) || [],
             createdById: property.userId,
-            createdBy: property.user ? `${property.user.firstName} ${property.user.lastName}`.trim() : 'Неизвестный пользователь',
+            createdBy: property.user
+              ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
+              : 'Неизвестный пользователь',
             createdAt: property.createdAt,
             updatedAt: property.updatedAt,
           },
@@ -1007,7 +1058,9 @@ export class UserService {
    */
   private transformPropertyToDto(property: any): PropertyDto {
     // Находим дату подтверждения текущим пользователем
-    const currentUserVerification = property.verifications?.find((v: any) => v.userId === property.currentUserId);
+    const currentUserVerification = property.verifications?.find(
+      (v: any) => v.userId === property.currentUserId,
+    );
     const verifiedAt = currentUserVerification?.createdAt;
 
     return {
@@ -1019,9 +1072,14 @@ export class UserService {
       photo: property.photo,
       verificationStatus: property.verificationStatus,
       verificationCount: property.verifications?.length || 0,
-      verifiedUserIds: property.verifications?.map((verification: any) => verification.userId) || [],
+      verifiedUserIds:
+        property.verifications?.map(
+          (verification: any) => verification.userId,
+        ) || [],
       createdById: property.userId,
-      createdBy: property.user ? `${property.user.firstName} ${property.user.lastName}`.trim() : 'Неизвестный пользователь',
+      createdBy: property.user
+        ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
+        : 'Неизвестный пользователь',
       createdAt: property.createdAt,
       updatedAt: property.updatedAt,
       verifiedAt: verifiedAt,
@@ -1036,14 +1094,19 @@ export class UserService {
     filters: GetUserEventsDto,
   ): Promise<UserEventsPaginatedDto> {
     const { includeParticipating = false } = filters;
-    this.logger.log(`Получение событий пользователя ${userId}, включая участвующие: ${includeParticipating}`);
+    this.logger.log(
+      `Получение событий пользователя ${userId}, включая участвующие: ${includeParticipating}`,
+    );
 
     const { page = 1, limit = 10 } = filters;
-    const { data, total } = await this.eventsRepository.findUserEvents(userId, filters);
+    const { data, total } = await this.eventsRepository.findUserEvents(
+      userId,
+      filters,
+    );
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: data.map(event => this.transformEventToDto(event)),
+      data: data.map((event) => this.transformEventToDto(event)),
       total,
       page,
       limit,
@@ -1070,29 +1133,34 @@ export class UserService {
       eventDateTime: event.eventDateTime,
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
-      participants: event.participants?.map((p: any) => ({
-        id: p.user.id,
-        firstName: p.user.firstName,
-        lastName: p.user.lastName,
-        avatar: p.user.avatar,
-        latitude: p.user.latitude,
-        longitude: p.user.longitude,
-        address: p.user.address,
-      })) || [],
+      participants:
+        event.participants?.map((p: any) => ({
+          id: p.user.id,
+          firstName: p.user.firstName,
+          lastName: p.user.lastName,
+          avatar: p.user.avatar,
+          latitude: p.user.latitude,
+          longitude: p.user.longitude,
+          address: p.user.address,
+        })) || [],
       votingOptions: event.votingOptions || [],
-      category: event.category ? {
-        id: event.category.id,
-        name: event.category.name,
-        icon: event.category.icon,
-        color: event.category.color,
-        type: event.category.type,
-        isActive: event.category.isActive,
-      } : undefined,
-      community: event.community ? {
-        id: event.community.id,
-        name: event.community.name,
-        description: event.community.description,
-      } : undefined,
+      category: event.category
+        ? {
+            id: event.category.id,
+            name: event.category.name,
+            icon: event.category.icon,
+            color: event.category.color,
+            type: event.category.type,
+            isActive: event.category.isActive,
+          }
+        : undefined,
+      community: event.community
+        ? {
+            id: event.community.id,
+            name: event.community.name,
+            description: event.community.description,
+          }
+        : undefined,
     };
   }
 
@@ -1123,11 +1191,13 @@ export class UserService {
    * @returns Результат операции удаления
    */
   async bulkDeleteUsers(dto: BulkDeleteUsersDto): Promise<DeleteResponseDto> {
-    this.logger.log(`Сервис: массовое удаление пользователей с ids: ${dto.ids.join(', ')}`);
+    this.logger.log(
+      `Сервис: массовое удаление пользователей с ids: ${dto.ids.join(', ')}`,
+    );
 
     // Проверяем, какие пользователи существуют
     const existingIds = await this.userRepository.findExistingIds(dto.ids);
-    
+
     if (existingIds.length === 0) {
       throw new UserNotFoundException();
     }
@@ -1136,9 +1206,11 @@ export class UserService {
     const deletedCount = await this.userRepository.bulkHardDelete(existingIds);
 
     // Логируем несуществующие ID, если есть
-    const nonExistingIds = dto.ids.filter(id => !existingIds.includes(id));
+    const nonExistingIds = dto.ids.filter((id) => !existingIds.includes(id));
     if (nonExistingIds.length > 0) {
-      this.logger.warn(`Пользователи с ids ${nonExistingIds.join(', ')} не найдены`);
+      this.logger.warn(
+        `Пользователи с ids ${nonExistingIds.join(', ')} не найдены`,
+      );
     }
 
     return {
@@ -1148,7 +1220,10 @@ export class UserService {
     };
   }
 
-  async updateFcmToken(userId: number, updateFcmTokenDto: UpdateFcmTokenDto): Promise<FcmTokenResponseDto> {
+  async updateFcmToken(
+    userId: number,
+    updateFcmTokenDto: UpdateFcmTokenDto,
+  ): Promise<FcmTokenResponseDto> {
     this.logger.log(`Обновление FCM токена для пользователя ${userId}`);
 
     const user = await this.userRepository.findById(userId);
@@ -1161,21 +1236,29 @@ export class UserService {
     };
 
     if (updateFcmTokenDto.pushNotificationsEnabled !== undefined) {
-      updateData.pushNotificationsEnabled = updateFcmTokenDto.pushNotificationsEnabled;
+      updateData.pushNotificationsEnabled =
+        updateFcmTokenDto.pushNotificationsEnabled;
     }
 
     await this.userRepository.update(userId, updateData);
 
     this.logger.log(`FCM токен для пользователя ${userId} успешно обновлен`);
-    
+
     return {
       message: 'FCM токен успешно обновлен',
-      pushNotificationsEnabled: updateFcmTokenDto.pushNotificationsEnabled ?? (user as any).pushNotificationsEnabled,
+      pushNotificationsEnabled:
+        updateFcmTokenDto.pushNotificationsEnabled ??
+        (user as any).pushNotificationsEnabled,
     };
   }
 
-  async updatePushNotificationSettings(userId: number, settings: PushNotificationSettingsDto): Promise<FcmTokenResponseDto> {
-    this.logger.log(`Обновление настроек push-уведомлений для пользователя ${userId}`);
+  async updatePushNotificationSettings(
+    userId: number,
+    settings: PushNotificationSettingsDto,
+  ): Promise<FcmTokenResponseDto> {
+    this.logger.log(
+      `Обновление настроек push-уведомлений для пользователя ${userId}`,
+    );
 
     const user = await this.userRepository.findById(userId);
     if (!user) {
@@ -1186,8 +1269,10 @@ export class UserService {
       pushNotificationsEnabled: settings.pushNotificationsEnabled,
     });
 
-    this.logger.log(`Настройки push-уведомлений для пользователя ${userId} успешно обновлены`);
-    
+    this.logger.log(
+      `Настройки push-уведомлений для пользователя ${userId} успешно обновлены`,
+    );
+
     return {
       message: 'Настройки push-уведомлений успешно обновлены',
       pushNotificationsEnabled: settings.pushNotificationsEnabled,
@@ -1208,7 +1293,7 @@ export class UserService {
     });
 
     this.logger.log(`FCM токен для пользователя ${userId} успешно удален`);
-    
+
     return {
       message: 'FCM токен успешно удален',
       pushNotificationsEnabled: false,

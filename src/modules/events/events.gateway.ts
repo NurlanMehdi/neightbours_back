@@ -67,7 +67,7 @@ export class EventsGateway
   handleDisconnect(client: Socket) {
     try {
       this.logger.log(`Client id: ${client.id} disconnected`);
-      
+
       // Удаляем пользователя из маппинга
       const userId = this.socketUser.get(client.id);
       if (userId) {
@@ -102,7 +102,7 @@ export class EventsGateway
   ) {
     try {
       this.logger.log(`User attempting to join event ${eventId}`);
-      
+
       // Получаем userId из аутентифицированного пользователя
       const userId = client.data.user.sub;
       this.logger.log(`User ${userId} joining event ${eventId}`);
@@ -170,7 +170,7 @@ export class EventsGateway
 
       this.logger.log(`New message attempt for event ${parsedData.eventId}`);
       this.logger.log(`Message data: ${JSON.stringify(parsedData)}`);
-      
+
       const userId = client.data.user.sub;
       this.logger.log(
         `User ${userId} sending message to event ${parsedData.eventId}`,

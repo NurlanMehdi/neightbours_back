@@ -20,19 +20,21 @@ export class QualificationsRepository {
   /**
    * Получает все квалификации с фильтрацией и пагинацией
    */
-  async findMany(filters: GetQualificationsDto): Promise<{ qualifications: any[]; total: number }> {
+  async findMany(
+    filters: GetQualificationsDto,
+  ): Promise<{ qualifications: any[]; total: number }> {
     const { search, page = 1, limit = 10, isActive } = filters;
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    
+
     // Фильтр по активности (по умолчанию только активные)
     if (isActive !== undefined) {
       where.isActive = isActive;
     } else {
       where.isActive = true;
     }
-    
+
     if (search) {
       where.name = { contains: search, mode: 'insensitive' as const };
     }
@@ -103,7 +105,10 @@ export class QualificationsRepository {
   /**
    * Добавляет квалификацию пользователю
    */
-  async addUserQualification(userId: number, qualificationId: number): Promise<void> {
+  async addUserQualification(
+    userId: number,
+    qualificationId: number,
+  ): Promise<void> {
     await this.prisma.usersOnQualifications.create({
       data: {
         userId,
@@ -115,7 +120,10 @@ export class QualificationsRepository {
   /**
    * Удаляет квалификацию у пользователя
    */
-  async removeUserQualification(userId: number, qualificationId: number): Promise<void> {
+  async removeUserQualification(
+    userId: number,
+    qualificationId: number,
+  ): Promise<void> {
     await this.prisma.usersOnQualifications.delete({
       where: {
         userId_qualificationId: {
@@ -125,4 +133,4 @@ export class QualificationsRepository {
       },
     });
   }
-} 
+}

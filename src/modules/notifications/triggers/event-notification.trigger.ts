@@ -3,10 +3,10 @@ import { NotificationType } from '../interfaces/notification.interface';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { BaseNotificationTrigger } from './base-notification.trigger';
 import { NotificationService } from '../services/notification.service';
-import { 
-  ISystemEventData, 
+import {
+  ISystemEventData,
   SystemEventType,
-  ICreateNotification 
+  ICreateNotification,
 } from '../interfaces/notification.interface';
 
 /**
@@ -28,7 +28,7 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
     this.logger.log(`Обработка события ${eventData.eventType}`);
 
     const targetUserIds = await this.getTargetUserIds(eventData);
-    
+
     if (targetUserIds.length === 0) {
       this.logger.log('Нет пользователей для уведомления');
       return;
@@ -38,12 +38,14 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
     const title = this.generateTitle(eventData);
     const message = this.generateMessage(eventData);
 
-    const notifications: ICreateNotification[] = targetUserIds.map(userId => ({
-      ...this.createBaseNotificationData(eventData, userId),
-      type: notificationType,
-      title,
-      message,
-    }));
+    const notifications: ICreateNotification[] = targetUserIds.map(
+      (userId) => ({
+        ...this.createBaseNotificationData(eventData, userId),
+        type: notificationType,
+        title,
+        message,
+      }),
+    );
 
     await this.createMultipleNotifications(notifications);
   }
@@ -67,7 +69,8 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
    */
   protected generateTitle(eventData: ISystemEventData): string {
     const eventTitle = eventData.additionalData?.eventTitle || 'мероприятие';
-    const triggererName = eventData.additionalData?.triggererName || 'Пользователь';
+    const triggererName =
+      eventData.additionalData?.triggererName || 'Пользователь';
 
     switch (eventData.eventType) {
       case SystemEventType.EVENT_CREATED:
@@ -92,8 +95,10 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
    */
   protected generateMessage(eventData: ISystemEventData): string {
     const eventTitle = eventData.additionalData?.eventTitle || 'мероприятие';
-    const triggererName = eventData.additionalData?.triggererName || 'Пользователь';
-    const communityName = eventData.additionalData?.communityName || 'сообществе';
+    const triggererName =
+      eventData.additionalData?.triggererName || 'Пользователь';
+    const communityName =
+      eventData.additionalData?.communityName || 'сообществе';
 
     switch (eventData.eventType) {
       case SystemEventType.EVENT_CREATED:
@@ -138,7 +143,9 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
   /**
    * Получает список пользователей для уведомления
    */
-  protected async getTargetUserIds(eventData: ISystemEventData): Promise<number[]> {
+  protected async getTargetUserIds(
+    eventData: ISystemEventData,
+  ): Promise<number[]> {
     if (!eventData.relatedEntityId) {
       this.logger.warn('Отсутствует ID связанного события');
       return [];
@@ -159,6 +166,9 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
               users: {
                 select: { userId: true },
               },
+              creator: {
+                select: { id: true },
+              },
             },
           },
           creator: {
@@ -176,8 +186,11 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
 
       switch (eventData.eventType) {
         case SystemEventType.EVENT_CREATED:
-          // Уведомляем всех участников сообщества
-          targetUserIds = event.community.users.map(user => user.userId);
+          // Уведомляем всех участников сообщества и создателя сообщества, кроме создателя события
+          targetUserIds = [
+            ...event.community.users.map((user) => user.userId),
+            event.community.creator.id,
+          ].filter((userId) => userId !== event.creator.id);
           break;
 
         case SystemEventType.EVENT_UPDATED:
@@ -185,7 +198,7 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
         case SystemEventType.EVENT_DELETED:
           // Уведомляем участников мероприятия и создателя
           targetUserIds = [
-            ...event.participants.map(p => p.userId),
+            ...event.participants.map((p) => p.userId),
             event.creator.id,
           ];
           break;
@@ -195,21 +208,23 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
           // Уведомляем создателя и других участников, кроме самого пользователя
           const triggererUserId = eventData.additionalData?.triggererUserId;
           targetUserIds = [
-            ...event.participants.map(p => p.userId),
+            ...event.participants.map((p) => p.userId),
             event.creator.id,
-          ].filter(userId => userId !== triggererUserId);
+          ].filter((userId) => userId !== triggererUserId);
           break;
 
         default:
-          targetUserIds = event.participants.map(p => p.userId);
+          targetUserIds = event.participants.map((p) => p.userId);
       }
 
       // Убираем дубликаты
       const uniqueUserIds = Array.from(new Set(targetUserIds));
       return this.filterUsers(uniqueUserIds);
-
     } catch (error) {
-      this.logger.error(`Ошибка получения пользователей для уведомления: ${error.message}`, error.stack);
+      this.logger.error(
+        `Ошибка получения пользователей для уведомления: ${error.message}`,
+        error.stack,
+      );
       return [];
     }
   }

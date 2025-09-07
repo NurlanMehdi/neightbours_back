@@ -1,5 +1,10 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ProfileDeletionService } from '../services/profile-deletion.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { UserId } from '../../../common/decorators/user-id.decorator';
@@ -16,7 +21,9 @@ import {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ProfileDeletionController {
-  constructor(private readonly profileDeletionService: ProfileDeletionService) {}
+  constructor(
+    private readonly profileDeletionService: ProfileDeletionService,
+  ) {}
 
   @Post('delete-request')
   @ApiOperation({ summary: 'Запросить удаление профиля' })

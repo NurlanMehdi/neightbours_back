@@ -1,14 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
 import { EventType } from '@prisma/client';
-import { 
-  IEventCreator, 
-  IEventParticipant, 
-  IEventCategory, 
+import {
+  IEventCreator,
+  IEventParticipant,
+  IEventCategory,
   IEventCommunity,
-  IVotingOption, 
-  IEvent, 
-  IEventsList 
+  IVotingOption,
+  IEvent,
+  IEventsList,
 } from '../interfaces/event.interface';
 
 /**
@@ -44,11 +44,17 @@ export class EventCreatorDto implements IEventCreator {
   @Expose()
   avatar?: string;
 
-  @ApiProperty({ description: 'Широта местоположения создателя', required: false })
+  @ApiProperty({
+    description: 'Широта местоположения создателя',
+    required: false,
+  })
   @Expose()
   latitude?: number;
 
-  @ApiProperty({ description: 'Долгота местоположения создателя', required: false })
+  @ApiProperty({
+    description: 'Долгота местоположения создателя',
+    required: false,
+  })
   @Expose()
   longitude?: number;
 
@@ -77,11 +83,17 @@ export class EventParticipantDto implements IEventParticipant {
   @Expose()
   avatar?: string;
 
-  @ApiProperty({ description: 'Широта местоположения участника', required: false })
+  @ApiProperty({
+    description: 'Широта местоположения участника',
+    required: false,
+  })
   @Expose()
   latitude?: number;
 
-  @ApiProperty({ description: 'Долгота местоположения участника', required: false })
+  @ApiProperty({
+    description: 'Долгота местоположения участника',
+    required: false,
+  })
   @Expose()
   longitude?: number;
 
@@ -106,7 +118,7 @@ export class EventCategoryDto implements IEventCategory {
   @Expose()
   icon: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Цвет категории',
     example: '#FF5733',
     required: false,
@@ -114,7 +126,7 @@ export class EventCategoryDto implements IEventCategory {
   @Expose()
   color?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Тип категории',
     enum: EventType,
     example: EventType.EVENT,
@@ -206,7 +218,11 @@ export class EventDto implements IEvent {
   @Expose()
   creator: EventCreatorDto;
 
-  @ApiProperty({ description: 'Категория события', type: EventCategoryDto, required: false })
+  @ApiProperty({
+    description: 'Категория события',
+    type: EventCategoryDto,
+    required: false,
+  })
   @Expose()
   category?: EventCategoryDto;
 
@@ -214,15 +230,26 @@ export class EventDto implements IEvent {
   @Expose()
   community: EventCommunityDto;
 
-  @ApiProperty({ description: 'Участники события', type: [EventParticipantDto] })
+  @ApiProperty({
+    description: 'Участники события',
+    type: [EventParticipantDto],
+  })
   @Expose()
   participants: EventParticipantDto[];
 
-  @ApiProperty({ description: 'Варианты голосования', type: [VotingOptionDto], required: false })
+  @ApiProperty({
+    description: 'Варианты голосования',
+    type: [VotingOptionDto],
+    required: false,
+  })
   @Expose()
   votingOptions?: VotingOptionDto[];
 
-  @ApiProperty({ description: 'Дата и время проведения мероприятия', required: false, example: '2025-08-01T18:00:00.000Z' })
+  @ApiProperty({
+    description: 'Дата и время проведения мероприятия',
+    required: false,
+    example: '2025-08-01T18:00:00.000Z',
+  })
   @Expose()
   eventDateTime?: Date;
 }
@@ -238,4 +265,4 @@ export class EventsListDto implements IEventsList {
   @ApiProperty({ description: 'Общее количество событий' })
   @Expose()
   total: number;
-} 
+}

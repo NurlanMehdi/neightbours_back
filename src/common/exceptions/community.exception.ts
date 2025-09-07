@@ -25,4 +25,4 @@ export class UserAlreadyMemberException extends HttpException {
       HttpStatus.BAD_REQUEST,
     );
   }
-} 
+}

@@ -15,7 +15,7 @@ export class UpdatePropertyDto {
     description: 'Название объекта недвижимости',
     example: 'Мой дом',
     required: false,
-    type: 'string'
+    type: 'string',
   })
   @IsOptional()
   @IsString()
@@ -27,7 +27,7 @@ export class UpdatePropertyDto {
     enum: PropertyCategory,
     example: PropertyCategory.PRIVATE_HOUSE,
     required: false,
-    type: 'string'
+    type: 'string',
   })
   @IsOptional()
   @IsEnum(PropertyCategory)
@@ -37,7 +37,7 @@ export class UpdatePropertyDto {
     description: 'Широта',
     example: 55.7558,
     required: false,
-    type: 'number'
+    type: 'number',
   })
   @IsOptional()
   @IsLatitude()
@@ -48,7 +48,7 @@ export class UpdatePropertyDto {
     description: 'Долгота',
     example: 37.6176,
     required: false,
-    type: 'number'
+    type: 'number',
   })
   @IsOptional()
   @IsLongitude()
@@ -59,7 +59,7 @@ export class UpdatePropertyDto {
     description: 'Фотография объекта недвижимости',
     type: 'string',
     format: 'binary',
-    required: false
+    required: false,
   })
   photo?: Express.Multer.File;
 }

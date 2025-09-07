@@ -20,7 +20,10 @@ export class VotingRepository {
   /**
    * Проверяет, существует ли вариант ответа для данного мероприятия
    */
-  async isVotingOptionExists(eventId: number, votingOptionId: number): Promise<boolean> {
+  async isVotingOptionExists(
+    eventId: number,
+    votingOptionId: number,
+  ): Promise<boolean> {
     const option = await this.prisma.votingOption.findFirst({
       where: {
         id: votingOptionId,
@@ -62,7 +65,11 @@ export class VotingRepository {
   /**
    * Создает голос пользователя
    */
-  async createVote(eventId: number, votingOptionId: number, userId: number): Promise<Voting> {
+  async createVote(
+    eventId: number,
+    votingOptionId: number,
+    userId: number,
+  ): Promise<Voting> {
     return this.prisma.voting.create({
       data: {
         eventId,
@@ -89,7 +96,10 @@ export class VotingRepository {
   /**
    * Получает результаты голосования для мероприятия
    */
-  async getVotingResults(eventId: number, userId: number): Promise<{
+  async getVotingResults(
+    eventId: number,
+    userId: number,
+  ): Promise<{
     votingQuestion: string;
     totalVotes: number;
     options: Array<{
@@ -126,14 +136,18 @@ export class VotingRepository {
     const userVote = await this.getUserVote(eventId, userId);
 
     // Вычисляем общее количество голосов
-    const totalVotes = optionsWithVotes.reduce((sum, option) => sum + option._count.votings, 0);
+    const totalVotes = optionsWithVotes.reduce(
+      (sum, option) => sum + option._count.votings,
+      0,
+    );
 
     // Формируем результаты
     const options = optionsWithVotes.map((option) => ({
       id: option.id,
       text: option.text,
       votesCount: option._count.votings,
-      percentage: totalVotes > 0 ? (option._count.votings / totalVotes) * 100 : 0,
+      percentage:
+        totalVotes > 0 ? (option._count.votings / totalVotes) * 100 : 0,
       isVotedByCurrentUser: userVote?.votingOptionId === option.id,
     }));
 
@@ -155,4 +169,4 @@ export class VotingRepository {
       orderBy: { id: 'asc' },
     });
   }
-} 
+}

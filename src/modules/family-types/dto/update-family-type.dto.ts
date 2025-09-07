@@ -26,4 +26,4 @@ export class UpdateFamilyTypeDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
-} 
+}

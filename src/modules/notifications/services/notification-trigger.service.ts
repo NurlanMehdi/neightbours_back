@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ISystemEventData, INotificationTrigger } from '../interfaces/notification.interface';
+import {
+  ISystemEventData,
+  INotificationTrigger,
+} from '../interfaces/notification.interface';
 import { EventNotificationTrigger } from '../triggers/event-notification.trigger';
 import { CommunityNotificationTrigger } from '../triggers/community-notification.trigger';
 
@@ -16,12 +19,11 @@ export class NotificationTriggerService {
     private readonly communityTrigger: CommunityNotificationTrigger,
   ) {
     // Регистрируем триггеры событий и сообществ
-    this.triggers = [
-      this.eventTrigger,
-      this.communityTrigger,
-    ];
+    this.triggers = [this.eventTrigger, this.communityTrigger];
 
-    this.logger.log(`Зарегистрировано ${this.triggers.length} триггеров уведомлений`);
+    this.logger.log(
+      `Зарегистрировано ${this.triggers.length} триггеров уведомлений`,
+    );
   }
 
   /**
@@ -41,7 +43,7 @@ export class NotificationTriggerService {
       } catch (error) {
         this.logger.error(
           `Ошибка в триггере ${trigger.constructor.name}: ${error.message}`,
-          error.stack
+          error.stack,
         );
       }
     });
@@ -56,14 +58,16 @@ export class NotificationTriggerService {
    */
   registerTrigger(trigger: INotificationTrigger): void {
     this.triggers.push(trigger);
-    this.logger.log(`Зарегистрирован новый триггер: ${trigger.constructor.name}`);
+    this.logger.log(
+      `Зарегистрирован новый триггер: ${trigger.constructor.name}`,
+    );
   }
 
   /**
    * Получает список зарегистрированных триггеров
    */
   getRegisteredTriggers(): string[] {
-    return this.triggers.map(trigger => trigger.constructor.name);
+    return this.triggers.map((trigger) => trigger.constructor.name);
   }
 
   /**
@@ -71,7 +75,7 @@ export class NotificationTriggerService {
    */
   async healthCheck(): Promise<{ status: string; triggers: string[] }> {
     this.logger.log('Проверка работоспособности триггеров');
-    
+
     return {
       status: 'healthy',
       triggers: this.getRegisteredTriggers(),

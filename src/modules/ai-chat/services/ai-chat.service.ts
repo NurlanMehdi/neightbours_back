@@ -22,23 +22,33 @@ export class AiChatService {
    * @param dto Данные сообщения
    * @returns Ответ от AI ассистента
    */
-  async sendMessage(userId: number, dto: SendMessageDto): Promise<AiChatMessageDto> {
+  async sendMessage(
+    userId: number,
+    dto: SendMessageDto,
+  ): Promise<AiChatMessageDto> {
     this.logger.log(`Пользователь ${userId} отправляет сообщение в AI чат`);
 
     try {
       // Сохраняем сообщение пользователя
-      const userMessage = await this.aiChatRepository.addUserMessage(userId, dto.message);
+      const userMessage = await this.aiChatRepository.addUserMessage(
+        userId,
+        dto.message,
+      );
       this.logger.log(`Сохранено сообщение пользователя: ${userMessage.id}`);
 
       // Получаем последние сообщения для контекста
-      const recentMessages = await this.aiChatRepository.getRecentMessages(userId, 10);
+      const recentMessages = await this.aiChatRepository.getRecentMessages(
+        userId,
+        10,
+      );
 
       // Формируем контекст для AI (последние 5 пар сообщений)
       let contextMessage = dto.message;
       if (recentMessages.length > 1) {
         const contextMessages = recentMessages.slice(-10); // Последние 10 сообщений
-        const contextParts = contextMessages.map(msg =>
-          `${msg.role === 'USER' ? 'Пользователь' : 'Ассистент'}: ${msg.content}`
+        const contextParts = contextMessages.map(
+          (msg) =>
+            `${msg.role === 'USER' ? 'Пользователь' : 'Ассистент'}: ${msg.content}`,
         );
         contextMessage = `Контекст предыдущих сообщений:\n${contextParts.join('\n')}\n\nТекущий вопрос: ${dto.message}`;
       }
@@ -63,7 +73,10 @@ export class AiChatService {
 
       return plainToInstance(AiChatMessageDto, assistantMessage);
     } catch (error) {
-      this.logger.error(`Ошибка при отправке сообщения пользователем ${userId}:`, error.message);
+      this.logger.error(
+        `Ошибка при отправке сообщения пользователем ${userId}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -81,7 +94,9 @@ export class AiChatService {
 
     return {
       ...result,
-      messages: result.messages.map(message => plainToInstance(AiChatMessageDto, message)),
+      messages: result.messages.map((message) =>
+        plainToInstance(AiChatMessageDto, message),
+      ),
     };
   }
 
@@ -97,7 +112,9 @@ export class AiChatService {
 
     return plainToInstance(AiChatDto, {
       ...chat,
-      messages: chat.messages.map(message => plainToInstance(AiChatMessageDto, message)),
+      messages: chat.messages.map((message) =>
+        plainToInstance(AiChatMessageDto, message),
+      ),
     });
   }
 

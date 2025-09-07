@@ -40,7 +40,8 @@ export class ConfirmDeletionDto {
 export class ConfirmDeletionResponseDto {
   @ApiProperty({
     description: 'Сообщение о запланированном удалении',
-    example: 'Профиль будет удален через 14 дней. Вы можете отменить удаление до этого времени.',
+    example:
+      'Профиль будет удален через 14 дней. Вы можете отменить удаление до этого времени.',
   })
   @Expose()
   message: string;

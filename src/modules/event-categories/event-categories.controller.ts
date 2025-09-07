@@ -38,7 +38,9 @@ import { UserRole } from '@prisma/client';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class EventCategoriesController {
-  constructor(private readonly eventCategoriesService: EventCategoriesService) {}
+  constructor(
+    private readonly eventCategoriesService: EventCategoriesService,
+  ) {}
 
   @Post()
   @Roles(UserRole.ADMIN)
@@ -67,7 +69,8 @@ export class EventCategoriesController {
         icon: {
           type: 'string',
           format: 'binary',
-          description: 'Иконка категории (файл изображения). Для уведомлений разрешены только SVG файлы',
+          description:
+            'Иконка категории (файл изображения). Для уведомлений разрешены только SVG файлы',
         },
       },
       required: ['name', 'type', 'icon'],
@@ -88,17 +91,37 @@ export class EventCategoriesController {
 
   @Get()
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Получить все активные категории событий с пагинацией' })
-  @ApiQuery({ name: 'page', required: false, description: 'Номер страницы (начиная с 1)' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Количество элементов на странице' })
-  @ApiQuery({ name: 'search', required: false, description: 'Поиск по названию категории' })
-  @ApiQuery({ name: 'type', required: false, description: 'Фильтр по типу события (EVENT или NOTIFICATION)' })
+  @ApiOperation({
+    summary: 'Получить все активные категории событий с пагинацией',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Номер страницы (начиная с 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Количество элементов на странице',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Поиск по названию категории',
+  })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    description: 'Фильтр по типу события (EVENT или NOTIFICATION)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Список активных категорий событий с пагинацией',
     type: EventCategoriesPaginatedDto,
   })
-  async findAll(@Query() query: GetEventCategoriesAdminDto): Promise<EventCategoriesPaginatedDto> {
+  async findAll(
+    @Query() query: GetEventCategoriesAdminDto,
+  ): Promise<EventCategoriesPaginatedDto> {
     return this.eventCategoriesService.findAllWithPagination(query);
   }
 
@@ -110,7 +133,9 @@ export class EventCategoriesController {
     description: 'Активная категория события найдена',
     type: EventCategoryDto,
   })
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<EventCategoryDto> {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<EventCategoryDto> {
     return this.eventCategoriesService.findById(id);
   }
 
@@ -141,7 +166,8 @@ export class EventCategoriesController {
         icon: {
           type: 'string',
           format: 'binary',
-          description: 'Иконка категории (файл изображения). Для уведомлений разрешены только SVG файлы',
+          description:
+            'Иконка категории (файл изображения). Для уведомлений разрешены только SVG файлы',
         },
       },
     },
@@ -179,7 +205,9 @@ export class EventCategoriesController {
     description: 'Категория события успешно восстановлена',
     type: EventCategoryDto,
   })
-  async restore(@Param('id', ParseIntPipe) id: number): Promise<EventCategoryDto> {
+  async restore(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<EventCategoryDto> {
     return this.eventCategoriesService.restore(id);
   }
-} 
+}

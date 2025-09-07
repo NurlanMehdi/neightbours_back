@@ -203,7 +203,9 @@ export class CommunityRepository {
    * @returns Сообщество со всеми связанными данными
    */
   async findByIdForAdmin(id: number): Promise<Community | null> {
-    this.logger.log(`Репозиторий: поиск сообщества с полной информацией для админа с id: ${id}.`);
+    this.logger.log(
+      `Репозиторий: поиск сообщества с полной информацией для админа с id: ${id}.`,
+    );
     return this.prisma.community.findUnique({
       where: { id },
       include: {
@@ -314,7 +316,7 @@ export class CommunityRepository {
     this.logger.log(
       `Репозиторий: добавление пользователя ${userId} в сообщество ${communityId}.`,
     );
-    
+
     const existingMembership = await this.prisma.usersOnCommunities.findUnique({
       where: {
         userId_communityId: {
@@ -361,7 +363,9 @@ export class CommunityRepository {
    * @returns Список пользователей сообщества
    */
   async getCommunityUsers(communityId: number) {
-    this.logger.log(`Репозиторий: получение пользователей сообщества ${communityId}.`);
+    this.logger.log(
+      `Репозиторий: получение пользователей сообщества ${communityId}.`,
+    );
     return this.prisma.usersOnCommunities.findMany({
       where: {
         communityId,

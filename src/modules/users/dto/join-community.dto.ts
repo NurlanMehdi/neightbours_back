@@ -10,21 +10,21 @@ export class JoinCommunityDto {
   @IsString()
   communityCode: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Широта местоположения пользователя',
     example: 55.7558,
-    type: 'number'
+    type: 'number',
   })
   @IsLatitude()
   @TransformToFloat()
   userLatitude: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Долгота местоположения пользователя',
     example: 37.6176,
-    type: 'number'
+    type: 'number',
   })
   @IsLongitude()
   @TransformToFloat()
   userLongitude: number;
-} 
+}

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { EventCategoriesRepository } from './repositories/event-categories.repository';
 import { CreateEventCategoryDto } from './dto/create-event-category.dto';
 import { UpdateEventCategoryDto } from './dto/update-event-category.dto';
@@ -17,7 +21,10 @@ export class EventCategoriesService {
   /**
    * Создает новую категорию события
    */
-  async create(dto: CreateEventCategoryDto, icon?: Express.Multer.File): Promise<EventCategoryDto> {
+  async create(
+    dto: CreateEventCategoryDto,
+    icon?: Express.Multer.File,
+  ): Promise<EventCategoryDto> {
     if (!icon) {
       throw new BadRequestException('Иконка категории обязательна');
     }
@@ -30,7 +37,9 @@ export class EventCategoriesService {
     if (dto.type === EventType.NOTIFICATION) {
       const fileExtension = icon.originalname?.toLowerCase().split('.').pop();
       if (fileExtension !== 'svg') {
-        throw new BadRequestException('Для категорий уведомлений разрешены только SVG файлы');
+        throw new BadRequestException(
+          'Для категорий уведомлений разрешены только SVG файлы',
+        );
       }
     }
 
@@ -40,9 +49,13 @@ export class EventCategoriesService {
     }
 
     // Проверяем, не существует ли уже категория с таким названием
-    const existingCategory = await this.eventCategoriesRepository.findByName(dto.name);
+    const existingCategory = await this.eventCategoriesRepository.findByName(
+      dto.name,
+    );
     if (existingCategory) {
-      throw new BadRequestException(`Категория с названием "${dto.name}" уже существует`);
+      throw new BadRequestException(
+        `Категория с названием "${dto.name}" уже существует`,
+      );
     }
 
     // Создаем категорию с именем файла иконки
@@ -52,7 +65,7 @@ export class EventCategoriesService {
       type: dto.type,
       color: dto.color,
     });
-    
+
     return this.transformToDto(category);
   }
 
@@ -61,7 +74,7 @@ export class EventCategoriesService {
    */
   async findAll(): Promise<EventCategoryDto[]> {
     const categories = await this.eventCategoriesRepository.findAll();
-    return categories.map(category => this.transformToDto(category));
+    return categories.map((category) => this.transformToDto(category));
   }
 
   /**
@@ -69,20 +82,23 @@ export class EventCategoriesService {
    */
   async findAllByType(type?: EventType): Promise<EventCategoryDto[]> {
     const categories = await this.eventCategoriesRepository.findAllByType(type);
-    return categories.map(category => this.transformToDto(category));
+    return categories.map((category) => this.transformToDto(category));
   }
 
   /**
    * Получает категории событий с пагинацией (только активные)
    */
-  async findAllWithPagination(query: GetEventCategoriesAdminDto): Promise<EventCategoriesPaginatedDto> {
+  async findAllWithPagination(
+    query: GetEventCategoriesAdminDto,
+  ): Promise<EventCategoriesPaginatedDto> {
     const { page = 1, limit = 50 } = query;
-    const { data, total } = await this.eventCategoriesRepository.findAllWithPagination(query);
-    
+    const { data, total } =
+      await this.eventCategoriesRepository.findAllWithPagination(query);
+
     const totalPages = Math.ceil(total / limit);
-    
+
     return {
-      data: data.map(category => this.transformToDto(category)),
+      data: data.map((category) => this.transformToDto(category)),
       total,
       page,
       limit,
@@ -96,7 +112,9 @@ export class EventCategoriesService {
   async findById(id: number): Promise<EventCategoryDto> {
     const category = await this.eventCategoriesRepository.findActiveById(id);
     if (!category) {
-      throw new NotFoundException(`Активная категория события с ID ${id} не найдена`);
+      throw new NotFoundException(
+        `Активная категория события с ID ${id} не найдена`,
+      );
     }
     return this.transformToDto(category);
   }
@@ -107,7 +125,9 @@ export class EventCategoriesService {
   async findActiveById(id: number): Promise<EventCategoryDto> {
     const category = await this.eventCategoriesRepository.findActiveById(id);
     if (!category) {
-      throw new NotFoundException(`Активная категория события с ID ${id} не найдена`);
+      throw new NotFoundException(
+        `Активная категория события с ID ${id} не найдена`,
+      );
     }
     return this.transformToDto(category);
   }
@@ -115,7 +135,11 @@ export class EventCategoriesService {
   /**
    * Обновляет категорию события
    */
-  async update(id: number, dto: UpdateEventCategoryDto, icon?: Express.Multer.File): Promise<EventCategoryDto> {
+  async update(
+    id: number,
+    dto: UpdateEventCategoryDto,
+    icon?: Express.Multer.File,
+  ): Promise<EventCategoryDto> {
     const existingCategory = await this.eventCategoriesRepository.findById(id);
     if (!existingCategory) {
       throw new NotFoundException(`Категория события с ID ${id} не найдена`);
@@ -123,45 +147,54 @@ export class EventCategoriesService {
 
     // Подготавливаем данные для обновления
     const updateData: any = {};
-    
+
     if (dto.name) {
       // Проверяем, не существует ли уже категория с таким названием (кроме текущей)
-      const categoryWithSameName = await this.eventCategoriesRepository.findByName(dto.name);
+      const categoryWithSameName =
+        await this.eventCategoriesRepository.findByName(dto.name);
       if (categoryWithSameName && categoryWithSameName.id !== id) {
-        throw new BadRequestException(`Категория с названием "${dto.name}" уже существует`);
+        throw new BadRequestException(
+          `Категория с названием "${dto.name}" уже существует`,
+        );
       }
       updateData.name = dto.name;
     }
-    
+
     if (dto.type !== undefined) {
       updateData.type = dto.type;
     }
-    
+
     if (dto.color !== undefined) {
       updateData.color = dto.color;
     }
-    
+
     if (icon && icon.filename) {
       updateData.icon = icon.filename;
     }
 
     // Проверяем валидацию для оповещений
     const finalType = dto.type !== undefined ? dto.type : existingCategory.type;
-    const finalColor = dto.color !== undefined ? dto.color : existingCategory.color;
-    
+    const finalColor =
+      dto.color !== undefined ? dto.color : existingCategory.color;
+
     // Проверяем формат файла для уведомлений (только SVG)
     if (icon && finalType === EventType.NOTIFICATION) {
       const fileExtension = icon.originalname?.toLowerCase().split('.').pop();
       if (fileExtension !== 'svg') {
-        throw new BadRequestException('Для категорий уведомлений разрешены только SVG файлы');
+        throw new BadRequestException(
+          'Для категорий уведомлений разрешены только SVG файлы',
+        );
       }
     }
-    
+
     if (finalType === EventType.NOTIFICATION && !finalColor) {
       throw new BadRequestException('Цвет обязателен для категорий оповещений');
     }
 
-    const category = await this.eventCategoriesRepository.update(id, updateData);
+    const category = await this.eventCategoriesRepository.update(
+      id,
+      updateData,
+    );
     return this.transformToDto(category);
   }
 
@@ -177,7 +210,9 @@ export class EventCategoriesService {
     // Проверяем, используется ли категория в событиях
     const isUsed = await this.eventCategoriesRepository.isUsedInEvents(id);
     if (isUsed) {
-      throw new BadRequestException('Нельзя удалить категорию, которая используется в событиях');
+      throw new BadRequestException(
+        'Нельзя удалить категорию, которая используется в событиях',
+      );
     }
 
     await this.eventCategoriesRepository.softDelete(id);
@@ -192,7 +227,9 @@ export class EventCategoriesService {
       throw new NotFoundException(`Категория события с ID ${id} не найдена`);
     }
 
-    const category = await this.eventCategoriesRepository.update(id, { isActive: true });
+    const category = await this.eventCategoriesRepository.update(id, {
+      isActive: true,
+    });
     return this.transformToDto(category);
   }
 
@@ -204,4 +241,4 @@ export class EventCategoriesService {
       excludeExtraneousValues: true,
     });
   }
-} 
+}

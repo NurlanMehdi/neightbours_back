@@ -1,7 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsNumber, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TransformToInt, TransformToBoolean } from '../../../common/utils/form-data-transformers.util';
+import {
+  TransformToInt,
+  TransformToBoolean,
+} from '../../../common/utils/form-data-transformers.util';
 
 export class GetProductsDto {
   @ApiProperty({
@@ -43,4 +46,4 @@ export class GetProductsDto {
   @IsOptional()
   @TransformToBoolean()
   isActive?: boolean;
-} 
+}

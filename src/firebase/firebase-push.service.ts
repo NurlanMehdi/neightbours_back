@@ -31,7 +31,9 @@ export class FirebasePushService {
   ): Promise<boolean> {
     try {
       if (!user.pushNotificationsEnabled) {
-        this.logger.log(`Push-уведомления отключены для пользователя ${user.userId}`);
+        this.logger.log(
+          `Push-уведомления отключены для пользователя ${user.userId}`,
+        );
         return false;
       }
 
@@ -54,17 +56,25 @@ export class FirebasePushService {
       };
 
       const result = await this.firebaseService.getMessaging().send(message);
-      
-      this.logger.log(`Push-уведомление отправлено пользователю ${user.userId}. Message ID: ${result}`);
+
+      this.logger.log(
+        `Push-уведомление отправлено пользователю ${user.userId}. Message ID: ${result}`,
+      );
       return true;
     } catch (error) {
-      this.logger.error(`Ошибка отправки push-уведомления пользователю ${user.userId}: ${error.message}`);
-      
-      if (error.code === 'messaging/invalid-registration-token' || 
-          error.code === 'messaging/registration-token-not-registered') {
-        this.logger.warn(`Недействительный FCM токен для пользователя ${user.userId}. Требуется обновление токена.`);
+      this.logger.error(
+        `Ошибка отправки push-уведомления пользователю ${user.userId}: ${error.message}`,
+      );
+
+      if (
+        error.code === 'messaging/invalid-registration-token' ||
+        error.code === 'messaging/registration-token-not-registered'
+      ) {
+        this.logger.warn(
+          `Недействительный FCM токен для пользователя ${user.userId}. Требуется обновление токена.`,
+        );
       }
-      
+
       return false;
     }
   }
@@ -78,21 +88,29 @@ export class FirebasePushService {
   ): Promise<{ successCount: number; failureCount: number }> {
     this.logger.log(`Отправка push-уведомлений ${users.length} пользователям`);
 
-    const enabledUsers = users.filter(user => user.pushNotificationsEnabled && user.fcmToken);
-    
+    const enabledUsers = users.filter(
+      (user) => user.pushNotificationsEnabled && user.fcmToken,
+    );
+
     if (enabledUsers.length === 0) {
-      this.logger.log('Нет пользователей с включенными push-уведомлениями и действующими токенами');
+      this.logger.log(
+        'Нет пользователей с включенными push-уведомлениями и действующими токенами',
+      );
       return { successCount: 0, failureCount: 0 };
     }
 
-    const promises = enabledUsers.map(user => this.sendPushNotificationToUser(user, data));
+    const promises = enabledUsers.map((user) =>
+      this.sendPushNotificationToUser(user, data),
+    );
     const results = await Promise.all(promises);
-    
-    const successCount = results.filter(result => result === true).length;
-    const failureCount = results.filter(result => result === false).length;
 
-    this.logger.log(`Push-уведомления отправлены: успешно - ${successCount}, с ошибками - ${failureCount}`);
-    
+    const successCount = results.filter((result) => result === true).length;
+    const failureCount = results.filter((result) => result === false).length;
+
+    this.logger.log(
+      `Push-уведомления отправлены: успешно - ${successCount}, с ошибками - ${failureCount}`,
+    );
+
     return { successCount, failureCount };
   }
 
@@ -122,14 +140,20 @@ export class FirebasePushService {
         tokens: fcmTokens,
       };
 
-      const result = await this.firebaseService.getMessaging().sendEachForMulticast(message);
-      
-      this.logger.log(`Multicast push-уведомление отправлено: успешно - ${result.successCount}, с ошибками - ${result.failureCount}`);
-      
+      const result = await this.firebaseService
+        .getMessaging()
+        .sendEachForMulticast(message);
+
+      this.logger.log(
+        `Multicast push-уведомление отправлено: успешно - ${result.successCount}, с ошибками - ${result.failureCount}`,
+      );
+
       if (result.failureCount > 0) {
         result.responses.forEach((response, index) => {
           if (!response.success) {
-            this.logger.error(`Ошибка отправки push-уведомления для токена ${index}: ${response.error?.message}`);
+            this.logger.error(
+              `Ошибка отправки push-уведомления для токена ${index}: ${response.error?.message}`,
+            );
           }
         });
       }
@@ -139,7 +163,9 @@ export class FirebasePushService {
         failureCount: result.failureCount,
       };
     } catch (error) {
-      this.logger.error(`Ошибка multicast отправки push-уведомлений: ${error.message}`);
+      this.logger.error(
+        `Ошибка multicast отправки push-уведомлений: ${error.message}`,
+      );
       return { successCount: 0, failureCount: fcmTokens.length };
     }
   }

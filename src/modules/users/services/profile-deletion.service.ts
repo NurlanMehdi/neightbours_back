@@ -39,12 +39,20 @@ export class ProfileDeletionService {
     }
 
     const code = this.generateVerificationCode();
-    const expiresAt = new Date(Date.now() + this.CODE_EXPIRY_MINUTES * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + this.CODE_EXPIRY_MINUTES * 60 * 1000,
+    );
 
-    await this.profileDeletionRepository.createDeletionRequest(userId, code, expiresAt);
+    await this.profileDeletionRepository.createDeletionRequest(
+      userId,
+      code,
+      expiresAt,
+    );
     //await this.smsService.sendSms(user.phone, code);
 
-    this.logger.log(`Запрос на удаление профиля создан/обновлен для пользователя ${userId}`);
+    this.logger.log(
+      `Запрос на удаление профиля создан/обновлен для пользователя ${userId}`,
+    );
 
     return {
       message: 'Код подтверждения отправлен на ваш номер телефона',
@@ -53,8 +61,15 @@ export class ProfileDeletionService {
     };
   }
 
-  async confirmDeletion(userId: number, code: string): Promise<ConfirmDeletionResponseDto> {
-    const request = await this.profileDeletionRepository.findRequestByUserIdAndCode(userId, code);
+  async confirmDeletion(
+    userId: number,
+    code: string,
+  ): Promise<ConfirmDeletionResponseDto> {
+    const request =
+      await this.profileDeletionRepository.findRequestByUserIdAndCode(
+        userId,
+        code,
+      );
     if (!request) {
       throw new InvalidDeletionCodeException();
     }
@@ -75,13 +90,21 @@ export class ProfileDeletionService {
 
     await this.profileDeletionRepository.confirmDeletionRequest(request.id);
 
-    const deletionDate = new Date(Date.now() + this.DELETION_DELAY_DAYS * 24 * 60 * 60 * 1000);
-    const updatedUser = await this.profileDeletionRepository.scheduleDeletion(userId, deletionDate);
+    const deletionDate = new Date(
+      Date.now() + this.DELETION_DELAY_DAYS * 24 * 60 * 60 * 1000,
+    );
+    const updatedUser = await this.profileDeletionRepository.scheduleDeletion(
+      userId,
+      deletionDate,
+    );
 
-    this.logger.log(`Удаление профиля запланировано для пользователя ${userId} на ${deletionDate}`);
+    this.logger.log(
+      `Удаление профиля запланировано для пользователя ${userId} на ${deletionDate}`,
+    );
 
     return {
-      message: 'Профиль будет удален через 14 дней. Вы можете отменить удаление до этого времени.',
+      message:
+        'Профиль будет удален через 14 дней. Вы можете отменить удаление до этого времени.',
       deletionScheduledAt: deletionDate,
     };
   }
@@ -108,7 +131,8 @@ export class ProfileDeletionService {
   }
 
   async processScheduledDeletions(): Promise<void> {
-    const usersToDelete = await this.profileDeletionRepository.findUsersScheduledForDeletion();
+    const usersToDelete =
+      await this.profileDeletionRepository.findUsersScheduledForDeletion();
 
     for (const user of usersToDelete) {
       try {
@@ -116,12 +140,16 @@ export class ProfileDeletionService {
         await this.profileDeletionRepository.deleteUser(user.id);
         this.logger.log(`Пользователь ${user.id} удален по расписанию`);
       } catch (error) {
-        this.logger.error(`Ошибка при удалении пользователя ${user.id}: ${error.message}`);
+        this.logger.error(
+          `Ошибка при удалении пользователя ${user.id}: ${error.message}`,
+        );
       }
     }
 
     await this.profileDeletionRepository.cleanupExpiredRequests();
-    this.logger.log(`Обработано ${usersToDelete.length} запланированных удалений`);
+    this.logger.log(
+      `Обработано ${usersToDelete.length} запланированных удалений`,
+    );
   }
 
   private generateVerificationCode(): string {

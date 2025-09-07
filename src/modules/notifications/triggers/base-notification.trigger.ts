@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NotificationType } from '../interfaces/notification.interface';
 import { NotificationService } from '../services/notification.service';
-import { 
-  INotificationTrigger, 
-  ICreateNotification, 
+import {
+  INotificationTrigger,
+  ICreateNotification,
   ISystemEventData,
-  SystemEventType 
+  SystemEventType,
 } from '../interfaces/notification.interface';
 
 /**
@@ -33,21 +33,31 @@ export abstract class BaseNotificationTrigger implements INotificationTrigger {
   protected async createNotification(data: ICreateNotification): Promise<void> {
     try {
       await this.notificationService.createNotification(data);
-      this.logger.log(`Создано уведомление типа ${data.type} для пользователя ${data.userId}`);
+      this.logger.log(
+        `Создано уведомление типа ${data.type} для пользователя ${data.userId}`,
+      );
     } catch (error) {
-      this.logger.error(`Ошибка создания уведомления: ${error.message}`, error.stack);
+      this.logger.error(
+        `Ошибка создания уведомления: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   /**
    * Создает множественные уведомления
    */
-  protected async createMultipleNotifications(notifications: ICreateNotification[]): Promise<void> {
+  protected async createMultipleNotifications(
+    notifications: ICreateNotification[],
+  ): Promise<void> {
     try {
       await this.notificationService.createMultipleNotifications(notifications);
       this.logger.log(`Создано ${notifications.length} уведомлений`);
     } catch (error) {
-      this.logger.error(`Ошибка создания множественных уведомлений: ${error.message}`, error.stack);
+      this.logger.error(
+        `Ошибка создания множественных уведомлений: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
@@ -64,12 +74,16 @@ export abstract class BaseNotificationTrigger implements INotificationTrigger {
   /**
    * Получает тип уведомления для данного события
    */
-  protected abstract getNotificationType(eventType: SystemEventType): NotificationType;
+  protected abstract getNotificationType(
+    eventType: SystemEventType,
+  ): NotificationType;
 
   /**
    * Получает список пользователей, которые должны получить уведомление
    */
-  protected abstract getTargetUserIds(eventData: ISystemEventData): Promise<number[]>;
+  protected abstract getTargetUserIds(
+    eventData: ISystemEventData,
+  ): Promise<number[]>;
 
   /**
    * Обрабатывает событие, если триггер должен его обработать
@@ -88,10 +102,10 @@ export abstract class BaseNotificationTrigger implements INotificationTrigger {
    */
   protected createBaseNotificationData(
     eventData: ISystemEventData,
-    userId: number
+    userId: number,
   ): Omit<ICreateNotification, 'type' | 'title' | 'message'> {
     const payload: any = { ...eventData.additionalData };
-    
+
     // Добавляем связь с одной сущностью в payload
     if (eventData.relatedEntityType && eventData.relatedEntityId) {
       switch (eventData.relatedEntityType) {

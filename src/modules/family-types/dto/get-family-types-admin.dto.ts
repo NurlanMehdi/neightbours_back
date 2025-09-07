@@ -7,4 +7,4 @@ export class GetFamilyTypesAdminDto extends PaginationQueryDto {
   @IsString()
   @IsOptional()
   search?: string;
-} 
+}

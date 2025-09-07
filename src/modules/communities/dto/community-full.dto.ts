@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
-import { CommunityStatus, PropertyCategory, PropertyVerificationStatus, EventCategory, EventType } from '@prisma/client';
+import {
+  CommunityStatus,
+  PropertyCategory,
+  PropertyVerificationStatus,
+  EventCategory,
+  EventType,
+} from '@prisma/client';
 
 export class CommunityUserFullDto {
   @ApiProperty({ description: 'ID пользователя' })
@@ -159,4 +165,4 @@ export class CommunityFullDto {
   @ApiProperty({ description: 'Код для присоединения' })
   @Expose()
   joinCode: string | null;
-} 
+}

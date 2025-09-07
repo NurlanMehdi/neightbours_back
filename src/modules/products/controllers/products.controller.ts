@@ -41,7 +41,9 @@ export class ProductsController {
     description: 'Продукт успешно создан',
     type: ProductDto,
   })
-  async create(@Body() createProductDto: CreateProductDto): Promise<ProductDto> {
+  async create(
+    @Body() createProductDto: CreateProductDto,
+  ): Promise<ProductDto> {
     return this.productsService.createProduct(createProductDto);
   }
 
@@ -91,4 +93,4 @@ export class ProductsController {
   async remove(@Param('id', ParseIntPipe) id: number): Promise<ProductDto> {
     return this.productsService.deactivateProduct(id);
   }
-} 
+}

@@ -22,4 +22,4 @@ export class FamilyTypesPaginatedDto {
   @ApiProperty({ description: 'Общее количество страниц' })
   @Expose()
   totalPages: number;
-} 
+}

@@ -1,4 +1,12 @@
-import { IsEnum, IsString, IsNotEmpty, IsOptional, IsInt, IsPositive, IsObject } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+  IsPositive,
+  IsObject,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { NotificationType } from '../interfaces/notification.interface';
@@ -42,7 +50,8 @@ export class CreateNotificationDto {
   userId: number;
 
   @ApiProperty({
-    description: 'Payload с данными уведомления и связью с одной сущностью в формате JSON',
+    description:
+      'Payload с данными уведомления и связью с одной сущностью в формате JSON',
     examples: {
       eventNotification: {
         summary: 'Уведомление о событии',
@@ -50,16 +59,16 @@ export class CreateNotificationDto {
           eventId: 5,
           eventTitle: 'Субботник',
           communityName: 'Центральное сообщество',
-          createdByName: 'Иван Петров'
-        }
+          createdByName: 'Иван Петров',
+        },
       },
       communityNotification: {
         summary: 'Уведомление о сообществе',
         value: {
           communityId: 3,
           communityName: 'Центральное сообщество',
-          userName: 'Иван Петров'
-        }
+          userName: 'Иван Петров',
+        },
       },
       propertyNotification: {
         summary: 'Уведомление о недвижимости',
@@ -67,9 +76,9 @@ export class CreateNotificationDto {
           propertyId: 7,
           propertyName: 'Зеленый дом',
           ownerName: 'Иван Петров',
-          verificationCount: 3
-        }
-      }
+          verificationCount: 3,
+        },
+      },
     },
     required: false,
   })

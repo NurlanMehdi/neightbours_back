@@ -30,4 +30,4 @@ export class CommunityUserDto {
   })
   @Expose()
   avatar: string | null;
-} 
+}

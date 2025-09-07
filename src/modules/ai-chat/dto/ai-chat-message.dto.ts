@@ -7,17 +7,17 @@ export class AiChatMessageDto {
   @Expose()
   id: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Роль отправителя сообщения',
     enum: AiChatMessageRole,
-    example: AiChatMessageRole.USER
+    example: AiChatMessageRole.USER,
   })
   @Expose()
   role: AiChatMessageRole;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Содержание сообщения',
-    example: 'Привет! Как дела?'
+    example: 'Привет! Как дела?',
   })
   @Expose()
   content: string;
@@ -25,4 +25,4 @@ export class AiChatMessageDto {
   @ApiProperty({ description: 'Дата создания сообщения' })
   @Expose()
   createdAt: Date;
-} 
+}

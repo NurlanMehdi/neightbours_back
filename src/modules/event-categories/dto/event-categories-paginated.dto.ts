@@ -5,7 +5,9 @@ import { EventCategoryDto } from './event-category.dto';
 /**
  * DTO для пагинированного ответа категорий событий
  */
-export class EventCategoriesPaginatedDto implements Paginated<EventCategoryDto> {
+export class EventCategoriesPaginatedDto
+  implements Paginated<EventCategoryDto>
+{
   @ApiProperty({
     description: 'Список категорий событий',
     type: [EventCategoryDto],
@@ -35,4 +37,4 @@ export class EventCategoriesPaginatedDto implements Paginated<EventCategoryDto> 
     example: 5,
   })
   totalPages: number;
-} 
+}

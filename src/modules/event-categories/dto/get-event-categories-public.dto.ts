@@ -14,4 +14,4 @@ export class GetEventCategoriesPublicDto {
   @IsOptional()
   @IsEnum(EventType)
   type?: EventType;
-} 
+}

@@ -150,7 +150,7 @@ export class EventMessagesRepository {
       },
     });
 
-    const readEventIdList = readEventIds.map(read => read.eventId);
+    const readEventIdList = readEventIds.map((read) => read.eventId);
 
     // Получаем ID событий, в которых пользователь участвует
     const userParticipations = await this.prisma.usersOnEvents.findMany({
@@ -162,7 +162,7 @@ export class EventMessagesRepository {
       },
     });
 
-    const userEventIds = userParticipations.map(up => up.eventId);
+    const userEventIds = userParticipations.map((up) => up.eventId);
 
     // Если пользователь не участвует ни в одном событии, возвращаем пустой массив
     if (userEventIds.length === 0) {
@@ -230,9 +230,11 @@ export class EventMessagesRepository {
   /**
    * Получает группированные непрочитанные сообщения по событиям для пользователя
    */
-  async getUnreadMessagesGroupedByEvent(
-    userId: number,
-  ): Promise<{ count: Record<string, number>; EVENT: number; NOTIFICATION: number }> {
+  async getUnreadMessagesGroupedByEvent(userId: number): Promise<{
+    count: Record<string, number>;
+    EVENT: number;
+    NOTIFICATION: number;
+  }> {
     // Получаем события с timestamp когда пользователь их прочитал
     const readEvents = await this.prisma.eventRead.findMany({
       where: { userId },
@@ -244,7 +246,7 @@ export class EventMessagesRepository {
       where: { userId },
       select: { eventId: true, joinedAt: true },
     });
-    const userEventIds = userParticipations.map(up => up.eventId);
+    const userEventIds = userParticipations.map((up) => up.eventId);
 
     // Если пользователь не участвует ни в одном событии, возвращаем пустой результат
     if (userEventIds.length === 0) {
@@ -257,10 +259,13 @@ export class EventMessagesRepository {
 
     // Создаем maps для быстрого поиска timestamps по eventId
     const readAtMap = new Map(
-      readEvents.map(read => [read.eventId, read.readAt])
+      readEvents.map((read) => [read.eventId, read.readAt]),
     );
     const joinedAtMap = new Map(
-      userParticipations.map(participation => [participation.eventId, participation.joinedAt])
+      userParticipations.map((participation) => [
+        participation.eventId,
+        participation.joinedAt,
+      ]),
     );
 
     // Получаем все сообщения из событий, в которых пользователь участвует
@@ -282,20 +287,20 @@ export class EventMessagesRepository {
     });
 
     // Фильтруем сообщения: показываем только те, что созданы ПОСЛЕ join time И readAt timestamp
-    const unreadMessages = messages.filter(message => {
+    const unreadMessages = messages.filter((message) => {
       const joinedAt = joinedAtMap.get(message.eventId);
       const readAt = readAtMap.get(message.eventId);
-      
+
       // Сообщение должно быть создано ПОСЛЕ времени присоединения к событию
       if (!joinedAt || message.createdAt <= joinedAt) {
         return false;
       }
-      
+
       // Если событие никогда не было прочитано - сообщения после join времени непрочитанные
       if (!readAt) {
         return true;
       }
-      
+
       // Сообщение непрочитанное если оно создано ПОСЛЕ последнего времени прочтения
       return message.createdAt > readAt;
     });
@@ -306,22 +311,25 @@ export class EventMessagesRepository {
     let totalNotificationMessages = 0;
 
     // Группируем ТОЛЬКО непрочитанные сообщения по eventId
-    const groupedByEvent = unreadMessages.reduce((acc, message) => {
-      const eventId = message.eventId;
-      if (!acc[eventId]) {
-        acc[eventId] = {
-          count: 0,
-          type: message.event.type,
-        };
-      }
-      acc[eventId].count++;
-      return acc;
-    }, {} as Record<number, { count: number; type: string }>);
+    const groupedByEvent = unreadMessages.reduce(
+      (acc, message) => {
+        const eventId = message.eventId;
+        if (!acc[eventId]) {
+          acc[eventId] = {
+            count: 0,
+            type: message.event.type,
+          };
+        }
+        acc[eventId].count++;
+        return acc;
+      },
+      {} as Record<number, { count: number; type: string }>,
+    );
 
     // Преобразуем в нужный формат и считаем по типам
     Object.entries(groupedByEvent).forEach(([eventIdStr, data]) => {
       count[eventIdStr] = data.count;
-      
+
       if (data.type === 'EVENT') {
         totalEventMessages += data.count;
       } else if (data.type === 'NOTIFICATION') {

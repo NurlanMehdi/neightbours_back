@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { CommunityRepository } from '../repositories/community.repository';
 import { PaginationQueryDto } from '../../../common/models/paginated-query.dto';
 import { Paginated } from '../../../common/interfaces/paginated';
@@ -174,7 +179,12 @@ export class CommunityService {
    * @param longitude Долгота местоположения сообщества
    * @returns Созданное сообщество с кодом для присоединения
    */
-  async createCommunity(userId: number, name: string, latitude: number, longitude: number) {
+  async createCommunity(
+    userId: number,
+    name: string,
+    latitude: number,
+    longitude: number,
+  ) {
     this.logger.log(
       `Сервис: создание сообщества пользователем с id: ${userId}.`,
     );
@@ -249,23 +259,28 @@ export class CommunityService {
       // Получаем информацию о пользователе для уведомления
       const newUser = await this.prisma.users.findUnique({
         where: { id: userId },
-        select: { firstName: true, lastName: true }
+        select: { firstName: true, lastName: true },
       });
-      
+
       if (newUser) {
-        const userName = `${newUser.firstName} ${newUser.lastName}`;
-        
+        const userName =
+          `${newUser.firstName || ''} ${newUser.lastName || ''}`.trim();
+
         await this.notificationEventService.notifyUserJoinedCommunityToMembers({
           communityId: community.id,
           communityName: community.name,
           newUserName: userName,
           newUserId: userId,
         });
-        
-        this.logger.log(`Уведомления отправлены участникам сообщества ${community.id} о присоединении пользователя ${userId}`);
+
+        this.logger.log(
+          `Уведомления отправлены участникам сообщества ${community.id} о присоединении пользователя ${userId}`,
+        );
       }
     } catch (notificationError) {
-      this.logger.error(`Ошибка отправки уведомления о присоединении к сообществу: ${notificationError.message}`);
+      this.logger.error(
+        `Ошибка отправки уведомления о присоединении к сообществу: ${notificationError.message}`,
+      );
     }
 
     return community;
@@ -324,7 +339,10 @@ export class CommunityService {
    * @param userId ID текущего пользователя
    * @returns Список пользователей сообщества
    */
-  async getCommunityUsers(communityId: number, userId: number): Promise<CommunityUserDto[]> {
+  async getCommunityUsers(
+    communityId: number,
+    userId: number,
+  ): Promise<CommunityUserDto[]> {
     this.logger.log(
       `Сервис: получение пользователей сообщества с id: ${communityId} пользователем ${userId}.`,
     );
@@ -337,16 +355,20 @@ export class CommunityService {
 
     // Проверяем доступ: пользователь должен быть создателем или участником сообщества
     const isCreator = community.createdBy === userId;
-    
+
     if (!isCreator) {
       // Проверяем, является ли пользователь участником сообщества
-      const userInCommunity = await this.communityRepository.findByUserId(userId);
+      const userInCommunity =
+        await this.communityRepository.findByUserId(userId);
       if (!userInCommunity || userInCommunity.id !== communityId) {
-        throw new ForbiddenException('Доступ запрещен - вы не являетесь участником или создателем этого сообщества');
+        throw new ForbiddenException(
+          'Доступ запрещен - вы не являетесь участником или создателем этого сообщества',
+        );
       }
     }
-    
-    const usersOnCommunities = await this.communityRepository.getCommunityUsers(communityId);
+
+    const usersOnCommunities =
+      await this.communityRepository.getCommunityUsers(communityId);
 
     return usersOnCommunities.map((uc) => {
       return plainToInstance(
@@ -366,8 +388,8 @@ export class CommunityService {
 
   private buildCommunityDto(community: any): CommunityDto {
     // Формируем ФИО создателя
-    const createdByName = community.creator 
-      ? `${community.creator.firstName} ${community.creator.lastName}`.trim()
+    const createdByName = community.creator
+      ? `${community.creator.firstName || ''} ${community.creator.lastName || ''}`.trim()
       : 'Неизвестный пользователь';
 
     return plainToInstance(
@@ -400,38 +422,45 @@ export class CommunityService {
         description: community.description ?? '',
         status: community.status,
         creator: community.creator,
-        users: community.users?.map((uc: any) => ({
-          id: uc.user.id,
-          firstName: uc.user.firstName,
-          lastName: uc.user.lastName,
-          phone: uc.user.phone,
-          email: uc.user.email,
-          role: uc.user.role,
-          status: uc.user.status,
-          avatar: uc.user.avatar,
-          createdAt: uc.user.createdAt,
-          properties: uc.user.Properties?.map((property: any) => ({
-            id: property.id,
-            name: property.name,
-            category: property.category,
-            verificationStatus: property.verificationStatus,
-            verifiedUserIds: property.verifications?.map((verification: any) => verification.userId) || [],
+        users:
+          community.users?.map((uc: any) => ({
+            id: uc.user.id,
+            firstName: uc.user.firstName,
+            lastName: uc.user.lastName,
+            phone: uc.user.phone,
+            email: uc.user.email,
+            role: uc.user.role,
+            status: uc.user.status,
+            avatar: uc.user.avatar,
+            createdAt: uc.user.createdAt,
+            properties:
+              uc.user.Properties?.map((property: any) => ({
+                id: property.id,
+                name: property.name,
+                category: property.category,
+                verificationStatus: property.verificationStatus,
+                verifiedUserIds:
+                  property.verifications?.map(
+                    (verification: any) => verification.userId,
+                  ) || [],
+              })) || [],
           })) || [],
-        })) || [],
-        events: community.events?.map((event: any) => ({
-          id: event.id,
-          title: event.title,
-          description: event.description,
-          category: event.category,
-          type: event.type,
-          creator: event.creator,
-          participants: event.participants?.map((p: any) => ({
-            id: p.user.id,
-            firstName: p.user.firstName,
-            lastName: p.user.lastName,
+        events:
+          community.events?.map((event: any) => ({
+            id: event.id,
+            title: event.title,
+            description: event.description,
+            category: event.category,
+            type: event.type,
+            creator: event.creator,
+            participants:
+              event.participants?.map((p: any) => ({
+                id: p.user.id,
+                firstName: p.user.firstName,
+                lastName: p.user.lastName,
+              })) || [],
+            createdAt: event.createdAt,
           })) || [],
-          createdAt: event.createdAt,
-        })) || [],
         numberOfUsers: community.users?.length ?? 0,
         numberOfEvents: community.events?.length ?? 0,
         createdAt: community.createdAt,
@@ -452,7 +481,9 @@ export class CommunityService {
    * @returns Сообщество со всеми связанными данными
    */
   async getCommunityForAdmin(id: number): Promise<CommunityFullDto> {
-    this.logger.log(`Получение полной информации о сообществе ${id} для администратора.`);
+    this.logger.log(
+      `Получение полной информации о сообществе ${id} для администратора.`,
+    );
 
     const community = await this.communityRepository.findByIdForAdmin(id);
     if (!community) {
@@ -482,7 +513,7 @@ export class CommunityService {
 
     // Создаем объект с данными для обновления
     const updateData: any = {};
-    
+
     if (dto.name !== undefined) {
       updateData.name = dto.name;
     }
@@ -500,8 +531,11 @@ export class CommunityService {
     }
 
     // Обновляем сообщество
-    const updatedCommunity = await this.communityRepository.update(id, updateData);
-    
+    const updatedCommunity = await this.communityRepository.update(
+      id,
+      updateData,
+    );
+
     return this.buildCommunityDto(updatedCommunity);
   }
 
@@ -511,7 +545,9 @@ export class CommunityService {
    * @returns Успешность операции
    */
   async softDeleteCommunityByAdmin(id: number): Promise<void> {
-    this.logger.log(`Сервис: мягкое удаление сообщества ${id} администратором.`);
+    this.logger.log(
+      `Сервис: мягкое удаление сообщества ${id} администратором.`,
+    );
 
     // Проверяем существование сообщества
     const community = await this.communityRepository.findByIdForAdmin(id);
@@ -521,7 +557,7 @@ export class CommunityService {
 
     // Выполняем мягкое удаление
     await this.communityRepository.softDelete(id);
-    
+
     this.logger.log(`Сообщество ${id} успешно мягко удалено.`);
   }
 }

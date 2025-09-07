@@ -9,7 +9,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { FamilyTypesService } from '../family-types.service';
 import { CreateFamilyTypeDto } from '../dto/create-family-type.dto';
 import { UpdateFamilyTypeDto } from '../dto/update-family-type.dto';
@@ -32,9 +37,15 @@ export class FamilyTypesController {
   @Get()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Получить список типов семьи (админ)' })
-  @ApiResponse({ status: 200, description: 'Список типов семьи', type: FamilyTypesPaginatedDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Список типов семьи',
+    type: FamilyTypesPaginatedDto,
+  })
   @ApiStandardResponses()
-  async findAll(@Query() query: GetFamilyTypesAdminDto): Promise<FamilyTypesPaginatedDto> {
+  async findAll(
+    @Query() query: GetFamilyTypesAdminDto,
+  ): Promise<FamilyTypesPaginatedDto> {
     return this.familyTypesService.findAllAdmin(query);
   }
 
@@ -50,16 +61,26 @@ export class FamilyTypesController {
   @Post()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Создать тип семьи (админ)' })
-  @ApiResponse({ status: 201, description: 'Тип семьи создан', type: FamilyTypeDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Тип семьи создан',
+    type: FamilyTypeDto,
+  })
   @ApiStandardResponses()
-  async create(@Body() createFamilyTypeDto: CreateFamilyTypeDto): Promise<FamilyTypeDto> {
+  async create(
+    @Body() createFamilyTypeDto: CreateFamilyTypeDto,
+  ): Promise<FamilyTypeDto> {
     return this.familyTypesService.create(createFamilyTypeDto);
   }
 
   @Put(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Обновить тип семьи (админ)' })
-  @ApiResponse({ status: 200, description: 'Тип семьи обновлен', type: FamilyTypeDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Тип семьи обновлен',
+    type: FamilyTypeDto,
+  })
   @ApiStandardResponses()
   async update(
     @Param('id') id: string,
@@ -71,9 +92,13 @@ export class FamilyTypesController {
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Удалить тип семьи (админ)' })
-  @ApiResponse({ status: 200, description: 'Тип семьи удален', type: FamilyTypeDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Тип семьи удален',
+    type: FamilyTypeDto,
+  })
   @ApiStandardResponses()
   async delete(@Param('id') id: string): Promise<FamilyTypeDto> {
     return this.familyTypesService.delete(+id);
   }
-} 
+}

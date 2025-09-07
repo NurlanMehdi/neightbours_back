@@ -178,10 +178,12 @@ export class UsersAdminController {
   @Get(':id/full')
   @ApiOperation({ summary: 'Получить полную информацию о пользователе' })
   @ApiParam({ name: 'id', type: 'number', description: 'ID пользователя' })
-  @ApiResponse({ status: 200, description: 'Информация о пользователе', type: UserDto })
-  async getUserFull(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<UserDto> {
+  @ApiResponse({
+    status: 200,
+    description: 'Информация о пользователе',
+    type: UserDto,
+  })
+  async getUserFull(@Param('id', ParseIntPipe) id: number): Promise<UserDto> {
     return this.userService.getUserForAdmin(id);
   }
 
@@ -193,7 +195,11 @@ export class UsersAdminController {
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UpdateUserDto })
   @ApiParam({ name: 'id', type: Number, description: 'ID пользователя' })
-  @ApiResponse({ status: 200, description: 'Пользователь успешно обновлён', type: UserDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Пользователь успешно обновлён',
+    type: UserDto,
+  })
   @ApiStandardResponses()
   @UseInterceptors(FileInterceptor('avatar'))
   async updateUserByAdmin(
@@ -221,7 +227,11 @@ export class UsersAdminController {
   @Post(':id/qualifications/:qualificationId')
   @ApiOperation({ summary: 'Добавить квалификацию пользователю' })
   @ApiParam({ name: 'id', type: Number, description: 'ID пользователя' })
-  @ApiParam({ name: 'qualificationId', type: Number, description: 'ID квалификации' })
+  @ApiParam({
+    name: 'qualificationId',
+    type: Number,
+    description: 'ID квалификации',
+  })
   async addUserQualification(
     @Param('id', ParseIntPipe) userId: number,
     @Param('qualificationId', ParseIntPipe) qualificationId: number,
@@ -235,7 +245,11 @@ export class UsersAdminController {
   @Delete(':id/qualifications/:qualificationId')
   @ApiOperation({ summary: 'Удалить квалификацию у пользователя' })
   @ApiParam({ name: 'id', type: Number, description: 'ID пользователя' })
-  @ApiParam({ name: 'qualificationId', type: Number, description: 'ID квалификации' })
+  @ApiParam({
+    name: 'qualificationId',
+    type: Number,
+    description: 'ID квалификации',
+  })
   async removeUserQualification(
     @Param('id', ParseIntPipe) userId: number,
     @Param('qualificationId', ParseIntPipe) qualificationId: number,
@@ -287,23 +301,26 @@ export class UsersAdminController {
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
   @Delete('bulk')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Массовое удаление пользователей',
-    description: 'Выполняет полное удаление нескольких пользователей из базы данных'
+    description:
+      'Выполняет полное удаление нескольких пользователей из базы данных',
   })
   @ApiBody({ type: BulkDeleteUsersDto })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Пользователи успешно удалены',
     type: DeleteResponseDto,
     example: {
       success: true,
       message: 'Пользователи успешно удалены',
-      deletedCount: 5
-    }
+      deletedCount: 5,
+    },
   })
   @ApiStandardResponses()
-  async bulkDeleteUsers(@Body() dto: BulkDeleteUsersDto): Promise<DeleteResponseDto> {
+  async bulkDeleteUsers(
+    @Body() dto: BulkDeleteUsersDto,
+  ): Promise<DeleteResponseDto> {
     return this.userService.bulkDeleteUsers(dto);
   }
 
@@ -311,22 +328,24 @@ export class UsersAdminController {
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
   @Delete(':id')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Удаление пользователя',
-    description: 'Выполняет полное удаление пользователя из базы данных по ID'
+    description: 'Выполняет полное удаление пользователя из базы данных по ID',
   })
   @ApiParam({ name: 'id', type: Number, description: 'ID пользователя' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Пользователь успешно удален',
     type: DeleteResponseDto,
     example: {
       success: true,
-      message: 'Пользователь успешно удален'
-    }
+      message: 'Пользователь успешно удален',
+    },
   })
   @ApiStandardResponses()
-  async deleteUser(@Param('id', ParseIntPipe) id: number): Promise<DeleteResponseDto> {
+  async deleteUser(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<DeleteResponseDto> {
     return this.userService.deleteUser(id);
   }
 }

@@ -18,7 +18,7 @@ export class EventCategoryDto {
   @Expose()
   icon: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Цвет категории',
     example: '#FF5733',
     required: false,
@@ -26,7 +26,7 @@ export class EventCategoryDto {
   @Expose()
   color?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Тип категории',
     enum: EventType,
     example: EventType.EVENT,
@@ -37,4 +37,4 @@ export class EventCategoryDto {
   @ApiProperty({ description: 'Активна ли категория' })
   @Expose()
   isActive: boolean;
-} 
+}

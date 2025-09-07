@@ -9,4 +9,4 @@ import { FamilyTypesRepository } from './repositories/family-types.repository';
   providers: [FamilyTypesService, FamilyTypesRepository],
   exports: [FamilyTypesService],
 })
-export class FamilyTypesModule {} 
+export class FamilyTypesModule {}

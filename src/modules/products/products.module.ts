@@ -11,4 +11,4 @@ import { PrismaModule } from '../../prisma/prisma.module';
   providers: [ProductsService, ProductsRepository],
   exports: [ProductsService],
 })
-export class ProductsModule {} 
+export class ProductsModule {}

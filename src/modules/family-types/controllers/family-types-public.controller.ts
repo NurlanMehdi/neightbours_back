@@ -1,5 +1,10 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { FamilyTypesService } from '../family-types.service';
 import { FamilyTypeDto } from '../dto/family-type.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -18,9 +23,13 @@ export class FamilyTypesPublicController {
   @Get()
   @Roles(UserRole.USER)
   @ApiOperation({ summary: 'Получить список типов семьи' })
-  @ApiResponse({ status: 200, description: 'Список типов семьи', type: [FamilyTypeDto] })
+  @ApiResponse({
+    status: 200,
+    description: 'Список типов семьи',
+    type: [FamilyTypeDto],
+  })
   @ApiStandardResponses()
   async findAll(): Promise<FamilyTypeDto[]> {
     return this.familyTypesService.findAll();
   }
-} 
+}

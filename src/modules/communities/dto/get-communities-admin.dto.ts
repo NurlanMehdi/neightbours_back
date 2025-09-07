@@ -8,7 +8,11 @@ import {
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TransformToFloat, TransformToInt, TransformToBoolean } from '../../../common/utils/form-data-transformers.util';
+import {
+  TransformToFloat,
+  TransformToInt,
+  TransformToBoolean,
+} from '../../../common/utils/form-data-transformers.util';
 
 export enum CommunitySortBy {
   ID = 'id',

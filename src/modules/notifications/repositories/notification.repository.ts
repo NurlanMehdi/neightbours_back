@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { 
-  INotificationRepository, 
-  ICreateNotification, 
-  IUpdateNotification, 
-  INotificationFilters 
+import {
+  INotificationRepository,
+  ICreateNotification,
+  IUpdateNotification,
+  INotificationFilters,
 } from '../interfaces/notification.interface';
 
 @Injectable()
@@ -27,13 +27,17 @@ export class NotificationRepository implements INotificationRepository {
   /**
    * Получает пользователя с настройками push-уведомлений
    */
-  async getUserWithPushSettings(userId: number): Promise<{ id: number; fcmToken?: string; pushNotificationsEnabled: boolean } | null> {
+  async getUserWithPushSettings(userId: number): Promise<{
+    id: number;
+    fcmToken?: string;
+    pushNotificationsEnabled: boolean;
+  } | null> {
     const user = await (this.prisma as any).users.findUnique({
       where: { id: userId },
-      select: { 
-        id: true, 
-        fcmToken: true, 
-        pushNotificationsEnabled: true 
+      select: {
+        id: true,
+        fcmToken: true,
+        pushNotificationsEnabled: true,
       },
     });
     return user;
@@ -42,13 +46,17 @@ export class NotificationRepository implements INotificationRepository {
   /**
    * Получает пользователей с настройками push-уведомлений
    */
-  async getUsersWithPushSettings(userIds: number[]): Promise<{ id: number; fcmToken?: string; pushNotificationsEnabled: boolean }[]> {
+  async getUsersWithPushSettings(
+    userIds: number[],
+  ): Promise<
+    { id: number; fcmToken?: string; pushNotificationsEnabled: boolean }[]
+  > {
     const users = await (this.prisma as any).users.findMany({
       where: { id: { in: userIds } },
-      select: { 
-        id: true, 
-        fcmToken: true, 
-        pushNotificationsEnabled: true 
+      select: {
+        id: true,
+        fcmToken: true,
+        pushNotificationsEnabled: true,
       },
     });
     return users;
@@ -58,7 +66,9 @@ export class NotificationRepository implements INotificationRepository {
    * Создает новое уведомление
    */
   async create(data: ICreateNotification): Promise<any> {
-    this.logger.log(`Создание уведомления типа ${data.type} для пользователя ${data.userId}`);
+    this.logger.log(
+      `Создание уведомления типа ${data.type} для пользователя ${data.userId}`,
+    );
 
     try {
       const notification = await (this.prisma as any).notification.create({
@@ -86,11 +96,24 @@ export class NotificationRepository implements INotificationRepository {
   /**
    * Получает уведомления пользователя с фильтрацией и пагинацией
    */
-  async findByUserId(filters: INotificationFilters): Promise<{ data: any[]; total: number }> {
-    const { userId, isRead, type, dateFrom, dateTo, payload, page = 1, limit = 10 } = filters;
+  async findByUserId(
+    filters: INotificationFilters,
+  ): Promise<{ data: any[]; total: number }> {
+    const {
+      userId,
+      isRead,
+      type,
+      dateFrom,
+      dateTo,
+      payload,
+      page = 1,
+      limit = 10,
+    } = filters;
     const skip = (page - 1) * limit;
 
-    this.logger.log(`Получение уведомлений для пользователя ${userId} с фильтрами: ${JSON.stringify(filters)}`);
+    this.logger.log(
+      `Получение уведомлений для пользователя ${userId} с фильтрами: ${JSON.stringify(filters)}`,
+    );
 
     const where: any = {
       userId,
@@ -130,7 +153,9 @@ export class NotificationRepository implements INotificationRepository {
       (this.prisma as any).notification.count({ where }),
     ]);
 
-    this.logger.log(`Найдено ${data.length} уведомлений из ${total} для пользователя ${userId}`);
+    this.logger.log(
+      `Найдено ${data.length} уведомлений из ${total} для пользователя ${userId}`,
+    );
     return { data, total };
   }
 
@@ -193,7 +218,9 @@ export class NotificationRepository implements INotificationRepository {
    * Отмечает все уведомления пользователя как прочитанные
    */
   async markAllAsReadForUser(userId: number): Promise<void> {
-    this.logger.log(`Отметка всех уведомлений пользователя ${userId} как прочитанных`);
+    this.logger.log(
+      `Отметка всех уведомлений пользователя ${userId} как прочитанных`,
+    );
 
     const result = await (this.prisma as any).notification.updateMany({
       where: {
@@ -203,14 +230,18 @@ export class NotificationRepository implements INotificationRepository {
       data: { isRead: true },
     });
 
-    this.logger.log(`Отмечено ${result.count} уведомлений как прочитанных для пользователя ${userId}`);
+    this.logger.log(
+      `Отмечено ${result.count} уведомлений как прочитанных для пользователя ${userId}`,
+    );
   }
 
   /**
    * Получает количество непрочитанных уведомлений пользователя
    */
   async getUnreadCountForUser(userId: number): Promise<number> {
-    this.logger.log(`Получение количества непрочитанных уведомлений для пользователя ${userId}`);
+    this.logger.log(
+      `Получение количества непрочитанных уведомлений для пользователя ${userId}`,
+    );
 
     const count = await (this.prisma as any).notification.count({
       where: {
@@ -219,7 +250,9 @@ export class NotificationRepository implements INotificationRepository {
       },
     });
 
-    this.logger.log(`У пользователя ${userId} ${count} непрочитанных уведомлений`);
+    this.logger.log(
+      `У пользователя ${userId} ${count} непрочитанных уведомлений`,
+    );
     return count;
   }
 
@@ -246,7 +279,9 @@ export class NotificationRepository implements INotificationRepository {
       where: { userId },
     });
 
-    this.logger.log(`Удалено ${result.count} уведомлений пользователя ${userId}`);
+    this.logger.log(
+      `Удалено ${result.count} уведомлений пользователя ${userId}`,
+    );
     return result.count;
   }
 
@@ -256,7 +291,7 @@ export class NotificationRepository implements INotificationRepository {
   async createMany(notifications: ICreateNotification[]): Promise<any[]> {
     this.logger.log(`Создание ${notifications.length} уведомлений`);
 
-    const data = notifications.map(notification => ({
+    const data = notifications.map((notification) => ({
       type: notification.type,
       title: notification.title,
       message: notification.message,
@@ -264,23 +299,23 @@ export class NotificationRepository implements INotificationRepository {
       userId: notification.userId,
     }));
 
-    const createPromises = data.map(notificationData => 
-      (this.prisma as any).notification.create({ data: notificationData })
+    const createPromises = data.map((notificationData) =>
+      (this.prisma as any).notification.create({ data: notificationData }),
     );
 
     const createdNotifications = await Promise.all(createPromises);
     this.logger.log(`Создано ${notifications.length} уведомлений`);
-    
+
     return createdNotifications;
   }
-
-
 
   /**
    * Удаляет старые прочитанные уведомления
    */
   async cleanupOldNotifications(olderThanDays: number = 30): Promise<number> {
-    this.logger.log(`Очистка прочитанных уведомлений старше ${olderThanDays} дней`);
+    this.logger.log(
+      `Очистка прочитанных уведомлений старше ${olderThanDays} дней`,
+    );
 
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
@@ -301,7 +336,15 @@ export class NotificationRepository implements INotificationRepository {
   /**
    * Получает список всех пользователей для выбора
    */
-  async getAllUsersForSelection(): Promise<{ id: number; firstName: string; lastName: string; email: string; avatar: string | null }[]> {
+  async getAllUsersForSelection(): Promise<
+    {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+      avatar: string | null;
+    }[]
+  > {
     this.logger.log('Получение списка пользователей для выбора');
 
     const users = await (this.prisma as any).users.findMany({
@@ -315,10 +358,7 @@ export class NotificationRepository implements INotificationRepository {
         email: true,
         avatar: true,
       },
-      orderBy: [
-        { firstName: 'asc' },
-        { lastName: 'asc' },
-      ],
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     });
 
     return users;

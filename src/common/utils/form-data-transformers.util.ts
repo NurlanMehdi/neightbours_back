@@ -46,19 +46,19 @@ export const TransformVotingOptions = () =>
     if (typeof value === 'string') {
       return value
         .split(',')
-        .map(v => v.trim())
-        .filter(v => v.length > 0)
-        .map(text => ({ text }));
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0)
+        .map((text) => ({ text }));
     }
 
     // Если пришел массив строк ['Да', 'Нет'] (multipart формирует несколько полей votingOptions)
-    if (Array.isArray(value) && value.every(v => typeof v === 'string')) {
+    if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
       return value
-        .map(v => v.trim())
-        .filter(v => v.length > 0)
-        .map(text => ({ text }));
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0)
+        .map((text) => ({ text }));
     }
 
     // Если уже пришёл массив объектов [{ text: 'Да' }]
     return value;
-  }); 
+  });

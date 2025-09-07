@@ -8,22 +8,22 @@ export class UserVerificationsPaginatedDto {
       {
         property: {
           id: 1,
-          name: "Частный дом на Рублевке",
-          category: "PRIVATE_HOUSE",
+          name: 'Частный дом на Рублевке',
+          category: 'PRIVATE_HOUSE',
           latitude: 55.7558,
           longitude: 37.6176,
-          photo: "/uploads/house1.jpg",
-          verificationStatus: "VERIFIED",
+          photo: '/uploads/house1.jpg',
+          verificationStatus: 'VERIFIED',
           verificationCount: 3,
           verifiedUserIds: [1, 2, 3],
           createdById: 1,
-          createdBy: "Иван Петров",
-          createdAt: "2025-08-09T10:52:53.078Z",
-          updatedAt: "2025-08-09T10:52:53.078Z"
+          createdBy: 'Иван Петров',
+          createdAt: '2025-08-09T10:52:53.078Z',
+          updatedAt: '2025-08-09T10:52:53.078Z',
         },
-        verifiedAt: "2025-08-09T10:52:53.078Z"
-      }
-    ]
+        verifiedAt: '2025-08-09T10:52:53.078Z',
+      },
+    ],
   })
   data: any[];
 
@@ -50,4 +50,4 @@ export class UserVerificationsPaginatedDto {
     example: 3,
   })
   totalPages: number;
-} 
+}

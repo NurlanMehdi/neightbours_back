@@ -21,4 +21,4 @@ export class CreateFamilyTypeDto {
   @IsString()
   @IsOptional()
   color?: string;
-} 
+}

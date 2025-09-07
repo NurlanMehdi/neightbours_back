@@ -1,7 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsLatitude, IsLongitude, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsLatitude,
+  IsLongitude,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { PropertyCategory, PropertyVerificationStatus } from '@prisma/client';
-import { TransformToFloat, TransformToInt } from '../../../common/utils/form-data-transformers.util';
+import {
+  TransformToFloat,
+  TransformToInt,
+} from '../../../common/utils/form-data-transformers.util';
 
 export class UpdatePropertyAdminDto {
   @ApiProperty({
@@ -62,4 +72,4 @@ export class UpdatePropertyAdminDto {
   @IsOptional()
   @TransformToInt()
   userId?: number;
-} 
+}

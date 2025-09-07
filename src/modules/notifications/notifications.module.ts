@@ -23,7 +23,7 @@ import { CommunityNotificationTrigger } from './triggers/community-notification.
 
 /**
  * Модуль уведомлений
- * 
+ *
  * Предоставляет универсальную систему уведомлений с поддержкой:
  * - Создания и управления уведомлениями
  * - Триггеров для автоматического создания уведомлений
@@ -32,7 +32,7 @@ import { CommunityNotificationTrigger } from './triggers/community-notification.
  */
 @Module({
   imports: [
-    PrismaModule, 
+    PrismaModule,
     FirebaseModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
@@ -45,13 +45,13 @@ import { CommunityNotificationTrigger } from './triggers/community-notification.
     NotificationService,
     NotificationTriggerService,
     NotificationEventService,
-    
+
     // Репозиторий
     NotificationRepository,
-    
+
     // WebSocket Gateway
     NotificationsGateway,
-    
+
     // Триггеры уведомлений
     EventNotificationTrigger,
     CommunityNotificationTrigger,

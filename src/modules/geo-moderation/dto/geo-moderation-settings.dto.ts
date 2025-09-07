@@ -6,44 +6,45 @@ export class GeoModerationSettingsDto {
   @Expose()
   id: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Включить гео-модерацию вступления в сообщество',
-    example: true
+    example: true,
   })
   @Expose()
   communityJoinEnabled: boolean;
 
-  @ApiProperty({ 
-    description: 'Максимальное расстояние для вступления в сообщество (в метрах)',
-    example: 500
+  @ApiProperty({
+    description:
+      'Максимальное расстояние для вступления в сообщество (в метрах)',
+    example: 500,
   })
   @Expose()
   communityJoinMaxDistance: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Включить гео-модерацию подтверждения объекта',
-    example: true
+    example: true,
   })
   @Expose()
   propertyVerificationEnabled: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Максимальное расстояние для подтверждения объекта (в метрах)',
-    example: 100
+    example: 100,
   })
   @Expose()
   propertyVerificationMaxDistance: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Включить гео-модерацию добавления объекта',
-    example: true
+    example: true,
   })
   @Expose()
   propertyCreationEnabled: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Максимальное расстояние для добавления объекта (в метрах)',
-    example: 100
+    example: 100,
   })
   @Expose()
   propertyCreationMaxDistance: number;
@@ -55,4 +56,4 @@ export class GeoModerationSettingsDto {
   @ApiProperty({ description: 'Дата обновления' })
   @Expose()
   updatedAt: Date;
-} 
+}

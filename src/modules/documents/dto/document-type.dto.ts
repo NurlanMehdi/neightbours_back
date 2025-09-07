@@ -4,7 +4,7 @@ export class DocumentTypeParamDto {
   @ApiProperty({
     description: 'Document type',
     enum: ['license', 'privacy'],
-    example: 'license'
+    example: 'license',
   })
   type: 'license' | 'privacy';
 }

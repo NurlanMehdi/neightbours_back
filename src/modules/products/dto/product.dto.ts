@@ -26,7 +26,7 @@ export class ProductDto {
 
   @ApiProperty({
     description: 'Цена продукта',
-    example: 1500.50,
+    example: 1500.5,
     required: false,
   })
   @Expose()
@@ -97,4 +97,4 @@ export class ProductsListDto {
   })
   @Expose()
   totalPages: number;
-} 
+}

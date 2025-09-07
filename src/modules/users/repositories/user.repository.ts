@@ -21,7 +21,6 @@ type UserWithBlocking = Users & {
   deletionScheduledAt?: Date | null;
 };
 
-
 @Injectable()
 export class UserRepository {
   private readonly logger = new Logger(UserRepository.name);
@@ -325,7 +324,7 @@ export class UserRepository {
    */
   async hardDelete(id: number): Promise<Users> {
     this.logger.log(`Репозиторий: жесткое удаление пользователя с id: ${id}.`);
-    
+
     return this.prisma.$transaction(async (tx) => {
       await tx.blocking.deleteMany({
         where: { userId: id },
@@ -365,7 +364,7 @@ export class UserRepository {
           where: { createdBy: id },
           select: { id: true },
         });
-        
+
         for (const event of userEvents) {
           await tx.eventMessage.deleteMany({ where: { eventId: event.id } });
           await tx.usersOnEvents.deleteMany({ where: { eventId: event.id } });
@@ -373,7 +372,7 @@ export class UserRepository {
           await tx.$executeRaw`DELETE FROM event_reads WHERE "eventId" = ${event.id}`;
           await tx.votingOption.deleteMany({ where: { eventId: event.id } });
         }
-        
+
         await tx.event.deleteMany({
           where: { createdBy: id },
         });
@@ -399,8 +398,12 @@ export class UserRepository {
       });
 
       for (const property of userProperties) {
-        await tx.propertyResource.deleteMany({ where: { propertyId: property.id } });
-        await tx.propertyVerification.deleteMany({ where: { propertyId: property.id } });
+        await tx.propertyResource.deleteMany({
+          where: { propertyId: property.id },
+        });
+        await tx.propertyVerification.deleteMany({
+          where: { propertyId: property.id },
+        });
       }
 
       await tx.property.deleteMany({
@@ -419,20 +422,24 @@ export class UserRepository {
    * @returns Количество удаленных записей
    */
   async bulkHardDelete(ids: number[]): Promise<number> {
-    this.logger.log(`Репозиторий: массовое жесткое удаление пользователей с ids: ${ids.join(', ')}.`);
-    
+    this.logger.log(
+      `Репозиторий: массовое жесткое удаление пользователей с ids: ${ids.join(', ')}.`,
+    );
+
     let deletedCount = 0;
-    
+
     for (const id of ids) {
       try {
         await this.hardDelete(id);
         deletedCount++;
         this.logger.log(`Пользователь с id ${id} успешно удален`);
       } catch (error) {
-        this.logger.error(`Ошибка при удалении пользователя с id ${id}: ${error.message}`);
+        this.logger.error(
+          `Ошибка при удалении пользователя с id ${id}: ${error.message}`,
+        );
       }
     }
-    
+
     return deletedCount;
   }
 
@@ -442,14 +449,16 @@ export class UserRepository {
    * @returns Массив существующих ID
    */
   async findExistingIds(ids: number[]): Promise<number[]> {
-    this.logger.log(`Репозиторий: проверка существования пользователей с ids: ${ids.join(', ')}.`);
+    this.logger.log(
+      `Репозиторий: проверка существования пользователей с ids: ${ids.join(', ')}.`,
+    );
     const users = await this.prisma.users.findMany({
-      where: { 
+      where: {
         id: { in: ids },
       },
       select: { id: true },
     });
-    return users.map(user => user.id);
+    return users.map((user) => user.id);
   }
 
   async updateLastAccess(id: number) {
@@ -616,7 +625,10 @@ export class UserRepository {
    * @param communityId Идентификатор сообщества.
    * @returns true, если пользователь принадлежит к сообществу, иначе false.
    */
-  async isUserInCommunity(userId: number, communityId: number): Promise<boolean> {
+  async isUserInCommunity(
+    userId: number,
+    communityId: number,
+  ): Promise<boolean> {
     const userInCommunity = await this.prisma.usersOnCommunities.findUnique({
       where: {
         userId_communityId: {
@@ -634,7 +646,9 @@ export class UserRepository {
    * @returns Пользователь со всеми связанными данными
    */
   async findByIdForAdmin(id: number): Promise<UserWithBlocking | null> {
-    this.logger.log(`Репозиторий: поиск пользователя с полной информацией для админа с id: ${id}.`);
+    this.logger.log(
+      `Репозиторий: поиск пользователя с полной информацией для админа с id: ${id}.`,
+    );
     return this.prisma.users.findUnique({
       where: { id },
       include: {
@@ -663,21 +677,21 @@ export class UserRepository {
             },
           },
         },
-                 Properties: {
-           include: {
-             verifications: {
-               include: {
-                 user: {
-                   select: {
-                     id: true,
-                     firstName: true,
-                     lastName: true,
-                   },
-                 },
-               },
-             },
-           },
-         },
+        Properties: {
+          include: {
+            verifications: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         CreatedCommunities: {
           include: {
             users: {

@@ -1,12 +1,10 @@
+import { Controller, Get, Put, Body, Query, UseGuards } from '@nestjs/common';
 import {
-  Controller,
-  Get,
-  Put,
-  Body,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -60,7 +58,8 @@ export class GeoModerationAdminController {
   @Get('rejections')
   @ApiOperation({
     summary: 'Получить список отказов',
-    description: 'Получает список пользователей, которым было отказано в действиях из-за превышения расстояния',
+    description:
+      'Получает список пользователей, которым было отказано в действиях из-за превышения расстояния',
   })
   @ApiResponse({
     status: 200,

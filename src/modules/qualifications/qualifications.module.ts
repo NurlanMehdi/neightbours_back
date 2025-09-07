@@ -11,4 +11,4 @@ import { PrismaModule } from '../../prisma/prisma.module';
   providers: [QualificationsService, QualificationsRepository],
   exports: [QualificationsService],
 })
-export class QualificationsModule {} 
+export class QualificationsModule {}

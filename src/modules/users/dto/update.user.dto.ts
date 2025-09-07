@@ -27,7 +27,10 @@ export class UpdateUserDto extends BaseUserDto {
       if (value.trim() === '') {
         return [];
       }
-      return value.split(',').map(id => Number(id.trim())).filter(id => !isNaN(id) && id > 0);
+      return value
+        .split(',')
+        .map((id) => Number(id.trim()))
+        .filter((id) => !isNaN(id) && id > 0);
     }
     return value;
   })
@@ -47,7 +50,10 @@ export class UpdateUserDto extends BaseUserDto {
       if (value.trim() === '') {
         return [];
       }
-      return value.split(',').map(id => Number(id.trim())).filter(id => !isNaN(id) && id > 0);
+      return value
+        .split(',')
+        .map((id) => Number(id.trim()))
+        .filter((id) => !isNaN(id) && id > 0);
     }
     return value;
   })

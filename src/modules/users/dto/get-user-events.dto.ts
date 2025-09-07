@@ -1,5 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEnum, IsNumber, IsBoolean } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsBoolean,
+} from 'class-validator';
 import { EventType } from '@prisma/client';
 import { PaginationQueryDto } from '../../../common/models/paginated-query.dto';
 import { Type } from 'class-transformer';
@@ -65,4 +71,4 @@ export class GetUserEventsDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   dateTo?: string;
-} 
+}

@@ -34,7 +34,7 @@ export class GeoModerationService {
    */
   async getSettings(): Promise<GeoModerationSettingsDto> {
     this.logger.log('Получение настроек гео-модерации');
-    
+
     const settings = await this.geoModerationRepository.getSettings();
     return plainToInstance(GeoModerationSettingsDto, settings);
   }
@@ -42,10 +42,13 @@ export class GeoModerationService {
   /**
    * Обновляет настройки гео-модерации
    */
-  async updateSettings(dto: UpdateGeoModerationSettingsDto): Promise<GeoModerationSettingsDto> {
+  async updateSettings(
+    dto: UpdateGeoModerationSettingsDto,
+  ): Promise<GeoModerationSettingsDto> {
     this.logger.log('Обновление настроек гео-модерации');
-    
-    const updatedSettings = await this.geoModerationRepository.updateSettings(dto);
+
+    const updatedSettings =
+      await this.geoModerationRepository.updateSettings(dto);
     return plainToInstance(GeoModerationSettingsDto, updatedSettings);
   }
 
@@ -60,7 +63,7 @@ export class GeoModerationService {
     communityLongitude: number,
   ): Promise<GeoCheckResult> {
     const settings = await this.geoModerationRepository.getSettings();
-    
+
     if (!settings.communityJoinEnabled) {
       return { allowed: true };
     }
@@ -73,10 +76,10 @@ export class GeoModerationService {
     );
 
     const distanceInMeters = Math.round(distance * 1000);
-    
+
     if (distanceInMeters > settings.communityJoinMaxDistance) {
       const reason = `Радиус > ${settings.communityJoinMaxDistance}м`;
-      
+
       // Логируем отказ
       await this.geoModerationRepository.createRejection({
         userId,
@@ -112,7 +115,7 @@ export class GeoModerationService {
     propertyLongitude: number,
   ): Promise<GeoCheckResult> {
     const settings = await this.geoModerationRepository.getSettings();
-    
+
     if (!settings.propertyVerificationEnabled) {
       return { allowed: true };
     }
@@ -125,10 +128,10 @@ export class GeoModerationService {
     );
 
     const distanceInMeters = Math.round(distance * 1000);
-    
+
     if (distanceInMeters > settings.propertyVerificationMaxDistance) {
       const reason = `Радиус > ${settings.propertyVerificationMaxDistance}м`;
-      
+
       // Логируем отказ
       await this.geoModerationRepository.createRejection({
         userId,
@@ -164,7 +167,7 @@ export class GeoModerationService {
     propertyLongitude: number,
   ): Promise<GeoCheckResult> {
     const settings = await this.geoModerationRepository.getSettings();
-    
+
     if (!settings.propertyCreationEnabled) {
       return { allowed: true };
     }
@@ -177,10 +180,10 @@ export class GeoModerationService {
     );
 
     const distanceInMeters = Math.round(distance * 1000);
-    
+
     if (distanceInMeters > settings.propertyCreationMaxDistance) {
       const reason = `Радиус > ${settings.propertyCreationMaxDistance}м`;
-      
+
       // Логируем отказ
       await this.geoModerationRepository.createRejection({
         userId,
@@ -210,13 +213,13 @@ export class GeoModerationService {
    */
   async getRejections(query: GetGeoModerationRejectionsDto) {
     this.logger.log('Получение списка отказов гео-модерации');
-    
+
     const result = await this.geoModerationRepository.getRejections(query);
-    
+
     return {
       ...result,
-      rejections: result.rejections.map(rejection => 
-        plainToInstance(GeoModerationRejectionDto, rejection)
+      rejections: result.rejections.map((rejection) =>
+        plainToInstance(GeoModerationRejectionDto, rejection),
       ),
     };
   }
@@ -226,7 +229,7 @@ export class GeoModerationService {
    */
   async getRejectionStats() {
     this.logger.log('Получение статистики отказов гео-модерации');
-    
+
     return this.geoModerationRepository.getRejectionStats();
   }
 
@@ -235,7 +238,7 @@ export class GeoModerationService {
    */
   throwGeoModerationError(checkResult: GeoCheckResult): never {
     throw new BadRequestException(
-      `Вы слишком далеко, попробуйте еще раз. ${checkResult.reason || ''}`
+      `Вы слишком далеко, попробуйте еще раз. ${checkResult.reason || ''}`,
     );
   }
-} 
+}

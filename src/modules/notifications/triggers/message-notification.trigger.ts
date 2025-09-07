@@ -3,10 +3,10 @@ import { NotificationType } from '../interfaces/notification.interface';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { BaseNotificationTrigger } from './base-notification.trigger';
 import { NotificationService } from '../services/notification.service';
-import { 
-  ISystemEventData, 
+import {
+  ISystemEventData,
   SystemEventType,
-  ICreateNotification 
+  ICreateNotification,
 } from '../interfaces/notification.interface';
 
 /**
@@ -34,7 +34,7 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
     }
 
     const targetUserIds = await this.getTargetUserIds(eventData);
-    
+
     if (targetUserIds.length === 0) {
       this.logger.log('Нет пользователей для уведомления');
       return;
@@ -44,12 +44,14 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
     const title = this.generateTitle(eventData);
     const message = this.generateMessage(eventData);
 
-    const notifications: ICreateNotification[] = targetUserIds.map(userId => ({
-      ...this.createBaseNotificationData(eventData, userId),
-      type: notificationType,
-      title,
-      message,
-    }));
+    const notifications: ICreateNotification[] = targetUserIds.map(
+      (userId) => ({
+        ...this.createBaseNotificationData(eventData, userId),
+        type: notificationType,
+        title,
+        message,
+      }),
+    );
 
     await this.createMultipleNotifications(notifications);
   }
@@ -59,7 +61,7 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
    */
   private async handleUserMentions(eventData: ISystemEventData): Promise<void> {
     const mentionedUserIds = eventData.targetUserIds || [];
-    
+
     if (mentionedUserIds.length === 0) {
       this.logger.log('Нет упомянутых пользователей');
       return;
@@ -68,12 +70,14 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
     const title = this.generateTitle(eventData);
     const message = this.generateMessage(eventData);
 
-    const notifications: ICreateNotification[] = mentionedUserIds.map(userId => ({
-      ...this.createBaseNotificationData(eventData, userId),
-      type: NotificationType.USER_MENTIONED,
-      title,
-      message,
-    }));
+    const notifications: ICreateNotification[] = mentionedUserIds.map(
+      (userId) => ({
+        ...this.createBaseNotificationData(eventData, userId),
+        type: NotificationType.USER_MENTIONED,
+        title,
+        message,
+      }),
+    );
 
     await this.createMultipleNotifications(notifications);
   }
@@ -92,7 +96,8 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
    * Генерирует заголовок уведомления
    */
   protected generateTitle(eventData: ISystemEventData): string {
-    const triggererName = eventData.additionalData?.triggererName || 'Пользователь';
+    const triggererName =
+      eventData.additionalData?.triggererName || 'Пользователь';
     const eventTitle = eventData.additionalData?.eventTitle || 'мероприятии';
 
     switch (eventData.eventType) {
@@ -109,10 +114,14 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
    * Генерирует текст уведомления
    */
   protected generateMessage(eventData: ISystemEventData): string {
-    const triggererName = eventData.additionalData?.triggererName || 'Пользователь';
+    const triggererName =
+      eventData.additionalData?.triggererName || 'Пользователь';
     const eventTitle = eventData.additionalData?.eventTitle || 'мероприятии';
     const messageText = eventData.additionalData?.messageText || '';
-    const shortMessage = messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText;
+    const shortMessage =
+      messageText.length > 50
+        ? messageText.substring(0, 50) + '...'
+        : messageText;
 
     switch (eventData.eventType) {
       case SystemEventType.MESSAGE_RECEIVED:
@@ -141,7 +150,9 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
   /**
    * Получает список пользователей для уведомления
    */
-  protected async getTargetUserIds(eventData: ISystemEventData): Promise<number[]> {
+  protected async getTargetUserIds(
+    eventData: ISystemEventData,
+  ): Promise<number[]> {
     if (eventData.eventType === SystemEventType.USER_MENTIONED) {
       return eventData.targetUserIds || [];
     }
@@ -174,16 +185,18 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
 
       // Уведомляем всех участников мероприятия и создателя
       const targetUserIds = [
-        ...event.participants.map(p => p.userId),
+        ...event.participants.map((p) => p.userId),
         event.creator.id,
       ];
 
       // Убираем дубликаты
       const uniqueUserIds = Array.from(new Set(targetUserIds));
       return this.filterUsers(uniqueUserIds);
-
     } catch (error) {
-      this.logger.error(`Ошибка получения пользователей для уведомления: ${error.message}`, error.stack);
+      this.logger.error(
+        `Ошибка получения пользователей для уведомления: ${error.message}`,
+        error.stack,
+      );
       return [];
     }
   }

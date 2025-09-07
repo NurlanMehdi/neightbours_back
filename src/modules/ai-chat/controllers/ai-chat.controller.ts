@@ -9,7 +9,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { UserId } from '../../../common/decorators/user-id.decorator';
 import { AiChatService } from '../services/ai-chat.service';
@@ -77,7 +82,8 @@ export class AiChatController {
   @Get('chat')
   @ApiOperation({
     summary: 'Получить чат пользователя',
-    description: 'Получает или создает чат пользователя с последними сообщениями',
+    description:
+      'Получает или создает чат пользователя с последними сообщениями',
   })
   @ApiResponse({
     status: 200,
@@ -115,7 +121,11 @@ export class AiChatController {
     schema: {
       type: 'object',
       properties: {
-        status: { type: 'string', enum: ['healthy', 'unhealthy'], example: 'healthy' },
+        status: {
+          type: 'string',
+          enum: ['healthy', 'unhealthy'],
+          example: 'healthy',
+        },
         model: { type: 'string', example: 'llama3.2' },
         timestamp: { type: 'number', example: 1703123456789 },
       },

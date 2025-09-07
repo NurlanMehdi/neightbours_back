@@ -7,7 +7,9 @@ export class VoteDto {
     example: 1,
   })
   @IsInt({ message: 'ID варианта ответа должен быть целым числом' })
-  @IsPositive({ message: 'ID варианта ответа должен быть положительным числом' })
+  @IsPositive({
+    message: 'ID варианта ответа должен быть положительным числом',
+  })
   votingOptionId: number;
 }
 
@@ -41,4 +43,4 @@ export class VoteResponseDto {
     example: '2024-01-01T00:00:00.000Z',
   })
   createdAt: Date;
-} 
+}

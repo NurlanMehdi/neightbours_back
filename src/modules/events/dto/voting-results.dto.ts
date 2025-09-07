@@ -64,9 +64,10 @@ export class VotingResultsDto {
   hasVoted: boolean;
 
   @ApiProperty({
-    description: 'ID варианта ответа, за который проголосовал текущий пользователь',
+    description:
+      'ID варианта ответа, за который проголосовал текущий пользователь',
     example: 1,
     required: false,
   })
   userVoteOptionId?: number;
-} 
+}
