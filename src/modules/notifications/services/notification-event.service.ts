@@ -153,28 +153,6 @@ export class NotificationEventService {
     await this.triggerService.processSystemEvent(eventData);
   }
 
-  /**
-   * Уведомление о новом сообщении
-   */
-  async notifyMessageReceived(data: {
-    eventId: number;
-    eventTitle: string;
-    messageText: string;
-    senderName: string;
-  }): Promise<void> {
-    const eventData: ISystemEventData = {
-      eventType: SystemEventType.MESSAGE_RECEIVED,
-      relatedEntityId: data.eventId,
-      relatedEntityType: 'event',
-      additionalData: {
-        eventTitle: data.eventTitle,
-        messageText: data.messageText,
-        senderName: data.senderName,
-      },
-    };
-
-    await this.triggerService.processSystemEvent(eventData);
-  }
 
   /**
    * Уведомление об удалении мероприятия
@@ -280,43 +258,6 @@ export class NotificationEventService {
     await this.triggerService.processSystemEvent(eventData);
   }
 
-  /**
-   * Уведомление о новом сообщении в мероприятии (для всех участников кроме автора)
-   */
-  async notifyEventMessagePosted(data: {
-    eventId: number;
-    eventTitle: string;
-    messageText: string;
-    authorId: number;
-    authorName: string;
-    participantIds: number[];
-  }): Promise<void> {
-    const recipientIds = data.participantIds.filter(
-      (id) => id !== data.authorId,
-    );
-
-    if (recipientIds.length === 0) {
-      this.logger.log('Нет участников для уведомления о новом сообщении');
-      return;
-    }
-
-    const notificationData: IGlobalNotificationData = {
-      type: 'MESSAGE_RECEIVED',
-      title: 'Новое сообщение',
-      message: `${data.authorName} написал сообщение в мероприятии "${data.eventTitle}"`,
-      userId: recipientIds,
-      payload: {
-        eventId: data.eventId,
-        eventTitle: data.eventTitle,
-        messageText:
-          data.messageText.substring(0, 100) +
-          (data.messageText.length > 100 ? '...' : ''),
-        senderName: data.authorName,
-      },
-    };
-
-    await this.notificationService.createGlobalNotification(notificationData);
-  }
 
   /**
    * Глобальная функция для создания произвольного уведомления

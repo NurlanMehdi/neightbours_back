@@ -10,7 +10,7 @@ import {
 } from '../interfaces/notification.interface';
 
 /**
- * Триггер уведомлений для сообщений
+ * Триггер уведомлений для упоминаний пользователей
  */
 @Injectable()
 export class MessageNotificationTrigger extends BaseNotificationTrigger {
@@ -22,38 +22,17 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
   }
 
   /**
-   * Обрабатывает события, связанные с сообщениями
+   * Обрабатывает события упоминаний пользователей
    */
   async handle(eventData: ISystemEventData): Promise<void> {
     this.logger.log(`Обработка события ${eventData.eventType}`);
 
-    // Обрабатываем упоминания пользователей
     if (eventData.eventType === SystemEventType.USER_MENTIONED) {
       await this.handleUserMentions(eventData);
       return;
     }
 
-    const targetUserIds = await this.getTargetUserIds(eventData);
-
-    if (targetUserIds.length === 0) {
-      this.logger.log('Нет пользователей для уведомления');
-      return;
-    }
-
-    const notificationType = this.getNotificationType(eventData.eventType);
-    const title = this.generateTitle(eventData);
-    const message = this.generateMessage(eventData);
-
-    const notifications: ICreateNotification[] = targetUserIds.map(
-      (userId) => ({
-        ...this.createBaseNotificationData(eventData, userId),
-        type: notificationType,
-        title,
-        message,
-      }),
-    );
-
-    await this.createMultipleNotifications(notifications);
+    this.logger.warn(`Неподдерживаемый тип события: ${eventData.eventType}`);
   }
 
   /**
@@ -86,27 +65,18 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
    * Проверяет, должен ли триггер обрабатывать событие
    */
   protected shouldHandle(eventType: SystemEventType): boolean {
-    return [
-      SystemEventType.MESSAGE_RECEIVED,
-      SystemEventType.USER_MENTIONED,
-    ].includes(eventType);
+    return eventType === SystemEventType.USER_MENTIONED;
   }
 
   /**
    * Генерирует заголовок уведомления
    */
   protected generateTitle(eventData: ISystemEventData): string {
-    const triggererName =
-      eventData.additionalData?.triggererName || 'Пользователь';
-    const eventTitle = eventData.additionalData?.eventTitle || 'мероприятии';
-
     switch (eventData.eventType) {
-      case SystemEventType.MESSAGE_RECEIVED:
-        return 'Новое сообщение';
       case SystemEventType.USER_MENTIONED:
         return 'Вас упомянули';
       default:
-        return 'Новое сообщение';
+        return 'Уведомление';
     }
   }
 
@@ -124,12 +94,10 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
         : messageText;
 
     switch (eventData.eventType) {
-      case SystemEventType.MESSAGE_RECEIVED:
-        return `${triggererName} написал в "${eventTitle}": ${shortMessage}`;
       case SystemEventType.USER_MENTIONED:
         return `${triggererName} упомянул вас в "${eventTitle}": ${shortMessage}`;
       default:
-        return `Новое сообщение от ${triggererName}`;
+        return `Уведомление от ${triggererName}`;
     }
   }
 
@@ -138,12 +106,10 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
    */
   protected getNotificationType(eventType: SystemEventType): NotificationType {
     switch (eventType) {
-      case SystemEventType.MESSAGE_RECEIVED:
-        return NotificationType.MESSAGE_RECEIVED;
       case SystemEventType.USER_MENTIONED:
         return NotificationType.USER_MENTIONED;
       default:
-        return NotificationType.MESSAGE_RECEIVED;
+        return NotificationType.INFO;
     }
   }
 
@@ -156,48 +122,6 @@ export class MessageNotificationTrigger extends BaseNotificationTrigger {
     if (eventData.eventType === SystemEventType.USER_MENTIONED) {
       return eventData.targetUserIds || [];
     }
-
-    if (!eventData.relatedEntityId || eventData.relatedEntityType !== 'event') {
-      this.logger.warn('Отсутствует ID связанного события для сообщения');
-      return [];
-    }
-
-    const eventId = eventData.relatedEntityId;
-
-    try {
-      // Получаем информацию о мероприятии
-      const event = await this.prisma.event.findUnique({
-        where: { id: eventId },
-        include: {
-          participants: {
-            select: { userId: true },
-          },
-          creator: {
-            select: { id: true },
-          },
-        },
-      });
-
-      if (!event) {
-        this.logger.warn(`Мероприятие с ID ${eventId} не найдено`);
-        return [];
-      }
-
-      // Уведомляем всех участников мероприятия и создателя
-      const targetUserIds = [
-        ...event.participants.map((p) => p.userId),
-        event.creator.id,
-      ];
-
-      // Убираем дубликаты
-      const uniqueUserIds = Array.from(new Set(targetUserIds));
-      return this.filterUsers(uniqueUserIds);
-    } catch (error) {
-      this.logger.error(
-        `Ошибка получения пользователей для уведомления: ${error.message}`,
-        error.stack,
-      );
-      return [];
-    }
+    return [];
   }
 }

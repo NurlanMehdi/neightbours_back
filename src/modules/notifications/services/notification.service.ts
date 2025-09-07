@@ -1,31 +1,24 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  ForbiddenException,
-  Inject,
-  forwardRef,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { NotificationRepository } from '../repositories/notification.repository';
 import { FirebasePushService } from '../../../firebase/firebase-push.service';
 import { NotificationsGateway } from '../gateways/notifications.gateway';
-import {
-  INotificationService,
-  ICreateNotification,
+import { 
+  INotificationService, 
+  ICreateNotification, 
   INotificationFilters,
   IGlobalNotificationData,
-  NotificationType,
+  NotificationType
 } from '../interfaces/notification.interface';
-import {
-  NotificationDto,
-  NotificationsPaginatedDto,
-  UnreadCountDto,
-  SendNotificationDto,
-  NotificationTypesDto,
-  NotificationTypeDto,
-  UsersSelectionDto,
-  UserSelectionDto,
+import { 
+  NotificationDto, 
+  NotificationsPaginatedDto, 
+  UnreadCountDto, 
+  SendNotificationDto, 
+  NotificationTypesDto, 
+  NotificationTypeDto, 
+  UsersSelectionDto, 
+  UserSelectionDto 
 } from '../dto';
 
 @Injectable()
@@ -42,20 +35,12 @@ export class NotificationService implements INotificationService {
   /**
    * Создает новое уведомление
    */
-  async createNotification(
-    data: ICreateNotification,
-  ): Promise<NotificationDto> {
-    this.logger.log(
-      `Создание уведомления типа ${data.type} для пользователя ${data.userId}`,
-    );
+  async createNotification(data: ICreateNotification): Promise<NotificationDto> {
+    this.logger.log(`Создание уведомления типа ${data.type} для пользователя ${data.userId}`);
 
-    const user = await this.notificationRepository.getUserWithPushSettings(
-      data.userId,
-    );
+    const user = await this.notificationRepository.getUserWithPushSettings(data.userId);
     if (!user) {
-      this.logger.error(
-        `Попытка создать уведомление для несуществующего пользователя ${data.userId}`,
-      );
+      this.logger.error(`Попытка создать уведомление для несуществующего пользователя ${data.userId}`);
       throw new NotFoundException(`Пользователь с ID ${data.userId} не найден`);
     }
 
@@ -78,9 +63,7 @@ export class NotificationService implements INotificationService {
   /**
    * Создает множественные уведомления
    */
-  async createMultipleNotifications(
-    notifications: ICreateNotification[],
-  ): Promise<void> {
+  async createMultipleNotifications(notifications: ICreateNotification[]): Promise<void> {
     this.logger.log(`Создание ${notifications.length} уведомлений`);
 
     if (notifications.length === 0) {
@@ -88,26 +71,18 @@ export class NotificationService implements INotificationService {
       return;
     }
 
-    const uniqueUserIds = [...new Set(notifications.map((n) => n.userId))];
-    const users =
-      await this.notificationRepository.getUsersWithPushSettings(uniqueUserIds);
-
-    const foundUserIds = users.map((user) => user.id);
-    const invalidUsers = uniqueUserIds.filter(
-      (userId) => !foundUserIds.includes(userId),
-    );
+    const uniqueUserIds = [...new Set(notifications.map(n => n.userId))];
+    const users = await this.notificationRepository.getUsersWithPushSettings(uniqueUserIds);
+    
+    const foundUserIds = users.map(user => user.id);
+    const invalidUsers = uniqueUserIds.filter(userId => !foundUserIds.includes(userId));
 
     if (invalidUsers.length > 0) {
-      this.logger.error(
-        `Найдены несуществующие пользователи: ${invalidUsers.join(', ')}`,
-      );
-      throw new NotFoundException(
-        `Пользователи с ID ${invalidUsers.join(', ')} не найдены`,
-      );
+      this.logger.error(`Найдены несуществующие пользователи: ${invalidUsers.join(', ')}`);
+      throw new NotFoundException(`Пользователи с ID ${invalidUsers.join(', ')} не найдены`);
     }
 
-    const createdNotifications =
-      await this.notificationRepository.createMany(notifications);
+    const createdNotifications = await this.notificationRepository.createMany(notifications);
 
     await this.sendBulkPushNotifications(users, notifications);
 
@@ -119,31 +94,20 @@ export class NotificationService implements INotificationService {
   /**
    * Получает уведомления пользователя с фильтрацией и пагинацией
    */
-  async getUserNotifications(
-    filters: INotificationFilters,
-  ): Promise<NotificationsPaginatedDto> {
+  async getUserNotifications(filters: INotificationFilters): Promise<NotificationsPaginatedDto> {
     this.logger.log(`Получение уведомлений для пользователя ${filters.userId}`);
 
     const processedFilters = this.processFilters(filters);
-    const { data, total } =
-      await this.notificationRepository.findByUserId(processedFilters);
-
+    const { data, total } = await this.notificationRepository.findByUserId(processedFilters);
+    
     // Получаем количество непрочитанных уведомлений
-    const unreadCount = await this.notificationRepository.getUnreadCountForUser(
-      filters.userId,
-    );
+    const unreadCount = await this.notificationRepository.getUnreadCountForUser(filters.userId);
 
-    const notifications = data.map((notification) =>
-      this.transformToDto(notification),
-    );
-
-    // Группируем MESSAGE_RECEIVED уведомления
-    const groupedData = this.groupMessageNotifications(notifications);
-
+    const notifications = data.map(notification => this.transformToDto(notification));
     const totalPages = Math.ceil(total / (filters.limit || 10));
 
     return plainToInstance(NotificationsPaginatedDto, {
-      data: groupedData,
+      data: notifications,
       total,
       page: filters.page || 1,
       limit: filters.limit || 10,
@@ -156,13 +120,10 @@ export class NotificationService implements INotificationService {
    * Отмечает уведомление как прочитанное
    */
   async markAsRead(notificationId: number, userId: number): Promise<void> {
-    this.logger.log(
-      `Отметка уведомления ${notificationId} как прочитанного пользователем ${userId}`,
-    );
+    this.logger.log(`Отметка уведомления ${notificationId} как прочитанного пользователем ${userId}`);
 
-    const notification =
-      await this.notificationRepository.findById(notificationId);
-
+    const notification = await this.notificationRepository.findById(notificationId);
+    
     if (!notification) {
       throw new NotFoundException('Уведомление не найдено');
     }
@@ -177,11 +138,10 @@ export class NotificationService implements INotificationService {
     }
 
     await this.notificationRepository.markAsRead(notificationId);
-
-    const updatedUnreadCount =
-      await this.notificationRepository.getUnreadCountForUser(userId);
+    
+    const updatedUnreadCount = await this.notificationRepository.getUnreadCountForUser(userId);
     this.sendUnreadCountUpdate(userId, updatedUnreadCount);
-
+    
     this.logger.log(`Уведомление ${notificationId} отмечено как прочитанное`);
   }
 
@@ -189,30 +149,23 @@ export class NotificationService implements INotificationService {
    * Отмечает все уведомления пользователя как прочитанные
    */
   async markAllAsRead(userId: number): Promise<void> {
-    this.logger.log(
-      `Отметка всех уведомлений как прочитанных для пользователя ${userId}`,
-    );
+    this.logger.log(`Отметка всех уведомлений как прочитанных для пользователя ${userId}`);
 
     await this.notificationRepository.markAllAsReadForUser(userId);
-
+    
     this.sendUnreadCountUpdate(userId, 0);
-
-    this.logger.log(
-      `Все уведомления пользователя ${userId} отмечены как прочитанные`,
-    );
+    
+    this.logger.log(`Все уведомления пользователя ${userId} отмечены как прочитанные`);
   }
 
   /**
    * Получает количество непрочитанных уведомлений
    */
   async getUnreadCount(userId: number): Promise<UnreadCountDto> {
-    this.logger.log(
-      `Получение количества непрочитанных уведомлений для пользователя ${userId}`,
-    );
+    this.logger.log(`Получение количества непрочитанных уведомлений для пользователя ${userId}`);
 
-    const count =
-      await this.notificationRepository.getUnreadCountForUser(userId);
-
+    const count = await this.notificationRepository.getUnreadCountForUser(userId);
+    
     return plainToInstance(UnreadCountDto, { count });
   }
 
@@ -231,7 +184,7 @@ export class NotificationService implements INotificationService {
       return;
     }
 
-    const notifications: ICreateNotification[] = userIds.map((userId) => ({
+    const notifications: ICreateNotification[] = userIds.map(userId => ({
       type: notificationType,
       title: data.title,
       message: data.message,
@@ -240,25 +193,19 @@ export class NotificationService implements INotificationService {
     }));
 
     await this.createMultipleNotifications(notifications);
-    this.logger.log(
-      `Создано ${notifications.length} глобальных уведомлений типа ${data.type}`,
-    );
+    this.logger.log(`Создано ${notifications.length} глобальных уведомлений типа ${data.type}`);
   }
+
+
 
   /**
    * Удаляет уведомление
    */
-  async deleteNotification(
-    notificationId: number,
-    userId: number,
-  ): Promise<void> {
-    this.logger.log(
-      `Удаление уведомления ${notificationId} пользователем ${userId}`,
-    );
+  async deleteNotification(notificationId: number, userId: number): Promise<void> {
+    this.logger.log(`Удаление уведомления ${notificationId} пользователем ${userId}`);
 
-    const notification =
-      await this.notificationRepository.findById(notificationId);
-
+    const notification = await this.notificationRepository.findById(notificationId);
+    
     if (!notification) {
       throw new NotFoundException('Уведомление не найдено');
     }
@@ -277,25 +224,19 @@ export class NotificationService implements INotificationService {
   async deleteAllSelfNotifications(userId: number): Promise<void> {
     this.logger.log(`Удаление всех уведомлений пользователя ${userId}`);
 
-    const deletedCount =
-      await this.notificationRepository.deleteAllByUserId(userId);
-    this.logger.log(
-      `Удалено ${deletedCount} уведомлений пользователя ${userId}`,
-    );
+    const deletedCount = await this.notificationRepository.deleteAllByUserId(userId);
+    this.logger.log(`Удалено ${deletedCount} уведомлений пользователя ${userId}`);
   }
 
   /**
    * Очищает старые прочитанные уведомления
    */
   async cleanupOldNotifications(olderThanDays: number = 30): Promise<number> {
-    this.logger.log(
-      `Очистка прочитанных уведомлений старше ${olderThanDays} дней`,
-    );
+    this.logger.log(`Очистка прочитанных уведомлений старше ${olderThanDays} дней`);
 
-    const deletedCount =
-      await this.notificationRepository.cleanupOldNotifications(olderThanDays);
+    const deletedCount = await this.notificationRepository.cleanupOldNotifications(olderThanDays);
     this.logger.log(`Удалено ${deletedCount} старых уведомлений`);
-
+    
     return deletedCount;
   }
 
@@ -311,26 +252,22 @@ export class NotificationService implements INotificationService {
       [NotificationType.EVENT_UPDATED]: 'Событие обновлено',
       [NotificationType.EVENT_CANCELLED]: 'Событие отменено',
       [NotificationType.EVENT_DELETED]: 'Событие удалено',
-      [NotificationType.USER_JOINED_EVENT]:
-        'Пользователь присоединился к событию',
+      [NotificationType.USER_JOINED_EVENT]: 'Пользователь присоединился к событию',
       [NotificationType.USER_LEFT_EVENT]: 'Пользователь покинул событие',
       [NotificationType.USER_MENTIONED]: 'Пользователь упомянут',
-      [NotificationType.MESSAGE_RECEIVED]: 'Получено сообщение',
       [NotificationType.COMMUNITY_INVITE]: 'Приглашение в сообщество',
       [NotificationType.COMMUNITY_APPROVED]: 'Сообщество одобрено',
       [NotificationType.COMMUNITY_REJECTED]: 'Сообщество отклонено',
-      [NotificationType.USER_JOINED_COMMUNITY]:
-        'Пользователь присоединился к сообществу',
+      [NotificationType.USER_JOINED_COMMUNITY]: 'Пользователь присоединился к сообществу',
       [NotificationType.SYSTEM_MAINTENANCE]: 'Техническое обслуживание',
       [NotificationType.SYSTEM_UPDATE]: 'Обновление системы',
     };
 
-    const types: NotificationTypeDto[] = Object.values(NotificationType).map(
-      (type) =>
-        plainToInstance(NotificationTypeDto, {
-          value: type,
-          label: typeLabels[type],
-        }),
+    const types: NotificationTypeDto[] = Object.values(NotificationType).map(type => 
+      plainToInstance(NotificationTypeDto, {
+        value: type,
+        label: typeLabels[type],
+      })
     );
 
     return plainToInstance(NotificationTypesDto, { types });
@@ -343,14 +280,14 @@ export class NotificationService implements INotificationService {
     this.logger.log('Получение списка пользователей для выбора');
 
     const users = await this.notificationRepository.getAllUsersForSelection();
-
-    const userSelectionDtos: UserSelectionDto[] = users.map((user) =>
+    
+    const userSelectionDtos: UserSelectionDto[] = users.map(user => 
       plainToInstance(UserSelectionDto, {
         id: user.id,
         fullName: `${user.firstName} ${user.lastName}`.trim(),
         email: user.email,
         avatar: user.avatar,
-      }),
+      })
     );
 
     return plainToInstance(UsersSelectionDto, { users: userSelectionDtos });
@@ -359,26 +296,20 @@ export class NotificationService implements INotificationService {
   /**
    * Отправляет уведомление выбранным пользователям
    */
-  async sendNotificationToUsers(
-    data: SendNotificationDto,
-  ): Promise<{ success: boolean; message: string; count: number }> {
-    this.logger.log(
-      `Отправка уведомления ${data.notificationType} для ${data.toUserIds.length} пользователей`,
-    );
+  async sendNotificationToUsers(data: SendNotificationDto): Promise<{ success: boolean; message: string; count: number }> {
+    this.logger.log(`Отправка уведомления ${data.notificationType} для ${data.toUserIds.length} пользователей`);
 
-    const notifications: ICreateNotification[] = data.toUserIds.map(
-      (userId) => ({
-        type: data.notificationType,
-        title: data.title,
-        message: data.message,
-        userId,
-        payload: {
-          isAdminMessage: true,
-          sentAt: new Date().toISOString(),
-          adminAction: 'MANUAL_NOTIFICATION',
-        },
-      }),
-    );
+    const notifications: ICreateNotification[] = data.toUserIds.map(userId => ({
+      type: data.notificationType,
+      title: data.title,
+      message: data.message,
+      userId,
+      payload: {
+        isAdminMessage: true,
+        sentAt: new Date().toISOString(),
+        adminAction: 'MANUAL_NOTIFICATION',
+      },
+    }));
 
     await this.createMultipleNotifications(notifications);
     this.logger.log(`Отправлено ${notifications.length} уведомлений`);
@@ -400,7 +331,7 @@ export class NotificationService implements INotificationService {
     if (typeof processed.dateFrom === 'string') {
       processed.dateFrom = new Date(processed.dateFrom);
     }
-
+    
     if (typeof processed.dateTo === 'string') {
       processed.dateTo = new Date(processed.dateTo);
     }
@@ -416,64 +347,26 @@ export class NotificationService implements INotificationService {
    * Преобразует объект уведомления в DTO
    */
   private transformToDto(notification: any): NotificationDto {
-    return plainToInstance(
-      NotificationDto,
-      {
-        id: notification.id,
-        type: notification.type,
-        title: notification.title,
-        message: notification.message,
-        payload: notification.payload,
-        isRead: notification.isRead,
-        createdAt: notification.createdAt,
-        updatedAt: notification.updatedAt,
-      },
-      {
-        excludeExtraneousValues: true,
-      },
-    );
-  }
-
-  /**
-   * Группирует MESSAGE_RECEIVED уведомления в один объект
-   */
-  private groupMessageNotifications(notifications: NotificationDto[]): any[] {
-    const grouped = notifications.reduce(
-      (acc, notif) => {
-        if (notif.type === 'MESSAGE_RECEIVED') {
-          if (!acc.messageGroup) {
-            acc.messageGroup = {
-              type: 'MESSAGE_RECEIVED_GROUPED',
-              title: 'Новые сообщения',
-              count: 0,
-            };
-          }
-          acc.messageGroup.count++;
-        } else {
-          acc.others.push(notif);
-        }
-        return acc;
-      },
-      { messageGroup: null, others: [] },
-    );
-
-    const finalData = grouped.messageGroup
-      ? [grouped.messageGroup, ...grouped.others]
-      : grouped.others;
-
-    return finalData;
+    return plainToInstance(NotificationDto, {
+      id: notification.id,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      payload: notification.payload,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt,
+      updatedAt: notification.updatedAt,
+    }, {
+      excludeExtraneousValues: true,
+    });
   }
 
   /**
    * Проверяет, принадлежит ли уведомление пользователю
    */
-  private async validateNotificationOwnership(
-    notificationId: number,
-    userId: number,
-  ): Promise<any> {
-    const notification =
-      await this.notificationRepository.findById(notificationId);
-
+  private async validateNotificationOwnership(notificationId: number, userId: number): Promise<any> {
+    const notification = await this.notificationRepository.findById(notificationId);
+    
     if (!notification) {
       throw new NotFoundException('Уведомление не найдено');
     }
@@ -490,21 +383,20 @@ export class NotificationService implements INotificationService {
    */
   private mapStringToNotificationType(type: string): NotificationType {
     const typeMapping: Record<string, NotificationType> = {
-      INFO: NotificationType.INFO,
-      EVENT_CREATED: NotificationType.EVENT_CREATED,
-      EVENT_UPDATED: NotificationType.EVENT_UPDATED,
-      EVENT_CANCELLED: NotificationType.EVENT_CANCELLED,
-      EVENT_DELETED: NotificationType.EVENT_DELETED,
-      USER_JOINED_EVENT: NotificationType.USER_JOINED_EVENT,
-      USER_LEFT_EVENT: NotificationType.USER_LEFT_EVENT,
-      USER_MENTIONED: NotificationType.USER_MENTIONED,
-      MESSAGE_RECEIVED: NotificationType.MESSAGE_RECEIVED,
-      COMMUNITY_INVITE: NotificationType.COMMUNITY_INVITE,
-      COMMUNITY_APPROVED: NotificationType.COMMUNITY_APPROVED,
-      COMMUNITY_REJECTED: NotificationType.COMMUNITY_REJECTED,
-      USER_JOINED_COMMUNITY: NotificationType.USER_JOINED_COMMUNITY,
-      SYSTEM_MAINTENANCE: NotificationType.SYSTEM_MAINTENANCE,
-      SYSTEM_UPDATE: NotificationType.SYSTEM_UPDATE,
+      'INFO': NotificationType.INFO,
+      'EVENT_CREATED': NotificationType.EVENT_CREATED,
+      'EVENT_UPDATED': NotificationType.EVENT_UPDATED,
+      'EVENT_CANCELLED': NotificationType.EVENT_CANCELLED,
+      'EVENT_DELETED': NotificationType.EVENT_DELETED,
+      'USER_JOINED_EVENT': NotificationType.USER_JOINED_EVENT,
+      'USER_LEFT_EVENT': NotificationType.USER_LEFT_EVENT,
+      'USER_MENTIONED': NotificationType.USER_MENTIONED,
+      'COMMUNITY_INVITE': NotificationType.COMMUNITY_INVITE,
+      'COMMUNITY_APPROVED': NotificationType.COMMUNITY_APPROVED,
+      'COMMUNITY_REJECTED': NotificationType.COMMUNITY_REJECTED,
+      'USER_JOINED_COMMUNITY': NotificationType.USER_JOINED_COMMUNITY,
+      'SYSTEM_MAINTENANCE': NotificationType.SYSTEM_MAINTENANCE,
+      'SYSTEM_UPDATE': NotificationType.SYSTEM_UPDATE,
     };
 
     return typeMapping[type.toUpperCase()] || NotificationType.INFO;
@@ -515,13 +407,7 @@ export class NotificationService implements INotificationService {
    */
   private async sendPushNotificationIfEnabled(
     user: { id: number; fcmToken?: string; pushNotificationsEnabled: boolean },
-    data: {
-      title: string;
-      body: string;
-      userId: number;
-      type: NotificationType;
-      payload?: any;
-    },
+    data: { title: string; body: string; userId: number; type: NotificationType; payload?: any },
   ): Promise<void> {
     if (user.pushNotificationsEnabled && user.fcmToken) {
       await this.firebasePushService.sendPushNotificationToUser(
@@ -539,16 +425,12 @@ export class NotificationService implements INotificationService {
    * Отправляет множественные push-уведомления
    */
   private async sendBulkPushNotifications(
-    users: {
-      id: number;
-      fcmToken?: string;
-      pushNotificationsEnabled: boolean;
-    }[],
+    users: { id: number; fcmToken?: string; pushNotificationsEnabled: boolean }[],
     notifications: ICreateNotification[],
   ): Promise<void> {
     const notificationsByUser = new Map<number, ICreateNotification[]>();
-
-    notifications.forEach((notification) => {
+    
+    notifications.forEach(notification => {
       if (!notificationsByUser.has(notification.userId)) {
         notificationsByUser.set(notification.userId, []);
       }
@@ -562,22 +444,20 @@ export class NotificationService implements INotificationService {
       if (userNotifications && user.pushNotificationsEnabled && user.fcmToken) {
         for (const notification of userNotifications) {
           pushPromises.push(
-            this.firebasePushService
-              .sendPushNotificationToUser(
-                {
-                  userId: user.id,
-                  fcmToken: user.fcmToken,
-                  pushNotificationsEnabled: user.pushNotificationsEnabled,
-                },
-                {
-                  title: notification.title,
-                  body: notification.message,
-                  userId: notification.userId,
-                  type: notification.type,
-                  payload: notification.payload,
-                },
-              )
-              .then(() => {}),
+            this.firebasePushService.sendPushNotificationToUser(
+              {
+                userId: user.id,
+                fcmToken: user.fcmToken,
+                pushNotificationsEnabled: user.pushNotificationsEnabled,
+              },
+              {
+                title: notification.title,
+                body: notification.message,
+                userId: notification.userId,
+                type: notification.type,
+                payload: notification.payload,
+              },
+            ).then(() => {})
           );
         }
       }
@@ -589,25 +469,16 @@ export class NotificationService implements INotificationService {
   /**
    * Отправляет уведомление в реальном времени через WebSocket
    */
-  private sendRealtimeNotification(
-    userId: number,
-    notification: NotificationDto,
-  ): void {
+  private sendRealtimeNotification(userId: number, notification: NotificationDto): void {
     try {
       if (this.notificationsGateway.isUserConnected(userId)) {
         this.notificationsGateway.sendNotificationToUser(userId, notification);
-        this.logger.log(
-          `Уведомление отправлено в реальном времени пользователю ${userId}`,
-        );
+        this.logger.log(`Уведомление отправлено в реальном времени пользователю ${userId}`);
       } else {
-        this.logger.log(
-          `Пользователь ${userId} не подключен к WebSocket, уведомление будет доставлено при следующем подключении`,
-        );
+        this.logger.log(`Пользователь ${userId} не подключен к WebSocket, уведомление будет доставлено при следующем подключении`);
       }
     } catch (error) {
-      this.logger.error(
-        `Ошибка отправки уведомления в реальном времени пользователю ${userId}: ${error.message}`,
-      );
+      this.logger.error(`Ошибка отправки уведомления в реальном времени пользователю ${userId}: ${error.message}`);
     }
   }
 
@@ -620,11 +491,11 @@ export class NotificationService implements INotificationService {
   ): void {
     try {
       const notificationsByUser = new Map<number, NotificationDto[]>();
-
+      
       createdNotifications.forEach((notification, index) => {
         const userId = notifications[index].userId;
         const notificationDto = this.transformToDto(notification);
-
+        
         if (!notificationsByUser.has(userId)) {
           notificationsByUser.set(userId, []);
         }
@@ -633,21 +504,14 @@ export class NotificationService implements INotificationService {
 
       notificationsByUser.forEach((userNotifications, userId) => {
         if (this.notificationsGateway.isUserConnected(userId)) {
-          userNotifications.forEach((notification) => {
-            this.notificationsGateway.sendNotificationToUser(
-              userId,
-              notification,
-            );
+          userNotifications.forEach(notification => {
+            this.notificationsGateway.sendNotificationToUser(userId, notification);
           });
-          this.logger.log(
-            `Отправлено ${userNotifications.length} уведомлений в реальном времени пользователю ${userId}`,
-          );
+          this.logger.log(`Отправлено ${userNotifications.length} уведомлений в реальном времени пользователю ${userId}`);
         }
       });
     } catch (error) {
-      this.logger.error(
-        `Ошибка отправки множественных уведомлений в реальном времени: ${error.message}`,
-      );
+      this.logger.error(`Ошибка отправки множественных уведомлений в реальном времени: ${error.message}`);
     }
   }
 
@@ -658,14 +522,10 @@ export class NotificationService implements INotificationService {
     try {
       if (this.notificationsGateway.isUserConnected(userId)) {
         this.notificationsGateway.sendUnreadCountUpdate(userId, count);
-        this.logger.log(
-          `Обновлен счетчик непрочитанных уведомлений для пользователя ${userId}: ${count}`,
-        );
+        this.logger.log(`Обновлен счетчик непрочитанных уведомлений для пользователя ${userId}: ${count}`);
       }
     } catch (error) {
-      this.logger.error(
-        `Ошибка обновления счетчика непрочитанных уведомлений для пользователя ${userId}: ${error.message}`,
-      );
+      this.logger.error(`Ошибка обновления счетчика непрочитанных уведомлений для пользователя ${userId}: ${error.message}`);
     }
   }
 }

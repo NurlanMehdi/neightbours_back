@@ -84,27 +84,6 @@ export class NotificationUsageService {
     });
   }
 
-  /**
-   * Пример 5: Пользователь написал сообщение в мероприятии
-   * Уведомляет всех участников кроме автора
-   */
-  async handleEventMessagePosted(
-    eventId: number,
-    eventTitle: string,
-    messageText: string,
-    authorId: number,
-    authorName: string,
-    participantIds: number[],
-  ): Promise<void> {
-    await this.notificationEventService.notifyEventMessagePosted({
-      eventId,
-      eventTitle,
-      messageText,
-      authorId,
-      authorName,
-      participantIds,
-    });
-  }
 
   /**
    * Пример 6: Использование глобальной функции уведомлений
