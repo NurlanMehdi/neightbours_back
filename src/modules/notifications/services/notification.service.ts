@@ -255,6 +255,7 @@ export class NotificationService implements INotificationService {
       [NotificationType.USER_JOINED_EVENT]: 'Пользователь присоединился к событию',
       [NotificationType.USER_LEFT_EVENT]: 'Пользователь покинул событие',
       [NotificationType.USER_MENTIONED]: 'Пользователь упомянут',
+      [NotificationType.MESSAGE_RECEIVED]: 'Получено сообщение',
       [NotificationType.COMMUNITY_INVITE]: 'Приглашение в сообщество',
       [NotificationType.COMMUNITY_APPROVED]: 'Сообщество одобрено',
       [NotificationType.COMMUNITY_REJECTED]: 'Сообщество отклонено',
@@ -391,6 +392,7 @@ export class NotificationService implements INotificationService {
       'USER_JOINED_EVENT': NotificationType.USER_JOINED_EVENT,
       'USER_LEFT_EVENT': NotificationType.USER_LEFT_EVENT,
       'USER_MENTIONED': NotificationType.USER_MENTIONED,
+      'MESSAGE_RECEIVED': NotificationType.MESSAGE_RECEIVED,
       'COMMUNITY_INVITE': NotificationType.COMMUNITY_INVITE,
       'COMMUNITY_APPROVED': NotificationType.COMMUNITY_APPROVED,
       'COMMUNITY_REJECTED': NotificationType.COMMUNITY_REJECTED,
@@ -400,6 +402,61 @@ export class NotificationService implements INotificationService {
     };
 
     return typeMapping[type.toUpperCase()] || NotificationType.INFO;
+  }
+
+  /**
+   * Отправляет только push-уведомления без сохранения в базе данных
+   */
+  async sendPushNotificationOnly(data: {
+    type: NotificationType;
+    title: string;
+    message: string;
+    userIds: number[];
+    payload?: any;
+  }): Promise<void> {
+    try {
+      const users = await (this.notificationRepository as any).prisma.users.findMany({
+        where: {
+          id: { in: data.userIds },
+          pushNotificationsEnabled: true,
+          fcmToken: { not: null },
+        },
+        select: {
+          id: true,
+          fcmToken: true,
+          pushNotificationsEnabled: true,
+        },
+      });
+
+      const pushPromises = users.map(user =>
+        this.firebasePushService.sendPushNotificationToUser(
+          {
+            userId: user.id,
+            fcmToken: user.fcmToken!,
+            pushNotificationsEnabled: user.pushNotificationsEnabled,
+          },
+          {
+            title: data.title,
+            body: data.message,
+            userId: user.id,
+            type: data.type,
+            payload: data.payload,
+          },
+        ).catch(error => {
+          this.logger.error(
+            `Ошибка отправки push-уведомления пользователю ${user.id}: ${error.message}`,
+          );
+        })
+      );
+
+      await Promise.all(pushPromises);
+      this.logger.log(`Отправлено ${users.length} push-уведомлений типа ${data.type}`);
+    } catch (error) {
+      this.logger.error(
+        `Ошибка отправки push-уведомлений: ${error.message}`,
+        error.stack,
+      );
+    }
   }
 
   /**

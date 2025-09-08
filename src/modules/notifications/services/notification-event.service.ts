@@ -5,6 +5,7 @@ import {
   ISystemEventData,
   SystemEventType,
   IGlobalNotificationData,
+  NotificationType,
 } from '../interfaces/notification.interface';
 
 /**
@@ -258,6 +259,42 @@ export class NotificationEventService {
     await this.triggerService.processSystemEvent(eventData);
   }
 
+
+  /**
+   * Уведомление о новом сообщении в мероприятии (только Firebase push, без сохранения в БД)
+   */
+  async notifyEventMessagePosted(data: {
+    eventId: number;
+    eventTitle: string;
+    messageText: string;
+    authorId: number;
+    authorName: string;
+    participantIds: number[];
+  }): Promise<void> {
+    const recipientIds = data.participantIds.filter(
+      (id) => id !== data.authorId,
+    );
+
+    if (recipientIds.length === 0) {
+      this.logger.log('Нет участников для уведомления о новом сообщении');
+      return;
+    }
+
+    await this.notificationService.sendPushNotificationOnly({
+      type: NotificationType.MESSAGE_RECEIVED,
+      title: 'Новое сообщение',
+      message: `${data.authorName} написал сообщение в мероприятии "${data.eventTitle}"`,
+      userIds: recipientIds,
+      payload: {
+        eventId: data.eventId,
+        eventTitle: data.eventTitle,
+        messageText:
+          data.messageText.substring(0, 100) +
+          (data.messageText.length > 100 ? '...' : ''),
+        senderName: data.authorName,
+      },
+    });
+  }
 
   /**
    * Глобальная функция для создания произвольного уведомления

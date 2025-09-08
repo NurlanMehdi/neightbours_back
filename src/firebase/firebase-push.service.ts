@@ -183,6 +183,7 @@ export class FirebasePushService {
       [NotificationType.USER_JOINED_EVENT]: 'Новый участник',
       [NotificationType.USER_LEFT_EVENT]: 'Участник покинул событие',
       [NotificationType.USER_MENTIONED]: 'Вас упомянули',
+      [NotificationType.MESSAGE_RECEIVED]: 'Новое сообщение',
       [NotificationType.COMMUNITY_INVITE]: 'Приглашение в сообщество',
       [NotificationType.COMMUNITY_APPROVED]: 'Заявка одобрена',
       [NotificationType.COMMUNITY_REJECTED]: 'Заявка отклонена',

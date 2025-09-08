@@ -591,6 +591,20 @@ export class EventsService {
         : 'Пользователь';
 
       if (eventWithParticipants) {
+        const allParticipantIds = [
+          ...eventWithParticipants.participants.map((p) => p.userId),
+          eventWithParticipants.creator.id,
+        ];
+        const uniqueParticipantIds = Array.from(new Set(allParticipantIds));
+
+        await this.notificationEventService.notifyEventMessagePosted({
+          eventId: event.id,
+          eventTitle: event.title,
+          messageText: dto.text,
+          authorId: userId,
+          authorName,
+          participantIds: uniqueParticipantIds,
+        });
 
         this.logger.log(
           `Отправлено уведомление о новом сообщении в событии ${eventId} от пользователя ${userId}`,
@@ -637,6 +651,20 @@ export class EventsService {
         : 'Пользователь';
 
       if (eventWithParticipants) {
+        const allParticipantIds = [
+          ...eventWithParticipants.participants.map((p) => p.userId),
+          eventWithParticipants.creator.id,
+        ];
+        const uniqueParticipantIds = Array.from(new Set(allParticipantIds));
+
+        await this.notificationEventService.notifyEventMessagePosted({
+          eventId: event.id,
+          eventTitle: event.title,
+          messageText: dto.text,
+          authorId: dto.userId,
+          authorName,
+          participantIds: uniqueParticipantIds,
+        });
 
         this.logger.log(
           `Отправлено уведомление о новом сообщении в событии ${dto.eventId} от пользователя ${dto.userId}`,
