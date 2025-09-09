@@ -405,61 +405,6 @@ export class NotificationService implements INotificationService {
   }
 
   /**
-   * Отправляет только push-уведомления без сохранения в базе данных
-   */
-  async sendPushNotificationOnly(data: {
-    type: NotificationType;
-    title: string;
-    message: string;
-    userIds: number[];
-    payload?: any;
-  }): Promise<void> {
-    try {
-      const users = await (this.notificationRepository as any).prisma.users.findMany({
-        where: {
-          id: { in: data.userIds },
-          pushNotificationsEnabled: true,
-          fcmToken: { not: null },
-        },
-        select: {
-          id: true,
-          fcmToken: true,
-          pushNotificationsEnabled: true,
-        },
-      });
-
-      const pushPromises = users.map(user =>
-        this.firebasePushService.sendPushNotificationToUser(
-          {
-            userId: user.id,
-            fcmToken: user.fcmToken!,
-            pushNotificationsEnabled: user.pushNotificationsEnabled,
-          },
-          {
-            title: data.title,
-            body: data.message,
-            userId: user.id,
-            type: data.type,
-            payload: data.payload,
-          },
-        ).catch(error => {
-          this.logger.error(
-            `Ошибка отправки push-уведомления пользователю ${user.id}: ${error.message}`,
-          );
-        })
-      );
-
-      await Promise.all(pushPromises);
-      this.logger.log(`Отправлено ${users.length} push-уведомлений типа ${data.type}`);
-    } catch (error) {
-      this.logger.error(
-        `Ошибка отправки push-уведомлений: ${error.message}`,
-        error.stack,
-      );
-    }
-  }
-
-  /**
    * Отправляет push-уведомление, если оно включено у пользователя
    */
   private async sendPushNotificationIfEnabled(

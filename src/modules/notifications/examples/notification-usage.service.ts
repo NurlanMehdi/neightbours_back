@@ -86,7 +86,7 @@ export class NotificationUsageService {
 
   /**
    * Пример 5: Пользователь написал сообщение в мероприятии
-   * Отправляет только Firebase push уведомления, не сохраняет в БД
+   * Уведомляет всех участников кроме автора
    */
   async handleEventMessagePosted(
     eventId: number,
