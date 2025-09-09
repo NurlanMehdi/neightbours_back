@@ -291,8 +291,31 @@ export class NotificationEventService {
     authorName: string;
     participantIds: number[];
   }): Promise<void> {
-    this.logger.log('MESSAGE_RECEIVED уведомления отключены');
-    return;
+    const recipientIds = data.participantIds.filter(
+      (id) => id !== data.authorId,
+    );
+
+    if (recipientIds.length === 0) {
+      this.logger.log('Нет участников для уведомления о новом сообщении');
+      return;
+    }
+
+    const notificationData: IGlobalNotificationData = {
+      type: 'MESSAGE_RECEIVED',
+      title: 'Новое сообщение',
+      message: `${data.authorName} написал сообщение в мероприятии "${data.eventTitle}"`,
+      userId: recipientIds,
+      payload: {
+        eventId: data.eventId,
+        eventTitle: data.eventTitle,
+        messageText:
+          data.messageText.substring(0, 100) +
+          (data.messageText.length > 100 ? '...' : ''),
+        senderName: data.authorName,
+      },
+    };
+
+    await this.notificationService.createGlobalNotification(notificationData);
   }
 
   /**
