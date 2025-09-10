@@ -44,8 +44,29 @@ export class NotificationService implements INotificationService {
       throw new NotFoundException(`Пользователь с ID ${data.userId} не найден`);
     }
 
-    const notification = await this.notificationRepository.create(data);
-    const notificationDto = this.transformToDto(notification);
+    let notification: any;
+    let notificationDto: NotificationDto;
+
+    if (data.type === NotificationType.MESSAGE_RECEIVED) {
+      // Commented out DB saving for MESSAGE_RECEIVED notifications
+      // notification = await this.notificationRepository.create(data);
+      // notificationDto = this.transformToDto(notification);
+      
+      notificationDto = {
+        id: 0,
+        type: data.type,
+        title: data.title,
+        message: data.message,
+        isRead: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: data.userId,
+        payload: data.payload,
+      } as NotificationDto;
+    } else {
+      notification = await this.notificationRepository.create(data);
+      notificationDto = this.transformToDto(notification);
+    }
 
     await this.sendPushNotificationIfEnabled(user, {
       title: data.title,
@@ -55,7 +76,9 @@ export class NotificationService implements INotificationService {
       payload: data.payload,
     });
 
-    this.sendRealtimeNotification(data.userId, notificationDto);
+    if (data.type !== NotificationType.MESSAGE_RECEIVED) {
+      this.sendRealtimeNotification(data.userId, notificationDto);
+    }
 
     return notificationDto;
   }
@@ -82,7 +105,20 @@ export class NotificationService implements INotificationService {
       throw new NotFoundException(`Пользователи с ID ${invalidUsers.join(', ')} не найдены`);
     }
 
-    const createdNotifications = await this.notificationRepository.createMany(notifications);
+    const messageReceivedNotifications = notifications.filter(n => n.type === NotificationType.MESSAGE_RECEIVED);
+    const otherNotifications = notifications.filter(n => n.type !== NotificationType.MESSAGE_RECEIVED);
+
+    let createdNotifications: any[] = [];
+
+    if (otherNotifications.length > 0) {
+      createdNotifications = await this.notificationRepository.createMany(otherNotifications);
+    }
+
+    // Commented out DB saving for MESSAGE_RECEIVED notifications
+    // if (messageReceivedNotifications.length > 0) {
+    //   const messageReceivedCreated = await this.notificationRepository.createMany(messageReceivedNotifications);
+    //   createdNotifications = [...createdNotifications, ...messageReceivedCreated];
+    // }
 
     await this.sendBulkPushNotifications(users, notifications);
 
@@ -175,6 +211,11 @@ export class NotificationService implements INotificationService {
    */
   async createGlobalNotification(data: IGlobalNotificationData): Promise<void> {
     this.logger.log(`Создание глобального уведомления типа ${data.type}`);
+
+    if (data.type === 'MESSAGE_RECEIVED' && !Object.values(NotificationType).includes(NotificationType.MESSAGE_RECEIVED)) {
+      this.logger.warn('MESSAGE_RECEIVED тип не найден в enum, пропускаем уведомление');
+      return;
+    }
 
     const notificationType = this.mapStringToNotificationType(data.type);
     const userIds = Array.isArray(data.userId) ? data.userId : [data.userId];
