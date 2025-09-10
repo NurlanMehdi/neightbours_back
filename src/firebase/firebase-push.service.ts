@@ -188,6 +188,7 @@ export class FirebasePushService {
       [NotificationType.COMMUNITY_APPROVED]: 'Заявка одобрена',
       [NotificationType.COMMUNITY_REJECTED]: 'Заявка отклонена',
       [NotificationType.USER_JOINED_COMMUNITY]: 'Новый участник сообщества',
+      [NotificationType.PROPERTY_VERIFIED]: 'Объект подтвержден',
       [NotificationType.SYSTEM_MAINTENANCE]: 'Техническое обслуживание',
       [NotificationType.SYSTEM_UPDATE]: 'Обновление системы',
     };

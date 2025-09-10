@@ -301,6 +301,7 @@ export class NotificationService implements INotificationService {
       [NotificationType.COMMUNITY_APPROVED]: 'Сообщество одобрено',
       [NotificationType.COMMUNITY_REJECTED]: 'Сообщество отклонено',
       [NotificationType.USER_JOINED_COMMUNITY]: 'Пользователь присоединился к сообществу',
+      [NotificationType.PROPERTY_VERIFIED]: 'Объект недвижимости подтвержден',
       [NotificationType.SYSTEM_MAINTENANCE]: 'Техническое обслуживание',
       [NotificationType.SYSTEM_UPDATE]: 'Обновление системы',
     };
@@ -438,6 +439,7 @@ export class NotificationService implements INotificationService {
       'COMMUNITY_APPROVED': NotificationType.COMMUNITY_APPROVED,
       'COMMUNITY_REJECTED': NotificationType.COMMUNITY_REJECTED,
       'USER_JOINED_COMMUNITY': NotificationType.USER_JOINED_COMMUNITY,
+      'PROPERTY_VERIFIED': NotificationType.PROPERTY_VERIFIED,
       'SYSTEM_MAINTENANCE': NotificationType.SYSTEM_MAINTENANCE,
       'SYSTEM_UPDATE': NotificationType.SYSTEM_UPDATE,
     };

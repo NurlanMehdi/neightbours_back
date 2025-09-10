@@ -18,6 +18,8 @@ import {
   PropertyOwnVerificationException,
 } from '../../../common/exceptions/property.exception';
 import { GeoModerationService } from '../../geo-moderation/services/geo-moderation.service';
+import { NotificationService } from '../../notifications/services/notification.service';
+import { NotificationType } from '../../notifications/interfaces/notification.interface';
 
 /**
  * Параметры фильтрации чужих неподтвержденных объектов
@@ -35,6 +37,7 @@ export class PropertyService {
     private readonly propertyRepository: PropertyRepository,
     private readonly userRepository: UserRepository,
     private readonly geoModerationService: GeoModerationService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -520,6 +523,23 @@ export class PropertyService {
         propertyId,
         'VERIFIED',
       );
+    }
+
+    // Создаем уведомление для владельца объекта
+    try {
+      await this.notificationService.createNotification({
+        type: NotificationType.PROPERTY_VERIFIED,
+        title: 'Ваш объект подтвержден',
+        message: `Ваш объект недвижимости "${property.name}" был подтвержден другим пользователем.`,
+        userId: property.userId,
+        payload: {
+          propertyId: propertyId,
+          propertyName: property.name,
+          verificationCount: verificationCount,
+        },
+      });
+    } catch (error) {
+      console.error('Ошибка создания уведомления о подтверждении объекта:', error);
     }
 
     // Возвращаем обновленный объект

@@ -7,9 +7,10 @@ import { UserRepository } from '../users/repositories/user.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { MulterConfigModule } from '../files/multer.module';
 import { GeoModerationModule } from '../geo-moderation/geo-moderation.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, MulterConfigModule, GeoModerationModule],
+  imports: [PrismaModule, MulterConfigModule, GeoModerationModule, NotificationsModule],
   controllers: [PropertiesAdminController, PropertiesController],
   providers: [PropertyService, PropertyRepository, UserRepository],
   exports: [PropertyService],
