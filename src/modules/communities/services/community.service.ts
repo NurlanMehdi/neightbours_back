@@ -255,35 +255,6 @@ export class CommunityService {
     // Добавляем пользователя в сообщество
     await this.communityRepository.addUser(community.id, userId);
 
-    // Отправляем уведомление другим участникам сообщества о новом участнике
-    try {
-      // Получаем информацию о пользователе для уведомления
-      const newUser = await this.prisma.users.findUnique({
-        where: { id: userId },
-        select: { firstName: true, lastName: true },
-      });
-
-      if (newUser) {
-        const userName =
-          `${newUser.firstName || ''} ${newUser.lastName || ''}`.trim();
-
-        await this.notificationEventService.notifyUserJoinedCommunityToMembers({
-          communityId: community.id,
-          communityName: community.name,
-          newUserName: userName,
-          newUserId: userId,
-        });
-
-        this.logger.log(
-          `Уведомления отправлены участникам сообщества ${community.id} о присоединении пользователя ${userId}`,
-        );
-      }
-    } catch (notificationError) {
-      this.logger.error(
-        `Ошибка отправки уведомления о присоединении к сообществу: ${notificationError.message}`,
-      );
-    }
-
     return community;
   }
 
