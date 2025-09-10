@@ -27,12 +27,6 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
   async handle(eventData: ISystemEventData): Promise<void> {
     this.logger.log(`Обработка события ${eventData.eventType}`);
 
-    // Проверяем, должен ли триггер обрабатывать это событие
-    if (!this.shouldHandle(eventData.eventType)) {
-      this.logger.log(`Событие ${eventData.eventType} не обрабатывается event notification trigger`);
-      return;
-    }
-
     const targetUserIds = await this.getTargetUserIds(eventData);
 
     if (targetUserIds.length === 0) {
@@ -92,7 +86,6 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
       case SystemEventType.USER_LEFT_EVENT:
         return 'Участник покинул мероприятие';
       default:
-        this.logger.warn(`Неожиданный тип события в event notification trigger: ${eventData.eventType}`);
         return 'Обновление мероприятия';
     }
   }
@@ -121,7 +114,6 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
       case SystemEventType.USER_LEFT_EVENT:
         return `${triggererName} покинул мероприятие "${eventTitle}"`;
       default:
-        this.logger.warn(`Неожиданный тип события в event notification trigger message: ${eventData.eventType}`);
         return `Обновление в мероприятии "${eventTitle}"`;
     }
   }
@@ -144,7 +136,6 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
       case SystemEventType.USER_LEFT_EVENT:
         return NotificationType.USER_LEFT_EVENT;
       default:
-        this.logger.warn(`Неожиданный тип события в event notification trigger type: ${eventType}`);
         return NotificationType.EVENT_UPDATED;
     }
   }

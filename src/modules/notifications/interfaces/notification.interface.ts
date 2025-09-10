@@ -103,6 +103,11 @@ export interface INotificationTrigger {
    * Обрабатывает событие и создает соответствующие уведомления
    */
   handle(eventData: any): Promise<void>;
+
+  /**
+   * Обрабатывает событие, если триггер должен его обработать
+   */
+  processEvent(eventData: ISystemEventData): Promise<void>;
 }
 
 /**
