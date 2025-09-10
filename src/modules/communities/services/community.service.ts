@@ -19,6 +19,7 @@ import { CommunityCreatorException } from '../../../common/exceptions/community.
 import { GeoModerationService } from '../../geo-moderation/services/geo-moderation.service';
 import { CommunityUserDto } from '../dto/community-user.dto';
 import { CommunityFullDto } from '../dto/community-full.dto';
+import { CommunityInfoDto } from '../dto/community-info.dto';
 import { NotificationEventService } from '../../notifications/services/notification-event.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -559,5 +560,44 @@ export class CommunityService {
     await this.communityRepository.softDelete(id);
 
     this.logger.log(`Сообщество ${id} успешно мягко удалено.`);
+  }
+
+  /**
+   * Получить информацию о сообществе по ID
+   * @param id ID сообщества
+   * @returns Информация о сообществе
+   */
+  async getCommunityInfo(id: number): Promise<CommunityInfoDto> {
+    this.logger.log(`Сервис: получение информации о сообществе с id: ${id}.`);
+
+    const community = await this.communityRepository.findById(id);
+    if (!community) {
+      throw new BadRequestException('Сообщество не найдено');
+    }
+
+    return this.buildCommunityInfoDto(community);
+  }
+
+  private buildCommunityInfoDto(community: any): CommunityInfoDto {
+    const createdByName = community.creator
+      ? `${community.creator.firstName || ''} ${community.creator.lastName || ''}`.trim()
+      : 'Неизвестный пользователь';
+
+    return plainToInstance(
+      CommunityInfoDto,
+      {
+        id: community.id,
+        name: community.name,
+        numberOfUsers: community.users?.length ?? 0,
+        status: community.status,
+        joinCode: community.joinCode,
+        createdBy: createdByName,
+        createdAt: community.createdAt,
+        description: community.description,
+      },
+      {
+        excludeExtraneousValues: true,
+      },
+    );
   }
 }

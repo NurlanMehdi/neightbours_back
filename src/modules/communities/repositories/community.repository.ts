@@ -193,6 +193,7 @@ export class CommunityRepository {
       },
       include: {
         creator: true,
+        users: true,
       },
     });
   }
