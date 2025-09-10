@@ -86,6 +86,7 @@ export class EventNotificationTrigger extends BaseNotificationTrigger {
       case SystemEventType.USER_LEFT_EVENT:
         return 'Участник покинул мероприятие';
       default:
+        this.logger.warn(`Неожиданный тип события в event notification trigger: ${eventData.eventType}`);
         return 'Обновление мероприятия';
     }
   }
