@@ -600,6 +600,7 @@ export class EventsService {
         await this.notificationEventService.notifyEventMessagePosted({
           eventId: event.id,
           eventTitle: event.title,
+          eventType: event.type,
           messageText: dto.text,
           authorId: userId,
           authorName,
@@ -660,6 +661,7 @@ export class EventsService {
         await this.notificationEventService.notifyEventMessagePosted({
           eventId: event.id,
           eventTitle: event.title,
+          eventType: event.type,
           messageText: dto.text,
           authorId: dto.userId,
           authorName,

@@ -286,6 +286,7 @@ export class NotificationEventService {
   async notifyEventMessagePosted(data: {
     eventId: number;
     eventTitle: string;
+    eventType: string;
     messageText: string;
     authorId: number;
     authorName: string;
@@ -300,14 +301,21 @@ export class NotificationEventService {
       return;
     }
 
+    const title = data.eventType === 'NOTIFICATION' 
+      ? `Оповещение "${data.eventTitle}"`
+      : `Мероприятие "${data.eventTitle}"`;
+
+    const message = `${data.authorName}: ${data.messageText}`;
+
     const notificationData: IGlobalNotificationData = {
       type: 'MESSAGE_RECEIVED',
-      title: 'Новое сообщение',
-      message: `${data.authorName} написал сообщение в мероприятии "${data.eventTitle}"`,
+      title,
+      message,
       userId: recipientIds,
       payload: {
         eventId: data.eventId,
         eventTitle: data.eventTitle,
+        eventType: data.eventType,
         messageText:
           data.messageText.substring(0, 100) +
           (data.messageText.length > 100 ? '...' : ''),

@@ -87,10 +87,12 @@ export class NotificationUsageService {
   /**
    * Пример 5: Пользователь написал сообщение в мероприятии
    * Уведомляет всех участников кроме автора
+   * Заголовок будет динамическим в зависимости от типа события
    */
   async handleEventMessagePosted(
     eventId: number,
     eventTitle: string,
+    eventType: string,
     messageText: string,
     authorId: number,
     authorName: string,
@@ -99,6 +101,7 @@ export class NotificationUsageService {
     await this.notificationEventService.notifyEventMessagePosted({
       eventId,
       eventTitle,
+      eventType,
       messageText,
       authorId,
       authorName,
