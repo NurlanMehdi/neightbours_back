@@ -152,6 +152,26 @@ export class AuthService {
   }
 
   /**
+   * Выход из системы - очищает FCM токен пользователя
+   */
+  async logout(userId: number) {
+    this.logger.log(`Выход пользователя ${userId} из системы`);
+
+    const user = await this.userRepository.findById(userId);
+    if (user) {
+      await this.userRepository.update(userId, {
+        fcmToken: null,
+        pushNotificationsEnabled: false,
+      });
+      this.logger.log(`FCM токен пользователя ${userId} очищен при выходе`);
+    }
+
+    return {
+      message: 'Вы успешно вышли из системы',
+    };
+  }
+
+  /**
    * Генерирует пару токенов (access и refresh)
    */
   private generateTokens(payload: Omit<TokenPayload, 'type'>) {
