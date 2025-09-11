@@ -1231,46 +1231,25 @@ export class UserService {
       throw new UserNotFoundException();
     }
 
-    try {
-      // Очищаем FCM токен у других пользователей, которые могут его использовать
-      await this.userRepository.clearFcmTokenFromOtherUsers(
-        userId,
-        updateFcmTokenDto.fcmToken,
-      );
+    const updateData: any = {
+      fcmToken: updateFcmTokenDto.fcmToken,
+    };
 
-      const updateData: any = {
-        fcmToken: updateFcmTokenDto.fcmToken,
-      };
-
-      if (updateFcmTokenDto.pushNotificationsEnabled !== undefined) {
-        updateData.pushNotificationsEnabled =
-          updateFcmTokenDto.pushNotificationsEnabled;
-      }
-
-      await this.userRepository.update(userId, updateData);
-
-      this.logger.log(`FCM токен для пользователя ${userId} успешно обновлен`);
-
-      return {
-        message: 'FCM токен успешно обновлен',
-        pushNotificationsEnabled:
-          updateFcmTokenDto.pushNotificationsEnabled ??
-          (user as any).pushNotificationsEnabled,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Ошибка при обновлении FCM токена для пользователя ${userId}: ${error.message}`,
-      );
-      
-      // Если ошибка связана с уникальным ограничением, это означает, что токен уже используется
-      if (error.code === 'P2002' && error.meta?.target?.includes('fcmToken')) {
-        throw new BadRequestException(
-          'Данный FCM токен уже используется другим пользователем',
-        );
-      }
-      
-      throw error;
+    if (updateFcmTokenDto.pushNotificationsEnabled !== undefined) {
+      updateData.pushNotificationsEnabled =
+        updateFcmTokenDto.pushNotificationsEnabled;
     }
+
+    await this.userRepository.update(userId, updateData);
+
+    this.logger.log(`FCM токен для пользователя ${userId} успешно обновлен`);
+
+    return {
+      message: 'FCM токен успешно обновлен',
+      pushNotificationsEnabled:
+        updateFcmTokenDto.pushNotificationsEnabled ??
+        (user as any).pushNotificationsEnabled,
+    };
   }
 
   async updatePushNotificationSettings(

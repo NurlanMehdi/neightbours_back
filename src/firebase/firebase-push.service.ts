@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FirebaseService } from './firebase.service';
 import { NotificationType } from '../modules/notifications/interfaces/notification.interface';
-import { UserRepository } from '../modules/users/repositories/user.repository';
 
 export interface IPushNotificationData {
   title: string;
@@ -21,10 +20,7 @@ export interface ISendPushNotificationToUser {
 export class FirebasePushService {
   private readonly logger = new Logger(FirebasePushService.name);
 
-  constructor(
-    private readonly firebaseService: FirebaseService,
-    private readonly userRepository: UserRepository,
-  ) {}
+  constructor(private readonly firebaseService: FirebaseService) {}
 
   /**
    * Отправляет push-уведомление конкретному пользователю
@@ -75,23 +71,8 @@ export class FirebasePushService {
         error.code === 'messaging/registration-token-not-registered'
       ) {
         this.logger.warn(
-          `Недействительный FCM токен для пользователя ${user.userId}. Очищаем токен.`,
+          `Недействительный FCM токен для пользователя ${user.userId}. Требуется обновление токена.`,
         );
-        
-        // Автоматически очищаем недействительный FCM токен
-        try {
-          await this.userRepository.update(user.userId, {
-            fcmToken: null,
-            pushNotificationsEnabled: false,
-          });
-          this.logger.log(
-            `FCM токен пользователя ${user.userId} автоматически очищен из-за недействительности`,
-          );
-        } catch (updateError) {
-          this.logger.error(
-            `Ошибка при очистке недействительного FCM токена пользователя ${user.userId}: ${updateError.message}`,
-          );
-        }
       }
 
       return false;

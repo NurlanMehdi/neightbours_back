@@ -711,42 +711,4 @@ export class UserRepository {
       },
     });
   }
-
-  /**
-   * Очищает FCM токен у всех пользователей, кроме указанного
-   * @param currentUserId ID текущего пользователя (исключается из очистки)
-   * @param fcmToken FCM токен для очистки
-   */
-  async clearFcmTokenFromOtherUsers(
-    currentUserId: number,
-    fcmToken: string,
-  ): Promise<void> {
-    this.logger.log(
-      `Репозиторий: очистка FCM токена "${fcmToken}" у других пользователей, кроме ${currentUserId}`,
-    );
-
-    try {
-      const result = await this.prisma.users.updateMany({
-        where: {
-          fcmToken: fcmToken,
-          id: {
-            not: currentUserId,
-          },
-        },
-        data: {
-          fcmToken: null,
-          pushNotificationsEnabled: false,
-        },
-      });
-
-      this.logger.log(
-        `Репозиторий: очищен FCM токен у ${result.count} пользователей`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Репозиторий: ошибка при очистке FCM токена: ${error.message}`,
-      );
-      throw error;
-    }
-  }
 }

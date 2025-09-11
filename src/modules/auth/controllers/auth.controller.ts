@@ -1,11 +1,9 @@
-import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
 import { SendSmsDto, VerifySmsDto } from '../dto/auth.dto';
 import { AdminLoginDto } from '../dto/admin.login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { UserId } from '../../../common/decorators/user-id.decorator';
 
 @ApiTags('Аутентификация')
 @Controller('auth')
@@ -67,34 +65,5 @@ export class AuthController {
   })
   async refreshTokens(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshTokens(dto.refreshToken);
-  }
-
-  @Post('logout')
-  @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Выход из системы',
-    description: 'Очищает FCM токен пользователя и отключает push-уведомления',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Пользователь успешно вышел из системы',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Вы успешно вышли из системы',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Пользователь не авторизован',
-  })
-  async logout(@UserId() userId: number) {
-    return this.authService.logout(userId);
   }
 }
