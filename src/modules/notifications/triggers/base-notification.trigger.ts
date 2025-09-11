@@ -28,6 +28,25 @@ export abstract class BaseNotificationTrigger implements INotificationTrigger {
   protected abstract shouldHandle(eventType: SystemEventType): boolean;
 
   /**
+   * Безопасно обрабатывает событие - проверяет shouldHandle перед обработкой
+   */
+  async safeHandle(eventData: ISystemEventData): Promise<void> {
+    const shouldProcess = this.shouldHandle(eventData.eventType);
+    
+    this.logger.log(
+      `[${this.constructor.name}] Событие: ${eventData.eventType}, Обрабатывать: ${shouldProcess}`,
+    );
+
+    if (shouldProcess) {
+      await this.handle(eventData);
+    } else {
+      this.logger.log(
+        `[${this.constructor.name}] Пропускаем событие ${eventData.eventType}`,
+      );
+    }
+  }
+
+  /**
    * Создает уведомление
    */
   protected async createNotification(data: ICreateNotification): Promise<void> {

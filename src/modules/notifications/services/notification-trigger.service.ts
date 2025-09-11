@@ -39,7 +39,10 @@ export class NotificationTriggerService {
 
     const processingPromises = this.triggers.map(async (trigger) => {
       try {
-        await trigger.handle(eventData);
+        this.logger.log(
+          `Проверяем триггер ${trigger.constructor.name} для события ${eventData.eventType}`,
+        );
+        await trigger.safeHandle(eventData);
       } catch (error) {
         this.logger.error(
           `Ошибка в триггере ${trigger.constructor.name}: ${error.message}`,
