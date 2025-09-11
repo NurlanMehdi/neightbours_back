@@ -641,6 +641,49 @@ export class UserRepository {
   }
 
   /**
+   * Находит пользователя по FCM токену
+   * @param fcmToken FCM токен
+   * @returns Пользователь с FCM токеном
+   */
+  async findByFcmToken(fcmToken: string): Promise<any> {
+    this.logger.log(`Репозиторий: поиск пользователя по FCM токену`);
+    return (this.prisma.users as any).findUnique({
+      where: { fcmToken },
+      select: {
+        id: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        fcmToken: true,
+        pushNotificationsEnabled: true,
+      },
+    });
+  }
+
+  /**
+   * Очищает FCM токен у всех пользователей, кроме указанного
+   * @param fcmToken FCM токен для очистки
+   * @param excludeUserId ID пользователя, которого исключить из очистки
+   */
+  async clearFcmTokenFromOtherUsers(
+    fcmToken: string,
+    excludeUserId: number,
+  ): Promise<void> {
+    this.logger.log(
+      `Репозиторий: очистка FCM токена у других пользователей, исключая ${excludeUserId}`,
+    );
+    await (this.prisma.users as any).updateMany({
+      where: {
+        fcmToken,
+        id: { not: excludeUserId },
+      },
+      data: {
+        fcmToken: null,
+      },
+    });
+  }
+
+  /**
    * Находит пользователя по ID со всеми связями для администратора
    * @param id Идентификатор пользователя
    * @returns Пользователь со всеми связанными данными

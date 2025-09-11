@@ -1231,6 +1231,20 @@ export class UserService {
       throw new UserNotFoundException();
     }
 
+    const existingUserWithToken = await this.userRepository.findByFcmToken(
+      updateFcmTokenDto.fcmToken,
+    );
+
+    if (existingUserWithToken && existingUserWithToken.id !== userId) {
+      this.logger.warn(
+        `FCM токен уже используется пользователем ${existingUserWithToken.id}, очищаем токен у предыдущего пользователя`,
+      );
+      await this.userRepository.clearFcmTokenFromOtherUsers(
+        updateFcmTokenDto.fcmToken,
+        userId,
+      );
+    }
+
     const updateData: any = {
       fcmToken: updateFcmTokenDto.fcmToken,
     };

@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { FirebaseService } from './firebase.service';
 import { NotificationType } from '../modules/notifications/interfaces/notification.interface';
+import { UserRepository } from '../modules/users/repositories/user.repository';
 
 export interface IPushNotificationData {
   title: string;
@@ -20,7 +21,11 @@ export interface ISendPushNotificationToUser {
 export class FirebasePushService {
   private readonly logger = new Logger(FirebasePushService.name);
 
-  constructor(private readonly firebaseService: FirebaseService) {}
+  constructor(
+    private readonly firebaseService: FirebaseService,
+    @Inject(forwardRef(() => UserRepository))
+    private readonly userRepository: UserRepository,
+  ) {}
 
   /**
    * Отправляет push-уведомление конкретному пользователю
@@ -71,8 +76,9 @@ export class FirebasePushService {
         error.code === 'messaging/registration-token-not-registered'
       ) {
         this.logger.warn(
-          `Недействительный FCM токен для пользователя ${user.userId}. Требуется обновление токена.`,
+          `Недействительный FCM токен для пользователя ${user.userId}. Автоматически очищаем токен.`,
         );
+        await this.cleanInvalidFcmToken(user.userId);
       }
 
       return false;
@@ -167,6 +173,24 @@ export class FirebasePushService {
         `Ошибка multicast отправки push-уведомлений: ${error.message}`,
       );
       return { successCount: 0, failureCount: fcmTokens.length };
+    }
+  }
+
+  /**
+   * Очищает недействительный FCM токен у пользователя
+   */
+  private async cleanInvalidFcmToken(userId: number): Promise<void> {
+    try {
+      await this.userRepository.update(userId, {
+        fcmToken: null,
+      });
+      this.logger.log(
+        `Недействительный FCM токен очищен для пользователя ${userId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Ошибка очистки FCM токена для пользователя ${userId}: ${error.message}`,
+      );
     }
   }
 

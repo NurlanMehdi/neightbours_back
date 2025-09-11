@@ -80,7 +80,7 @@ model Users {
   familyTypeId        Int?
   familyType          FamilyType? @relation(fields: [familyTypeId], references: [id])
   deletionScheduledAt DateTime?
-  fcmToken            String?
+  fcmToken            String?  @unique
   pushNotificationsEnabled Boolean @default(true)
 
   Blockings               Blocking[]
