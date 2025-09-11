@@ -266,6 +266,9 @@ export class NotificationEventService {
     newUserName: string;
     newUserId: number;
   }): Promise<void> {
+    const eventId = Math.random().toString(36).substr(2, 9);
+    this.logger.log(`📡 EVENT SERVICE START [${eventId}] - USER_JOINED_COMMUNITY: ${data.newUserName} -> Сообщество ${data.communityId}`);
+    
     const eventData: ISystemEventData = {
       eventType: SystemEventType.USER_JOINED_COMMUNITY,
       relatedEntityId: data.communityId,
@@ -278,6 +281,7 @@ export class NotificationEventService {
     };
 
     await this.triggerService.processSystemEvent(eventData);
+    this.logger.log(`📡 EVENT SERVICE END [${eventId}] - Успешно`);
   }
 
   /**

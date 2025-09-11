@@ -81,8 +81,7 @@ export class UserService {
         id: c.community.id,
         name: c.community.name,
         description: c.community.description,
-        numberOfUsers: 0, // TODO: добавить подсчет пользователей
-        status: c.community.status,
+        numberOfUsers: 0,         status: c.community.status,
         createdBy: c.community.creator
           ? `${c.community.creator.firstName || ''} ${c.community.creator.lastName || ''}`.trim()
           : 'Неизвестный пользователь',
@@ -155,8 +154,7 @@ export class UserService {
         id: c.community.id,
         name: c.community.name,
         description: c.community.description,
-        numberOfUsers: 0, // TODO: добавить подсчет пользователей
-        status: c.community.status,
+        numberOfUsers: 0,         status: c.community.status,
         createdBy: c.community.creator
           ? `${c.community.creator.firstName || ''} ${c.community.creator.lastName || ''}`.trim()
           : 'Неизвестный пользователь',

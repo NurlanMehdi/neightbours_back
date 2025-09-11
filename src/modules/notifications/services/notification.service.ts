@@ -36,11 +36,12 @@ export class NotificationService implements INotificationService {
    * Создает новое уведомление
    */
   async createNotification(data: ICreateNotification): Promise<NotificationDto> {
-    this.logger.log(`Создание уведомления типа ${data.type} для пользователя ${data.userId}`);
+    const singleId = Math.random().toString(36).substr(2, 9);
+    this.logger.log(`🔔 SINGLE NOTIFICATION START [${singleId}] - тип: ${data.type}, пользователь: ${data.userId}, заголовок: "${data.title}"`);
 
     const user = await this.notificationRepository.getUserWithPushSettings(data.userId);
     if (!user) {
-      this.logger.error(`Попытка создать уведомление для несуществующего пользователя ${data.userId}`);
+      this.logger.error(`🔔 SINGLE NOTIFICATION ERROR [${singleId}] - Пользователь ${data.userId} не найден`);
       throw new NotFoundException(`Пользователь с ID ${data.userId} не найден`);
     }
 
@@ -48,10 +49,6 @@ export class NotificationService implements INotificationService {
     let notificationDto: NotificationDto;
 
     if (data.type === NotificationType.MESSAGE_RECEIVED) {
-      // Commented out DB saving for MESSAGE_RECEIVED notifications
-      // notification = await this.notificationRepository.create(data);
-      // notificationDto = this.transformToDto(notification);
-      
       notificationDto = {
         id: 0,
         type: data.type,
@@ -68,6 +65,7 @@ export class NotificationService implements INotificationService {
       notificationDto = this.transformToDto(notification);
     }
 
+    this.logger.log(`🔔 SENDING PUSH [${singleId}] - User ${data.userId}, Push enabled: ${user.pushNotificationsEnabled}`);
     await this.sendPushNotificationIfEnabled(user, {
       title: data.title,
       body: data.message,
@@ -77,9 +75,11 @@ export class NotificationService implements INotificationService {
     });
 
     if (data.type !== NotificationType.MESSAGE_RECEIVED) {
+      this.logger.log(`🔔 SENDING REALTIME [${singleId}] - User ${data.userId}`);
       this.sendRealtimeNotification(data.userId, notificationDto);
     }
 
+    this.logger.log(`🔔 SINGLE NOTIFICATION END [${singleId}] - Успешно`);
     return notificationDto;
   }
 
@@ -87,10 +87,18 @@ export class NotificationService implements INotificationService {
    * Создает множественные уведомления
    */
   async createMultipleNotifications(notifications: ICreateNotification[]): Promise<void> {
-    this.logger.log(`Создание ${notifications.length} уведомлений`);
+    const serviceId = Math.random().toString(36).substr(2, 9);
+    this.logger.log(`🔔 NOTIFICATION SERVICE START [${serviceId}] - Создание ${notifications.length} уведомлений`);
+    
+    // Логируем детали уведомлений
+    const notificationsByType = notifications.reduce((acc, n) => {
+      acc[n.type] = (acc[n.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    this.logger.log(`🔔 NOTIFICATION BREAKDOWN [${serviceId}] - ${JSON.stringify(notificationsByType)}`);
 
     if (notifications.length === 0) {
-      this.logger.warn('Попытка создать пустой массив уведомлений');
+      this.logger.warn(`🔔 NOTIFICATION SERVICE SKIP [${serviceId}] - Пустой массив`);
       return;
     }
 
@@ -114,17 +122,13 @@ export class NotificationService implements INotificationService {
       createdNotifications = await this.notificationRepository.createMany(otherNotifications);
     }
 
-    // Commented out DB saving for MESSAGE_RECEIVED notifications
-    // if (messageReceivedNotifications.length > 0) {
-    //   const messageReceivedCreated = await this.notificationRepository.createMany(messageReceivedNotifications);
-    //   createdNotifications = [...createdNotifications, ...messageReceivedCreated];
-    // }
-
+    this.logger.log(`🔔 SENDING PUSH [${serviceId}] - ${notifications.length} notifications to ${users.length} users`);
     await this.sendBulkPushNotifications(users, notifications);
 
+    this.logger.log(`🔔 SENDING REALTIME [${serviceId}] - ${createdNotifications.length} created notifications`);
     this.sendBulkRealtimeNotifications(notifications, createdNotifications);
 
-    this.logger.log(`Создано ${notifications.length} уведомлений`);
+    this.logger.log(`🔔 NOTIFICATION SERVICE END [${serviceId}] - Создано ${notifications.length} уведомлений`);
   }
 
   /**

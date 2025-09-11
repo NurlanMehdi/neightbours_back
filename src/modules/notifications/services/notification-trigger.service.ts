@@ -5,6 +5,7 @@ import {
 } from '../interfaces/notification.interface';
 import { EventNotificationTrigger } from '../triggers/event-notification.trigger';
 import { CommunityNotificationTrigger } from '../triggers/community-notification.trigger';
+import { MessageNotificationTrigger } from '../triggers/message-notification.trigger';
 
 /**
  * Сервис для управления триггерами уведомлений
@@ -17,9 +18,10 @@ export class NotificationTriggerService {
   constructor(
     private readonly eventTrigger: EventNotificationTrigger,
     private readonly communityTrigger: CommunityNotificationTrigger,
+    private readonly messageTrigger: MessageNotificationTrigger,
   ) {
-    // Регистрируем триггеры событий и сообществ
-    this.triggers = [this.eventTrigger, this.communityTrigger];
+    // Регистрируем триггеры событий, сообществ и сообщений
+    this.triggers = [this.eventTrigger, this.communityTrigger, this.messageTrigger];
 
     this.logger.log(
       `Зарегистрировано ${this.triggers.length} триггеров уведомлений`,

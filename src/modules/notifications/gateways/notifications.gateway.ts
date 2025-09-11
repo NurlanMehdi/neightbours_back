@@ -118,21 +118,6 @@ export class NotificationsGateway
     this.logger.log(`Уведомление отправлено пользователю ${userId}`);
   }
 
-  /**
-   * Отправляет уведомления нескольким пользователям
-   */
-  sendNotificationToUsers(
-    userIds: number[],
-    notification: NotificationDto,
-  ): void {
-    this.logger.log(
-      `Отправка уведомления ${userIds.length} пользователям: ${notification.title}`,
-    );
-
-    userIds.forEach((userId) => {
-      this.sendNotificationToUser(userId, notification);
-    });
-  }
 
   /**
    * Отправляет обновление счетчика непрочитанных уведомлений

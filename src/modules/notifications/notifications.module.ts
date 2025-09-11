@@ -20,6 +20,7 @@ import { NotificationsGateway } from './gateways/notifications.gateway';
 // Triggers
 import { EventNotificationTrigger } from './triggers/event-notification.trigger';
 import { CommunityNotificationTrigger } from './triggers/community-notification.trigger';
+import { MessageNotificationTrigger } from './triggers/message-notification.trigger';
 
 /**
  * Модуль уведомлений
@@ -55,6 +56,7 @@ import { CommunityNotificationTrigger } from './triggers/community-notification.
     // Триггеры уведомлений
     EventNotificationTrigger,
     CommunityNotificationTrigger,
+    MessageNotificationTrigger,
   ],
   exports: [
     NotificationService,
