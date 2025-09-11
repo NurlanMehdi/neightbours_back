@@ -137,6 +137,70 @@ export class UserRepository {
   }
 
   /**
+   * Находит пользователей с указанным FCM токеном, исключая текущего пользователя
+   * @param fcmToken FCM токен для поиска
+   * @param excludeUserId ID пользователя, которого нужно исключить из результатов
+   * @returns Список пользователей с дублирующимся токеном
+   */
+  async findUsersByFcmToken(fcmToken: string, excludeUserId: number): Promise<any[]> {
+    this.logger.log(`Поиск пользователей с FCM токеном, исключая пользователя ${excludeUserId}`);
+    
+    // Используем raw SQL для избежания проблем с типами
+    return this.prisma.$queryRaw<any[]>`
+      SELECT id, "firstName", "lastName", "fcmToken", "updatedAt"
+      FROM "public"."users"
+      WHERE "fcmToken" = ${fcmToken}
+        AND id != ${excludeUserId}
+    `;
+  }
+
+  /**
+   * Получает список всех дублирующихся FCM токенов
+   * @returns Список токенов с информацией о пользователях
+   */
+  async getFcmTokenDuplicates(): Promise<Array<{
+    fcmToken: string;
+    userCount: number;
+    users: Array<{ id: number; firstName?: string; lastName?: string; updatedAt: Date }>;
+  }>> {
+    this.logger.log('Поиск всех дублирующихся FCM токенов');
+
+    // Используем raw SQL для поиска дубликатов
+    const duplicatesRaw = await this.prisma.$queryRaw<Array<{
+      fcmToken: string;
+      userCount: number;
+    }>>`
+      SELECT "fcmToken", COUNT(*)::int as "userCount"
+      FROM "public"."users"
+      WHERE "fcmToken" IS NOT NULL AND "fcmToken" != ''
+      GROUP BY "fcmToken"
+      HAVING COUNT(*) > 1
+      ORDER BY COUNT(*) DESC
+    `;
+
+    // Для каждого дублирующегося токена получаем детальную информацию о пользователях
+    const duplicatesWithUsers = await Promise.all(
+      duplicatesRaw.map(async (group) => {
+        const users = await this.prisma.$queryRaw<any[]>`
+          SELECT id, "firstName", "lastName", "updatedAt"
+          FROM "public"."users"
+          WHERE "fcmToken" = ${group.fcmToken}
+          ORDER BY "updatedAt" DESC
+        `;
+
+        return {
+          fcmToken: group.fcmToken,
+          userCount: group.userCount,
+          users,
+        };
+      })
+    );
+
+    this.logger.log(`Найдено ${duplicatesWithUsers.length} дублирующихся FCM токенов`);
+    return duplicatesWithUsers;
+  }
+
+  /**
    * Обновляет роль пользователя.
    * @param id Идентификатор пользователя.
    * @param role Новая роль пользователя.

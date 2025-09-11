@@ -24,13 +24,16 @@ import {
 @Injectable()
 export class NotificationService implements INotificationService {
   private readonly logger = new Logger(NotificationService.name);
+  private readonly recentNotifications = new Map<string, number>();
 
   constructor(
     private readonly notificationRepository: NotificationRepository,
     private readonly firebasePushService: FirebasePushService,
     @Inject(forwardRef(() => NotificationsGateway))
     private readonly notificationsGateway: NotificationsGateway,
-  ) {}
+  ) {
+    this.cleanupRecentNotifications();
+  }
 
   /**
    * Создает новое уведомление
@@ -84,7 +87,7 @@ export class NotificationService implements INotificationService {
   }
 
   /**
-   * Создает множественные уведомления
+   * Создает множественные уведомления с защитой от дубликатов
    */
   async createMultipleNotifications(notifications: ICreateNotification[]): Promise<void> {
     this.logger.log(`Создание ${notifications.length} уведомлений`);
@@ -94,7 +97,17 @@ export class NotificationService implements INotificationService {
       return;
     }
 
-    const uniqueUserIds = [...new Set(notifications.map(n => n.userId))];
+    // Фильтруем дубликаты ПЕРЕД валидацией пользователей
+    const uniqueNotifications = this.filterDuplicateNotifications(notifications);
+    
+    if (uniqueNotifications.length === 0) {
+      this.logger.log('Все уведомления были отфильтрованы как дубликаты');
+      return;
+    }
+
+    this.logger.log(`После фильтрации дубликатов: ${uniqueNotifications.length} из ${notifications.length} уведомлений`);
+
+    const uniqueUserIds = [...new Set(uniqueNotifications.map(n => n.userId))];
     const users = await this.notificationRepository.getUsersWithPushSettings(uniqueUserIds);
     
     const foundUserIds = users.map(user => user.id);
@@ -105,8 +118,8 @@ export class NotificationService implements INotificationService {
       throw new NotFoundException(`Пользователи с ID ${invalidUsers.join(', ')} не найдены`);
     }
 
-    const messageReceivedNotifications = notifications.filter(n => n.type === NotificationType.MESSAGE_RECEIVED);
-    const otherNotifications = notifications.filter(n => n.type !== NotificationType.MESSAGE_RECEIVED);
+    const messageReceivedNotifications = uniqueNotifications.filter(n => n.type === NotificationType.MESSAGE_RECEIVED);
+    const otherNotifications = uniqueNotifications.filter(n => n.type !== NotificationType.MESSAGE_RECEIVED);
 
     let createdNotifications: any[] = [];
 
@@ -120,11 +133,11 @@ export class NotificationService implements INotificationService {
     //   createdNotifications = [...createdNotifications, ...messageReceivedCreated];
     // }
 
-    await this.sendBulkPushNotifications(users, notifications);
+    await this.sendBulkPushNotifications(users, uniqueNotifications);
 
-    this.sendBulkRealtimeNotifications(notifications, createdNotifications);
+    this.sendBulkRealtimeNotifications(uniqueNotifications, createdNotifications);
 
-    this.logger.log(`Создано ${notifications.length} уведомлений`);
+    this.logger.log(`Создано ${uniqueNotifications.length} уникальных уведомлений`);
   }
 
   /**
@@ -454,7 +467,21 @@ export class NotificationService implements INotificationService {
     user: { id: number; fcmToken?: string; pushNotificationsEnabled: boolean },
     data: { title: string; body: string; userId: number; type: NotificationType; payload?: any },
   ): Promise<void> {
-    if (user.pushNotificationsEnabled && user.fcmToken) {
+    const logContext = `User ${user.id}, Type: ${data.type}`;
+    
+    if (!user.pushNotificationsEnabled) {
+      this.logger.log(`Push-уведомления отключены: ${logContext}`);
+      return;
+    }
+    
+    if (!user.fcmToken) {
+      this.logger.log(`FCM токен отсутствует: ${logContext}`);
+      return;
+    }
+
+    this.logger.log(`Отправка Firebase push-уведомления: ${logContext}`);
+    
+    try {
       await this.firebasePushService.sendPushNotificationToUser(
         {
           userId: user.id,
@@ -463,7 +490,61 @@ export class NotificationService implements INotificationService {
         },
         data,
       );
+      
+      this.logger.log(`Firebase push-уведомление успешно отправлено: ${logContext}`);
+    } catch (error) {
+      this.logger.error(`Ошибка отправки Firebase push-уведомления: ${logContext}, Error: ${error.message}`);
     }
+  }
+
+  /**
+   * Генерирует уникальный ключ для уведомления (для предотвращения дубликатов)
+   */
+  private generateNotificationKey(notification: ICreateNotification): string {
+    const payload = notification.payload ? JSON.stringify(notification.payload) : '';
+    return `${notification.type}_${notification.userId}_${notification.title}_${notification.message}_${payload}`;
+  }
+
+  /**
+   * Фильтрует дублирующиеся уведомления за последние 5 минут
+   */
+  private filterDuplicateNotifications(notifications: ICreateNotification[]): ICreateNotification[] {
+    const now = Date.now();
+    const uniqueNotifications: ICreateNotification[] = [];
+
+    for (const notification of notifications) {
+      const key = this.generateNotificationKey(notification);
+      const lastSent = this.recentNotifications.get(key);
+
+      // Если уведомление не отправлялось в течение последних 5 минут
+      if (!lastSent || (now - lastSent) > 5 * 60 * 1000) {
+        this.recentNotifications.set(key, now);
+        uniqueNotifications.push(notification);
+        this.logger.log(`Уведомление добавлено: ${key}`);
+      } else {
+        this.logger.warn(`Дублирующееся уведомление отфильтровано: ${key}`);
+      }
+    }
+
+    return uniqueNotifications;
+  }
+
+  /**
+   * Очищает старые записи из кэша дубликатов (запускается каждые 10 минут)
+   */
+  private cleanupRecentNotifications(): void {
+    setInterval(() => {
+      const now = Date.now();
+      const expireTime = 10 * 60 * 1000; // 10 минут
+
+      for (const [key, timestamp] of this.recentNotifications.entries()) {
+        if (now - timestamp > expireTime) {
+          this.recentNotifications.delete(key);
+        }
+      }
+
+      this.logger.log(`Кэш дубликатов очищен. Размер: ${this.recentNotifications.size}`);
+    }, 10 * 60 * 1000); // Каждые 10 минут
   }
 
   /**

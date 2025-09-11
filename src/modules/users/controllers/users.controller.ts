@@ -447,6 +447,36 @@ export class UsersController {
     return this.userService.updateFcmToken(userId, updateFcmTokenDto);
   }
 
+  @Get('admin/fcm-duplicates')
+  @ApiOperation({
+    summary: 'Получить дублирующиеся FCM токены (Админ)',
+    description: 'Возвращает список FCM токенов, которые используются несколькими пользователями',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Список дублирующихся FCM токенов',
+  })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async getFcmDuplicates() {
+    return this.userService.getFcmTokenDuplicates();
+  }
+
+  @Post('admin/cleanup-fcm-duplicates')
+  @ApiOperation({
+    summary: 'Очистить дублирующиеся FCM токены (Админ)',
+    description: 'Удаляет дублирующиеся FCM токены, оставляя только у последнего активного пользователя',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Дублирующиеся FCM токены успешно очищены',
+  })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async cleanupFcmDuplicates() {
+    return this.userService.cleanupAllFcmDuplicates();
+  }
+
   @Patch('push-notifications')
   @ApiOperation({
     summary: 'Настройки push-уведомлений',

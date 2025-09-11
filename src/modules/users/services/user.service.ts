@@ -1231,6 +1231,9 @@ export class UserService {
       throw new UserNotFoundException();
     }
 
+    // Очищаем токен у других пользователей перед назначением новому
+    await this.cleanupDuplicateFcmToken(updateFcmTokenDto.fcmToken, userId);
+
     const updateData: any = {
       fcmToken: updateFcmTokenDto.fcmToken,
     };
@@ -1250,6 +1253,35 @@ export class UserService {
         updateFcmTokenDto.pushNotificationsEnabled ??
         (user as any).pushNotificationsEnabled,
     };
+  }
+
+  /**
+   * Очищает дублирующиеся FCM токены у других пользователей
+   */
+  private async cleanupDuplicateFcmToken(fcmToken: string, currentUserId: number): Promise<void> {
+    if (!fcmToken || fcmToken.trim() === '') {
+      return;
+    }
+
+    this.logger.log(`Проверка дублирующихся FCM токенов для токена: ${fcmToken.substring(0, 20)}...`);
+
+    try {
+      // Находим всех пользователей с таким же токеном, кроме текущего
+      const duplicateUsers = await this.userRepository.findUsersByFcmToken(fcmToken, currentUserId);
+
+      if (duplicateUsers.length > 0) {
+        this.logger.warn(`Найдено ${duplicateUsers.length} пользователей с дублирующимся FCM токеном`);
+        
+        // Очищаем FCM токен у всех найденных пользователей
+        for (const user of duplicateUsers) {
+          await this.userRepository.update(user.id, { fcmToken: null });
+          this.logger.log(`FCM токен очищен у пользователя ${user.id}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Ошибка при очистке дублирующихся FCM токенов: ${error.message}`);
+      // Не прерываем процесс обновления из-за ошибки очистки
+    }
   }
 
   async updatePushNotificationSettings(
@@ -1276,6 +1308,69 @@ export class UserService {
     return {
       message: 'Настройки push-уведомлений успешно обновлены',
       pushNotificationsEnabled: settings.pushNotificationsEnabled,
+    };
+  }
+
+  /**
+   * Получает список дублирующихся FCM токенов (для админа)
+   */
+  async getFcmTokenDuplicates(): Promise<{
+    duplicates: Array<{
+      fcmToken: string;
+      userCount: number;
+      users: Array<{ id: number; firstName?: string; lastName?: string; updatedAt: Date }>;
+    }>;
+    totalDuplicates: number;
+  }> {
+    this.logger.log('Получение списка дублирующихся FCM токенов');
+
+    const duplicates = await this.userRepository.getFcmTokenDuplicates();
+    
+    return {
+      duplicates,
+      totalDuplicates: duplicates.length,
+    };
+  }
+
+  /**
+   * Очищает все дублирующиеся FCM токены (для админа)
+   */
+  async cleanupAllFcmDuplicates(): Promise<{
+    message: string;
+    cleanedTokens: number;
+    affectedUsers: number;
+  }> {
+    this.logger.log('Начало очистки всех дублирующихся FCM токенов');
+
+    const duplicates = await this.userRepository.getFcmTokenDuplicates();
+    let totalCleaned = 0;
+    let totalAffectedUsers = 0;
+
+    for (const duplicate of duplicates) {
+      // Оставляем токен только у последнего обновленного пользователя
+      const sortedUsers = duplicate.users.sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+      
+      // Очищаем токен у всех, кроме первого (самого свежего)
+      const usersToClean = sortedUsers.slice(1);
+      
+      for (const user of usersToClean) {
+        await this.userRepository.update(user.id, { fcmToken: null });
+        this.logger.log(`FCM токен очищен у пользователя ${user.id} (${user.firstName || 'Без имени'})`);
+        totalAffectedUsers++;
+      }
+      
+      totalCleaned++;
+      this.logger.log(`Обработан дублирующийся токен: ${duplicate.fcmToken.substring(0, 20)}...`);
+    }
+
+    this.logger.log(`Очистка завершена. Обработано токенов: ${totalCleaned}, затронуто пользователей: ${totalAffectedUsers}`);
+
+    return {
+      message: 'Дублирующиеся FCM токены успешно очищены',
+      cleanedTokens: totalCleaned,
+      affectedUsers: totalAffectedUsers,
     };
   }
 
