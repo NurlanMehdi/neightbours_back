@@ -42,6 +42,7 @@ import { Logger } from '@nestjs/common';
 import { NotificationEventService } from '../notifications/services/notification-event.service';
 import { UserService } from '../users/services/user.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UnifiedMessageNotificationService } from './services/unified-message-notification.service';
 
 @Injectable()
 export class EventsService {
@@ -54,6 +55,7 @@ export class EventsService {
     private readonly notificationEventService: NotificationEventService,
     private readonly userService: UserService,
     private readonly prisma: PrismaService,
+    private readonly unifiedMessageNotificationService: UnifiedMessageNotificationService,
   ) {}
 
   /**
@@ -597,18 +599,23 @@ export class EventsService {
         ];
         const uniqueParticipantIds = Array.from(new Set(allParticipantIds));
 
-        await this.notificationEventService.notifyEventMessagePosted({
-          eventId: event.id,
-          eventTitle: event.title,
-          eventType: event.type,
-          messageText: dto.text,
-          authorId: userId,
-          authorName,
-          participantIds: uniqueParticipantIds,
-        });
+        await this.unifiedMessageNotificationService.processMessageNotification(
+          message,
+          {
+            messageId: message.id,
+            eventId: event.id,
+            eventTitle: event.title,
+            eventType: event.type,
+            messageText: dto.text,
+            authorId: userId,
+            authorName,
+            participantIds: uniqueParticipantIds,
+            source: 'websocket',
+          },
+        );
 
         this.logger.log(
-          `Уведомление о новом сообщении отправлено для события ${eventId} от пользователя ${userId}`,
+          `Уведомление о новом сообщении обработано через унифицированный сервис для события ${eventId} от пользователя ${userId}`,
         );
       }
     } catch (notificationError) {
@@ -658,18 +665,23 @@ export class EventsService {
         ];
         const uniqueParticipantIds = Array.from(new Set(allParticipantIds));
 
-        await this.notificationEventService.notifyEventMessagePosted({
-          eventId: event.id,
-          eventTitle: event.title,
-          eventType: event.type,
-          messageText: dto.text,
-          authorId: dto.userId,
-          authorName,
-          participantIds: uniqueParticipantIds,
-        });
+        await this.unifiedMessageNotificationService.processMessageNotification(
+          message,
+          {
+            messageId: message.id,
+            eventId: event.id,
+            eventTitle: event.title,
+            eventType: event.type,
+            messageText: dto.text,
+            authorId: dto.userId,
+            authorName,
+            participantIds: uniqueParticipantIds,
+            source: 'http',
+          },
+        );
 
         this.logger.log(
-          `Уведомление о новом сообщении отправлено для события ${dto.eventId} от пользователя ${dto.userId}`,
+          `Уведомление о новом сообщении обработано через унифицированный сервис для события ${dto.eventId} от пользователя ${dto.userId}`,
         );
       }
     } catch (notificationError) {
