@@ -1,6 +1,7 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { SmsService } from './sms.service';
+import { WebSocketSessionService } from './websocket-session.service';
 import {
   InvalidSmsCodeException,
   SmsCodeExpiredException,
@@ -28,6 +29,7 @@ export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly smsService: SmsService,
+    private readonly webSocketSessionService: WebSocketSessionService,
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -152,11 +154,12 @@ export class AuthService {
   }
 
   /**
-   * Выход из системы - очищает FCM токен пользователя
+   * Выход из системы - очищает FCM токен пользователя и WebSocket сессии
    */
   async logout(userId: number) {
     this.logger.log(`Выход пользователя ${userId} из системы`);
 
+    // Очищаем FCM токен
     const user = await this.userRepository.findById(userId);
     if (user && (user as any).fcmToken) {
       await this.userRepository.update(userId, {
@@ -164,6 +167,11 @@ export class AuthService {
       });
       this.logger.log(`FCM токен пользователя ${userId} очищен при выходе`);
     }
+
+    // Отключаем все WebSocket сессии пользователя
+    await this.webSocketSessionService.disconnectUserSessions(userId);
+    
+    this.logger.log(`Выход пользователя ${userId} завершен`);
 
     return { message: 'Успешный выход из системы' };
   }

@@ -61,6 +61,8 @@ export class NotificationsGateway
       const payload = this.jwtService.verify(token);
       const userId = payload.sub;
 
+      this.disconnectPreviousUserSessions(userId, client.id);
+
       if (!this.userSockets.has(userId)) {
         this.userSockets.set(userId, new Set());
       }
@@ -73,9 +75,17 @@ export class NotificationsGateway
       this.logger.log(
         `Пользователь ${userId} подключился к уведомлениям (сокет: ${client.id})`,
       );
+      this.logger.log(
+        `Активных подключений пользователя ${userId}: ${this.getUserConnectionCount(userId)}`,
+      );
+      this.logger.log(
+        `Общее количество подключенных пользователей: ${this.getConnectedUsersCount()}`,
+      );
 
       client.emit('connected', {
         message: 'Подключение к уведомлениям установлено',
+        userId,
+        connectionCount: this.getUserConnectionCount(userId),
       });
     } catch (error) {
       this.logger.error(
@@ -95,12 +105,25 @@ export class NotificationsGateway
 
         if (userSocketSet.size === 0) {
           this.userSockets.delete(userId);
+          this.logger.log(
+            `Все подключения пользователя ${userId} закрыты`,
+          );
         }
       }
 
       this.socketUser.delete(client.id);
       this.logger.log(
         `Пользователь ${userId} отключился от уведомлений (сокет: ${client.id})`,
+      );
+      this.logger.log(
+        `Оставшихся подключений пользователя ${userId}: ${this.getUserConnectionCount(userId)}`,
+      );
+      this.logger.log(
+        `Общее количество подключенных пользователей: ${this.getConnectedUsersCount()}`,
+      );
+    } else {
+      this.logger.warn(
+        `Попытка отключения неизвестного сокета: ${client.id}`,
       );
     }
   }
@@ -177,5 +200,67 @@ export class NotificationsGateway
       total += sockets.size;
     });
     return total;
+  }
+
+  /**
+   * Отключает все предыдущие сессии пользователя (кроме текущей)
+   */
+  private disconnectPreviousUserSessions(userId: number, currentSocketId: string): void {
+    const existingSockets = this.userSockets.get(userId);
+    if (existingSockets && existingSockets.size > 0) {
+      this.logger.log(
+        `Отключение ${existingSockets.size} предыдущих сессий пользователя ${userId}`,
+      );
+      
+      existingSockets.forEach((socketId) => {
+        if (socketId !== currentSocketId) {
+          const socket = this.server.sockets.sockets.get(socketId);
+          if (socket) {
+            this.logger.log(
+              `Отключение предыдущей сессии пользователя ${userId}: ${socketId}`,
+            );
+            socket.emit('sessionReplaced', {
+              message: 'Ваша сессия была заменена новым подключением',
+              reason: 'new_session',
+            });
+            socket.disconnect(true);
+          }
+        }
+      });
+      
+      existingSockets.clear();
+    }
+  }
+
+  /**
+   * Принудительно отключает все сессии пользователя (для logout)
+   */
+  disconnectUserSessions(userId: number): void {
+    const existingSockets = this.userSockets.get(userId);
+    if (existingSockets && existingSockets.size > 0) {
+      this.logger.log(
+        `Принудительное отключение всех сессий пользователя ${userId} (logout)`,
+      );
+      
+      existingSockets.forEach((socketId) => {
+        const socket = this.server.sockets.sockets.get(socketId);
+        if (socket) {
+          this.logger.log(
+            `Отключение сессии пользователя ${userId}: ${socketId} (logout)`,
+          );
+          socket.emit('forceDisconnect', {
+            message: 'Выход из системы',
+            reason: 'logout',
+          });
+          socket.disconnect(true);
+        }
+      });
+      
+      this.userSockets.delete(userId);
+      
+      existingSockets.forEach((socketId) => {
+        this.socketUser.delete(socketId);
+      });
+    }
   }
 }

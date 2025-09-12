@@ -31,7 +31,7 @@ export class EventsGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(EventsGateway.name);
-  private userSockets: Map<number, Set<string>> = new Map();
+  public userSockets: Map<number, Set<string>> = new Map();
   private socketUser: Map<string, number> = new Map();
 
   constructor(private readonly eventsService: EventsService) {
@@ -51,8 +51,10 @@ export class EventsGateway
   handleConnection(client: Socket, ...args: any[]) {
     try {
       this.logger.log(`Client id: ${client.id} connected`);
+      this.logger.log(
+        `Общее количество подключений к EventsGateway: ${this.io.sockets.sockets.size}`,
+      );
 
-      // Отправляем подтверждение подключения
       client.emit('connected', {
         status: 'ok',
         clientId: client.id,
@@ -66,10 +68,11 @@ export class EventsGateway
 
   handleDisconnect(client: Socket) {
     try {
-      this.logger.log(`Client id: ${client.id} disconnected`);
-
-      // Удаляем пользователя из маппинга
       const userId = this.socketUser.get(client.id);
+      this.logger.log(
+        `Client id: ${client.id} disconnected${userId ? ` (user: ${userId})` : ''}`,
+      );
+
       if (userId) {
         this.socketUser.delete(client.id);
         const userSockets = this.userSockets.get(userId);
@@ -77,9 +80,20 @@ export class EventsGateway
           userSockets.delete(client.id);
           if (userSockets.size === 0) {
             this.userSockets.delete(userId);
+            this.logger.log(
+              `Все подключения пользователя ${userId} к EventsGateway закрыты`,
+            );
+          } else {
+            this.logger.log(
+              `Оставшихся подключений пользователя ${userId} к EventsGateway: ${userSockets.size}`,
+            );
           }
         }
       }
+      
+      this.logger.log(
+        `Общее количество подключений к EventsGateway: ${this.io.sockets.sockets.size}`,
+      );
     } catch (error) {
       this.logger.error(`Error in handleDisconnect: ${error.message}`);
     }
@@ -107,12 +121,19 @@ export class EventsGateway
       const userId = client.data.user.sub;
       this.logger.log(`User ${userId} joining event ${eventId}`);
 
+      // Очищаем предыдущие подключения этого пользователя к событиям
+      this.disconnectPreviousUserEventSessions(userId, client.id);
+      
       // Сохраняем маппинг socket -> user
       this.socketUser.set(client.id, userId);
       if (!this.userSockets.has(userId)) {
         this.userSockets.set(userId, new Set());
       }
       this.userSockets.get(userId).add(client.id);
+      
+      this.logger.log(
+        `Активных подключений пользователя ${userId} к EventsGateway: ${this.userSockets.get(userId).size}`,
+      );
 
       //await this.eventsService.joinEvent(userId, Number(eventId));
       client.join(`event:${eventId}`);
@@ -205,6 +226,68 @@ export class EventsGateway
       );
       this.logger.error(`Error stack: ${error.stack}`);
       throw error;
+    }
+  }
+
+  /**
+   * Отключает все предыдущие подключения пользователя к событиям
+   */
+  private disconnectPreviousUserEventSessions(userId: number, currentSocketId: string): void {
+    const existingSockets = this.userSockets.get(userId);
+    if (existingSockets && existingSockets.size > 0) {
+      this.logger.log(
+        `Отключение ${existingSockets.size} предыдущих подключений пользователя ${userId} к EventsGateway`,
+      );
+      
+      existingSockets.forEach((socketId) => {
+        if (socketId !== currentSocketId) {
+          const socket = this.io.sockets.sockets.get(socketId);
+          if (socket) {
+            this.logger.log(
+              `Отключение предыдущей сессии пользователя ${userId} от EventsGateway: ${socketId}`,
+            );
+            socket.emit('sessionReplaced', {
+              message: 'Ваша сессия была заменена новым подключением к событиям',
+              reason: 'new_event_session',
+            });
+            socket.disconnect(true);
+          }
+        }
+      });
+      
+      existingSockets.clear();
+    }
+  }
+
+  /**
+   * Принудительно отключает все сессии пользователя от событий (для logout)
+   */
+  disconnectUserEventSessions(userId: number): void {
+    const existingSockets = this.userSockets.get(userId);
+    if (existingSockets && existingSockets.size > 0) {
+      this.logger.log(
+        `Принудительное отключение всех сессий пользователя ${userId} от EventsGateway (logout)`,
+      );
+      
+      existingSockets.forEach((socketId) => {
+        const socket = this.io.sockets.sockets.get(socketId);
+        if (socket) {
+          this.logger.log(
+            `Отключение сессии пользователя ${userId} от EventsGateway: ${socketId} (logout)`,
+          );
+          socket.emit('forceDisconnect', {
+            message: 'Выход из системы',
+            reason: 'logout',
+          });
+          socket.disconnect(true);
+        }
+      });
+      
+      this.userSockets.delete(userId);
+      
+      existingSockets.forEach((socketId) => {
+        this.socketUser.delete(socketId);
+      });
     }
   }
 }
