@@ -56,6 +56,15 @@ export class FirebasePushService {
           type: data.type,
           userId: data.userId.toString(),
           payload: data.payload ? JSON.stringify(data.payload) : '',
+          notificationId: `${data.type}_${data.userId}_${Date.now()}`,
+        },
+        android: {
+          priority: 'high' as const,
+        },
+        apns: {
+          headers: {
+            'apns-priority': '10',
+          },
         },
         token: user.fcmToken,
       };
@@ -142,6 +151,15 @@ export class FirebasePushService {
           type: data.type,
           userId: data.userId.toString(),
           payload: data.payload ? JSON.stringify(data.payload) : '',
+          notificationId: `${data.type}_${data.userId}_${Date.now()}`,
+        },
+        android: {
+          priority: 'high' as const,
+        },
+        apns: {
+          headers: {
+            'apns-priority': '10',
+          },
         },
         tokens: fcmTokens,
       };
