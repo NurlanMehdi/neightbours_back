@@ -658,15 +658,16 @@ export class EventsService {
         ];
         const uniqueParticipantIds = Array.from(new Set(allParticipantIds));
 
-        await this.notificationEventService.notifyEventMessagePosted({
-          eventId: event.id,
-          eventTitle: event.title,
-          eventType: event.type,
-          messageText: dto.text,
-          authorId: dto.userId,
-          authorName,
-          participantIds: uniqueParticipantIds,
-        });
+        // Removed duplicate notification - already sent in createMessage()
+        // await this.notificationEventService.notifyEventMessagePosted({
+        //   eventId: event.id,
+        //   eventTitle: event.title,
+        //   eventType: event.type,
+        //   messageText: dto.text,
+        //   authorId: dto.userId,
+        //   authorName,
+        //   participantIds: uniqueParticipantIds,
+        // });
 
         this.logger.log(
           `Отправлено уведомление о новом сообщении в событии ${dto.eventId} от пользователя ${dto.userId}`,
