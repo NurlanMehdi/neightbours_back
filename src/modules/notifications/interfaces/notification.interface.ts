@@ -103,11 +103,6 @@ export interface INotificationTrigger {
    * Обрабатывает событие и создает соответствующие уведомления
    */
   handle(eventData: any): Promise<void>;
-
-  /**
-   * Безопасно обрабатывает событие с проверкой shouldHandle
-   */
-  safeHandle(eventData: any): Promise<void>;
 }
 
 /**

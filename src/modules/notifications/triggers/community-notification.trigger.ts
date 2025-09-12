@@ -25,13 +25,12 @@ export class CommunityNotificationTrigger extends BaseNotificationTrigger {
    * Обрабатывает события, связанные с сообществами
    */
   async handle(eventData: ISystemEventData): Promise<void> {
-    const triggerId = Math.random().toString(36).substr(2, 9);
-    this.logger.log(`🏬 COMMUNITY TRIGGER START [${triggerId}] - Событие: ${eventData.eventType}, Сообщество: ${eventData.relatedEntityId}`);
+    this.logger.log(`Обработка события ${eventData.eventType}`);
 
     const targetUserIds = await this.getTargetUserIds(eventData);
 
     if (targetUserIds.length === 0) {
-      this.logger.log(`🏬 COMMUNITY TRIGGER SKIP [${triggerId}] - Нет пользователей`);
+      this.logger.log('Нет пользователей для уведомления');
       return;
     }
 
@@ -48,9 +47,7 @@ export class CommunityNotificationTrigger extends BaseNotificationTrigger {
       }),
     );
 
-    this.logger.log(`🏬 COMMUNITY TRIGGER PROCESS [${triggerId}] - Создаем ${notifications.length} уведомлений для пользователей: ${targetUserIds.join(', ')}`);
     await this.createMultipleNotifications(notifications);
-    this.logger.log(`🏬 COMMUNITY TRIGGER END [${triggerId}] - Успешно`);
   }
 
   /**

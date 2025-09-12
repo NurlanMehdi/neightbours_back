@@ -289,8 +289,7 @@ export class NotificationRepository implements INotificationRepository {
    * Создает множественные уведомления для разных пользователей
    */
   async createMany(notifications: ICreateNotification[]): Promise<any[]> {
-    const batchId = Math.random().toString(36).substr(2, 9);
-    this.logger.log(`💾 DB BATCH START [${batchId}] - Создание ${notifications.length} уведомлений`);
+    this.logger.log(`Создание ${notifications.length} уведомлений`);
 
     const data = notifications.map((notification) => ({
       type: notification.type,
@@ -300,38 +299,14 @@ export class NotificationRepository implements INotificationRepository {
       userId: notification.userId,
     }));
 
-    try {
-      // Используем createMany вместо множественных create для лучшей производительности
-      const result = await (this.prisma as any).notification.createMany({
-        data,
-        skipDuplicates: true,
-      });
-      
-      // Получаем созданные уведомления для возврата
-      const userIds = [...new Set(data.map(d => d.userId))];
-      const createdNotifications = await (this.prisma as any).notification.findMany({
-        where: {
-          userId: { in: userIds },
-          createdAt: {
-            gte: new Date(Date.now() - 5000), // Последние 5 секунд
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: notifications.length,
-      });
-      
-      this.logger.log(`💾 DB BATCH SUCCESS [${batchId}] - Создано ${result.count} уведомлений`);
-      return createdNotifications;
-    } catch (error) {
-      this.logger.error(`💾 DB BATCH ERROR [${batchId}] - ${error.message}`);
-      // Fallback к старому методу
-      const createPromises = data.map((notificationData) =>
-        (this.prisma as any).notification.create({ data: notificationData }),
-      );
-      const createdNotifications = await Promise.all(createPromises);
-      this.logger.log(`💾 DB BATCH FALLBACK [${batchId}] - Создано ${createdNotifications.length} уведомлений`);
-      return createdNotifications;
-    }
+    const createPromises = data.map((notificationData) =>
+      (this.prisma as any).notification.create({ data: notificationData }),
+    );
+
+    const createdNotifications = await Promise.all(createPromises);
+    this.logger.log(`Создано ${notifications.length} уведомлений`);
+
+    return createdNotifications;
   }
 
   /**

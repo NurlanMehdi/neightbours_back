@@ -5,7 +5,6 @@ import {
 } from '../interfaces/notification.interface';
 import { EventNotificationTrigger } from '../triggers/event-notification.trigger';
 import { CommunityNotificationTrigger } from '../triggers/community-notification.trigger';
-import { MessageNotificationTrigger } from '../triggers/message-notification.trigger';
 
 /**
  * Сервис для управления триггерами уведомлений
@@ -18,10 +17,9 @@ export class NotificationTriggerService {
   constructor(
     private readonly eventTrigger: EventNotificationTrigger,
     private readonly communityTrigger: CommunityNotificationTrigger,
-    private readonly messageTrigger: MessageNotificationTrigger,
   ) {
-    // Регистрируем триггеры событий, сообществ и сообщений
-    this.triggers = [this.eventTrigger, this.communityTrigger, this.messageTrigger];
+    // Регистрируем триггеры событий и сообществ
+    this.triggers = [this.eventTrigger, this.communityTrigger];
 
     this.logger.log(
       `Зарегистрировано ${this.triggers.length} триггеров уведомлений`,
@@ -41,10 +39,7 @@ export class NotificationTriggerService {
 
     const processingPromises = this.triggers.map(async (trigger) => {
       try {
-        this.logger.log(
-          `Проверяем триггер ${trigger.constructor.name} для события ${eventData.eventType}`,
-        );
-        await trigger.safeHandle(eventData);
+        await trigger.handle(eventData);
       } catch (error) {
         this.logger.error(
           `Ошибка в триггере ${trigger.constructor.name}: ${error.message}`,

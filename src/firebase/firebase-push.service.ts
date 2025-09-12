@@ -20,7 +20,6 @@ export interface ISendPushNotificationToUser {
 @Injectable()
 export class FirebasePushService {
   private readonly logger = new Logger(FirebasePushService.name);
-  private sentNotifications = new Set<string>();
 
   constructor(
     private readonly firebaseService: FirebaseService,
@@ -35,19 +34,6 @@ export class FirebasePushService {
     user: ISendPushNotificationToUser,
     data: IPushNotificationData,
   ): Promise<boolean> {
-    const callId = Math.random().toString(36).substr(2, 9);
-    const deduplicationKey = `${user.userId}-${data.type}-${data.title}-${Date.now().toString().slice(0, -3)}`;
-    
-    this.logger.log(`🔥 FIREBASE CALL START [${callId}] - User: ${user.userId}, Type: ${data.type}, Title: "${data.title}"`);
-    
-    if (this.sentNotifications.has(deduplicationKey)) {
-      this.logger.warn(`🚫 DUPLICATE NOTIFICATION BLOCKED [${callId}] - Key: ${deduplicationKey}`);
-      return false;
-    }
-    
-    this.sentNotifications.add(deduplicationKey);
-    setTimeout(() => this.sentNotifications.delete(deduplicationKey), 5 * 60 * 1000);
-    
     try {
       if (!user.pushNotificationsEnabled) {
         this.logger.log(
@@ -77,14 +63,13 @@ export class FirebasePushService {
       const result = await this.firebaseService.getMessaging().send(message);
 
       this.logger.log(
-        `✅ FIREBASE CALL SUCCESS [${callId}] - User: ${user.userId}, Message ID: ${result}`,
+        `Push-уведомление отправлено пользователю ${user.userId}. Message ID: ${result}`,
       );
       return true;
     } catch (error) {
       this.logger.error(
-        `❌ FIREBASE CALL ERROR [${callId}] - User: ${user.userId}: ${error.message}`,
+        `Ошибка отправки push-уведомления пользователю ${user.userId}: ${error.message}`,
       );
-      this.sentNotifications.delete(deduplicationKey);
 
       if (
         error.code === 'messaging/invalid-registration-token' ||
@@ -107,8 +92,7 @@ export class FirebasePushService {
     users: ISendPushNotificationToUser[],
     data: IPushNotificationData,
   ): Promise<{ successCount: number; failureCount: number }> {
-    const batchId = Math.random().toString(36).substr(2, 9);
-    this.logger.log(`📦 FIREBASE BATCH START [${batchId}] - ${users.length} пользователям, Type: ${data.type}`);
+    this.logger.log(`Отправка push-уведомлений ${users.length} пользователям`);
 
     const enabledUsers = users.filter(
       (user) => user.pushNotificationsEnabled && user.fcmToken,
@@ -116,12 +100,11 @@ export class FirebasePushService {
 
     if (enabledUsers.length === 0) {
       this.logger.log(
-        `📦 FIREBASE BATCH SKIP [${batchId}] - Нет пользователей с включенными push-уведомлениями`,
+        'Нет пользователей с включенными push-уведомлениями и действующими токенами',
       );
       return { successCount: 0, failureCount: 0 };
     }
 
-    this.logger.log(`📦 FIREBASE BATCH PROCESS [${batchId}] - ${enabledUsers.length} enabled users`);
     const promises = enabledUsers.map((user) =>
       this.sendPushNotificationToUser(user, data),
     );
@@ -131,12 +114,67 @@ export class FirebasePushService {
     const failureCount = results.filter((result) => result === false).length;
 
     this.logger.log(
-      `📦 FIREBASE BATCH END [${batchId}] - успешно: ${successCount}, с ошибками: ${failureCount}`,
+      `Push-уведомления отправлены: успешно - ${successCount}, с ошибками - ${failureCount}`,
     );
 
     return { successCount, failureCount };
   }
 
+  /**
+   * Отправляет push-уведомление с использованием multicast для большого количества пользователей
+   */
+  async sendPushNotificationMulticast(
+    fcmTokens: string[],
+    data: IPushNotificationData,
+  ): Promise<{ successCount: number; failureCount: number }> {
+    try {
+      if (fcmTokens.length === 0) {
+        this.logger.log('Список FCM токенов пуст');
+        return { successCount: 0, failureCount: 0 };
+      }
+
+      const message = {
+        notification: {
+          title: data.title,
+          body: data.body,
+        },
+        data: {
+          type: data.type,
+          userId: data.userId.toString(),
+          payload: data.payload ? JSON.stringify(data.payload) : '',
+        },
+        tokens: fcmTokens,
+      };
+
+      const result = await this.firebaseService
+        .getMessaging()
+        .sendEachForMulticast(message);
+
+      this.logger.log(
+        `Multicast push-уведомление отправлено: успешно - ${result.successCount}, с ошибками - ${result.failureCount}`,
+      );
+
+      if (result.failureCount > 0) {
+        result.responses.forEach((response, index) => {
+          if (!response.success) {
+            this.logger.error(
+              `Ошибка отправки push-уведомления для токена ${index}: ${response.error?.message}`,
+            );
+          }
+        });
+      }
+
+      return {
+        successCount: result.successCount,
+        failureCount: result.failureCount,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка multicast отправки push-уведомлений: ${error.message}`,
+      );
+      return { successCount: 0, failureCount: fcmTokens.length };
+    }
+  }
 
   /**
    * Очищает недействительный FCM токен у пользователя
