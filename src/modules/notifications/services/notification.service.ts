@@ -36,7 +36,9 @@ export class NotificationService implements INotificationService {
    * Создает новое уведомление
    */
   async createNotification(data: ICreateNotification): Promise<NotificationDto> {
-    this.logger.log(`Создание уведомления типа ${data.type} для пользователя ${data.userId}`);
+    const notificationId = `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.logger.log(`[${notificationId}] НАЧАЛО createNotification: тип=${data.type}, userId=${data.userId}, title="${data.title}", message="${data.message}"`);
+    this.logger.log(`[${notificationId}] Payload: ${JSON.stringify(data.payload)}`);
 
     const user = await this.notificationRepository.getUserWithPushSettings(data.userId);
     if (!user) {
@@ -561,6 +563,7 @@ export class NotificationService implements INotificationService {
       this.logger.error(`Ошибка отправки множественных уведомлений в реальном времени: ${error.message}`);
     }
   }
+
 
   /**
    * Отправляет обновление счетчика непрочитанных уведомлений

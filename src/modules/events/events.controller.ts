@@ -313,7 +313,12 @@ export class EventsController {
     @Param('id') eventId: string,
     @Body() createMessageDto: CreateMessageDto,
   ) {
-    return this.eventsService.createMessage(userId, +eventId, createMessageDto);
+    const requestId = `http-post-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`[${requestId}] HTTP POST /events/${eventId}/messages: userId=${userId}, text="${createMessageDto.text}"`);
+    
+    const result = await this.eventsService.createMessage(userId, +eventId, createMessageDto, 'HTTP-POST');
+    console.log(`[${requestId}] HTTP POST: createMessage completed, messageId=${result.id}`);
+    return result;
   }
 
   @Post(':id/vote')
@@ -430,7 +435,12 @@ export class EventsController {
     description: 'Пользователь не является членом сообщества',
   })
   async addMessage(@Body() addMessageDto: AddMessageDto) {
-    return this.eventsService.addMessage(addMessageDto);
+    const requestId = `http-addmsg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`[${requestId}] HTTP POST /events/messages: userId=${addMessageDto.userId}, eventId=${addMessageDto.eventId}, text="${addMessageDto.text}"`);
+    
+    const result = await this.eventsService.addMessage(addMessageDto);
+    console.log(`[${requestId}] HTTP POST: addMessage completed, messageId=${result.id}`);
+    return result;
   }
 
   @Post('messages/read')
