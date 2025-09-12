@@ -76,9 +76,10 @@ export class NotificationService implements INotificationService {
       payload: data.payload,
     });
 
-    if (data.type !== NotificationType.MESSAGE_RECEIVED) {
-      this.sendRealtimeNotification(data.userId, notificationDto);
-    }
+    // Disabled WebSocket notifications to prevent duplicates with FCM
+    // if (data.type !== NotificationType.MESSAGE_RECEIVED) {
+    //   this.sendRealtimeNotification(data.userId, notificationDto);
+    // }
 
     return notificationDto;
   }
@@ -122,7 +123,8 @@ export class NotificationService implements INotificationService {
 
     await this.sendBulkPushNotifications(users, notifications);
 
-    this.sendBulkRealtimeNotifications(notifications, createdNotifications);
+    // Disabled WebSocket notifications to prevent duplicates with FCM
+    // this.sendBulkRealtimeNotifications(notifications, createdNotifications);
 
     this.logger.log(`Создано ${notifications.length} уведомлений`);
   }
