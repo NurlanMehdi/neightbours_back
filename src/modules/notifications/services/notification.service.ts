@@ -36,9 +36,7 @@ export class NotificationService implements INotificationService {
    * Создает новое уведомление
    */
   async createNotification(data: ICreateNotification): Promise<NotificationDto> {
-    const notificationId = `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    this.logger.log(`[${notificationId}] НАЧАЛО createNotification: тип=${data.type}, userId=${data.userId}, title="${data.title}", message="${data.message}"`);
-    this.logger.log(`[${notificationId}] Payload: ${JSON.stringify(data.payload)}`);
+    this.logger.log(`Создание уведомления типа ${data.type} для пользователя ${data.userId}`);
 
     const user = await this.notificationRepository.getUserWithPushSettings(data.userId);
     if (!user) {
@@ -78,10 +76,9 @@ export class NotificationService implements INotificationService {
       payload: data.payload,
     });
 
-    // Disabled WebSocket notifications to prevent duplicates with FCM
-    // if (data.type !== NotificationType.MESSAGE_RECEIVED) {
-    //   this.sendRealtimeNotification(data.userId, notificationDto);
-    // }
+    if (data.type !== NotificationType.MESSAGE_RECEIVED) {
+      this.sendRealtimeNotification(data.userId, notificationDto);
+    }
 
     return notificationDto;
   }
@@ -125,8 +122,7 @@ export class NotificationService implements INotificationService {
 
     await this.sendBulkPushNotifications(users, notifications);
 
-    // Disabled WebSocket notifications to prevent duplicates with FCM
-    // this.sendBulkRealtimeNotifications(notifications, createdNotifications);
+    this.sendBulkRealtimeNotifications(notifications, createdNotifications);
 
     this.logger.log(`Создано ${notifications.length} уведомлений`);
   }
@@ -563,7 +559,6 @@ export class NotificationService implements INotificationService {
       this.logger.error(`Ошибка отправки множественных уведомлений в реальном времени: ${error.message}`);
     }
   }
-
 
   /**
    * Отправляет обновление счетчика непрочитанных уведомлений

@@ -172,19 +172,15 @@ export class EventsGateway
       this.logger.log(`Message data: ${JSON.stringify(parsedData)}`);
 
       const userId = client.data.user.sub;
-      const requestId = `websocket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       this.logger.log(
-        `[${requestId}] WebSocket: User ${userId} sending message to event ${parsedData.eventId}, text="${parsedData.message.text}"`,
+        `User ${userId} sending message to event ${parsedData.eventId}`,
       );
 
       const message = await this.eventsService.createMessage(
         userId,
         parsedData.eventId,
         parsedData.message,
-        'WEBSOCKET'
       );
-      
-      this.logger.log(`[${requestId}] WebSocket: createMessage completed, messageId=${message.id}`);
 
       this.logger.log(
         `Message created successfully: ${JSON.stringify(message)}`,

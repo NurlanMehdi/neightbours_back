@@ -42,44 +42,11 @@ import { Logger } from '@nestjs/common';
 import { NotificationEventService } from '../notifications/services/notification-event.service';
 import { UserService } from '../users/services/user.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UnifiedMessageNotificationService } from './services/unified-message-notification.service';
 
-/**
- * 🎯 EVENTS SERVICE - NOTIFICATION DUPLICATE FIX IMPLEMENTED
- * 
- * CRITICAL CHANGES MADE TO PREVENT DUPLICATE NOTIFICATIONS:
- * 
- * ❌ ORIGINAL PROBLEM (Root Cause):
- * - Frontend was calling multiple message endpoints for same message
- * - Each endpoint had separate notification logic
- * - Result: Multiple push notifications for single message
- * 
- * ✅ SOLUTION IMPLEMENTED:
- * 1. Unified all message creation through single createMessage() method
- * 2. Refactored addMessage() to call createMessage() internally
- * 3. Added frontend duplicate detection (10-second window)
- * 4. Added repository-level duplicate prevention (5-second window)
- * 5. Added source tracking to identify frontend call patterns
- * 
- * 🛡️ PROTECTION LAYERS:
- * - Layer 1: Frontend duplicate detection (blocks rapid duplicate calls)
- * - Layer 2: Repository duplicate check (prevents duplicate DB records)
- * - Layer 3: Unified notification pathway (one notification per message)
- * 
- * 📊 MONITORING:
- * - Logs warn when frontend calls multiple endpoints for same message
- * - Tracks message sources (WEBSOCKET, HTTP-POST, HTTP-ADDMESSAGE-LEGACY)
- * - Provides clear error messages when duplicates are blocked
- */
 @Injectable()
 export class EventsService {
   private readonly logger = new Logger(EventsService.name);
-  
-  // Track recent message attempts to detect frontend double-calls
-  private readonly recentMessageAttempts = new Map<string, {
-    timestamp: number;
-    source: string;
-    messageId?: number;
-  }>();
 
   constructor(
     private readonly eventsRepository: EventsRepository,
@@ -88,6 +55,7 @@ export class EventsService {
     private readonly notificationEventService: NotificationEventService,
     private readonly userService: UserService,
     private readonly prisma: PrismaService,
+    private readonly unifiedMessageNotificationService: UnifiedMessageNotificationService,
   ) {}
 
   /**
@@ -585,109 +553,11 @@ export class EventsService {
     return this.transformEventToDto(updatedEvent);
   }
 
-  /**
-   * 🔍 FRONTEND DUPLICATE DETECTION SYSTEM
-   * 
-   * This method detects when the frontend is calling multiple message endpoints
-   * for the same message, which was the ROOT CAUSE of duplicate notifications.
-   * 
-   * ORIGINAL PROBLEM:
-   * - Frontend was calling both WebSocket AND HTTP endpoints for same message
-   * - This caused the same notification logic to run multiple times
-   * - Users received multiple push notifications for single message
-   * 
-   * DETECTION LOGIC:
-   * - Tracks recent message attempts by (userId + eventId + text)
-   * - If same message attempted within 10 seconds, logs warning
-   * - Helps identify frontend retry/fallback patterns
-   * 
-   * Detects and logs potential duplicate message attempts from frontend
-   */
-  private checkForDuplicateMessageAttempt(
-    userId: number, 
-    eventId: number, 
-    text: string, 
-    source: string
-  ): { isDuplicate: boolean; originalSource?: string } {
-    const messageKey = `${userId}-${eventId}-${text.substring(0, 50)}`;
-    const now = Date.now();
-    const recent = this.recentMessageAttempts.get(messageKey);
-    
-    if (recent && (now - recent.timestamp) < 10000) { // 10 second window
-      this.logger.warn(`🚨 POTENTIAL DUPLICATE MESSAGE DETECTED!`);
-      this.logger.warn(`   User ${userId} trying to send same message to event ${eventId}`);
-      this.logger.warn(`   Original source: ${recent.source}`);
-      this.logger.warn(`   Current source: ${source}`);
-      this.logger.warn(`   Time difference: ${now - recent.timestamp}ms`);
-      this.logger.warn(`   Text: "${text}"`);
-      this.logger.warn(`   This indicates frontend is calling multiple endpoints for same message!`);
-      
-      return { isDuplicate: true, originalSource: recent.source };
-    }
-    
-    // Track this attempt
-    this.recentMessageAttempts.set(messageKey, {
-      timestamp: now,
-      source,
-    });
-    
-    // Cleanup old entries
-    if (this.recentMessageAttempts.size > 1000) {
-      const oldEntries = Array.from(this.recentMessageAttempts.entries())
-        .filter(([_, data]) => now - data.timestamp > 300000);
-      oldEntries.forEach(([key]) => this.recentMessageAttempts.delete(key));
-    }
-    
-    return { isDuplicate: false };
-  }
-
-  /**
-   * 🎯 UNIFIED MESSAGE CREATION - THE DUPLICATE NOTIFICATION FIX
-   * 
-   * This is the SINGLE ENTRY POINT for all message creation to prevent
-   * duplicate notifications that were caused by multiple endpoints.
-   * 
-   * ROOT CAUSE ANALYSIS:
-   * 1. Frontend was calling multiple endpoints for same message:
-   *    - WebSocket: handleMessage() → createMessage()
-   *    - HTTP: POST /events/:id/messages → createMessage()  
-   *    - HTTP: POST /events/messages → addMessage() [had separate notification logic]
-   * 
-   * 2. Each pathway triggered notifications independently
-   * 3. Result: Multiple push notifications for single message
-   * 
-   * SOLUTION IMPLEMENTED:
-   * 1. ✅ All pathways now use this single createMessage() method
-   * 2. ✅ addMessage() refactored to call createMessage() internally
-   * 3. ✅ Repository-level duplicate prevention (5-second window)
-   * 4. ✅ Frontend duplicate detection and blocking (10-second window)
-   * 5. ✅ Source tracking to identify which endpoint is being used
-   * 
-   * PROTECTION LAYERS:
-   * - Layer 1: Frontend duplicate detection (this method)
-   * - Layer 2: Repository duplicate check (EventMessagesRepository)
-   * - Layer 3: Unified notification logic (no multiple pathways)
-   * 
-   * @param source - Identifies the calling pathway (WEBSOCKET, HTTP-POST, etc.)
-   */
   async createMessage(
     userId: number,
     eventId: number,
     dto: CreateMessageDto,
-    source: string = 'unknown'
   ): Promise<EventMessage> {
-    const requestId = `createMessage-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    this.logger.log(`[${requestId}] НАЧАЛО createMessage: userId=${userId}, eventId=${eventId}, text="${dto.text}", source=${source}`);
-    
-    // Check for potential duplicates
-    const duplicateCheck = this.checkForDuplicateMessageAttempt(userId, eventId, dto.text, source);
-    if (duplicateCheck.isDuplicate) {
-      this.logger.error(`[${requestId}] ❌ DUPLICATE MESSAGE BLOCKED - frontend calling multiple endpoints!`);
-      throw new BadRequestException(`Дубликат сообщения обнаружен. Сообщение уже обрабатывается через ${duplicateCheck.originalSource}. Подождите несколько секунд.`);
-    }
-    
-    this.logger.log(`[${requestId}] Stack trace: ${new Error().stack}`);
-
     const event = await this.eventsRepository.findById(eventId);
 
     if (!event) {
@@ -702,21 +572,11 @@ export class EventsService {
       throw new UserNotInCommunityException();
     }
 
-    this.logger.log(`[${requestId}] Вызов eventMessagesRepository.createMessage`);
     const message = await this.eventMessagesRepository.createMessage(
       userId,
       eventId,
       dto,
     );
-    
-    // Update tracking with actual message ID
-    const messageKey = `${userId}-${eventId}-${dto.text.substring(0, 50)}`;
-    const existing = this.recentMessageAttempts.get(messageKey);
-    if (existing) {
-      existing.messageId = message.id;
-    }
-    
-    this.logger.log(`[${requestId}] Сообщение создано/найдено в БД: messageId=${message.id}`);
 
     try {
       const eventWithParticipants = await this.prisma.event.findUnique({
@@ -739,56 +599,98 @@ export class EventsService {
         ];
         const uniqueParticipantIds = Array.from(new Set(allParticipantIds));
 
-        this.logger.log(`[${requestId}] ВЫЗОВ notifyEventMessagePosted для ${uniqueParticipantIds.length} участников`);
-        await this.notificationEventService.notifyEventMessagePosted({
-          eventId: event.id,
-          eventTitle: event.title,
-          eventType: event.type,
-          messageText: dto.text,
-          authorId: userId,
-          authorName,
-          participantIds: uniqueParticipantIds,
-        });
+        await this.unifiedMessageNotificationService.processMessageNotification(
+          message,
+          {
+            messageId: message.id,
+            eventId: event.id,
+            eventTitle: event.title,
+            eventType: event.type,
+            messageText: dto.text,
+            authorId: userId,
+            authorName,
+            participantIds: uniqueParticipantIds,
+            source: 'websocket',
+          },
+        );
 
         this.logger.log(
-          `[${requestId}] Отправлено уведомление о новом сообщении в событии ${eventId} от пользователя ${userId}`,
+          `Уведомление о новом сообщении обработано через унифицированный сервис для события ${eventId} от пользователя ${userId}`,
         );
       }
     } catch (notificationError) {
       this.logger.error(
-        `[${requestId}] Ошибка отправки уведомления о новом сообщении: ${notificationError.message}`,
+        `Ошибка отправки уведомления о новом сообщении: ${notificationError.message}`,
       );
     }
 
-    this.logger.log(`[${requestId}] ЗАВЕРШЕНИЕ createMessage: возвращаем messageId=${message.id}`);
     return message;
   }
 
-  /**
-   * LEGACY ENDPOINT - REFACTORED TO PREVENT DUPLICATE NOTIFICATIONS
-   * 
-   * ROOT CAUSE: This method used to have its own notification logic separate from createMessage(),
-   * causing duplicate notifications when frontend called both endpoints.
-   * 
-   * SOLUTION: Now internally calls createMessage() to ensure unified notification pathway.
-   * This prevents any possibility of duplicate notifications.
-   */
   async addMessage(dto: AddMessageDto): Promise<EventMessage> {
-    const requestId = `addMessage-unified-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    this.logger.log(`[${requestId}] addMessage() REFACTORED: converting to createMessage() call`);
-    this.logger.log(`[${requestId}] Original request: userId=${dto.userId}, eventId=${dto.eventId}, text="${dto.text}"`);
+    const event = await this.eventsRepository.findById(dto.eventId);
 
-    // Convert AddMessageDto to CreateMessageDto format
-    const createMessageDto: CreateMessageDto = {
-      text: dto.text
-    };
+    if (!event) {
+      throw new EventNotFoundException();
+    }
 
-    // Use the unified createMessage pathway to prevent duplicate notifications
-    this.logger.log(`[${requestId}] Calling unified createMessage() instead of separate logic`);
-    const result = await this.createMessage(dto.userId, dto.eventId, createMessageDto, 'HTTP-ADDMESSAGE-LEGACY');
-    
-    this.logger.log(`[${requestId}] addMessage() completed via createMessage(): messageId=${result.id}`);
-    return result;
+    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
+      dto.userId,
+      event.communityId,
+    );
+    if (!isUserInCommunity) {
+      throw new UserNotInCommunityException();
+    }
+
+    const message = await this.eventMessagesRepository.addMessage(dto);
+
+    try {
+      const eventWithParticipants = await this.prisma.event.findUnique({
+        where: { id: dto.eventId },
+        include: {
+          participants: { select: { userId: true } },
+          creator: { select: { id: true } },
+        },
+      });
+
+      const author = await this.userService.findById(dto.userId);
+      const authorName = author
+        ? `${author.firstName || ''} ${author.lastName || ''}`.trim()
+        : 'Пользователь';
+
+      if (eventWithParticipants) {
+        const allParticipantIds = [
+          ...eventWithParticipants.participants.map((p) => p.userId),
+          eventWithParticipants.creator.id,
+        ];
+        const uniqueParticipantIds = Array.from(new Set(allParticipantIds));
+
+        await this.unifiedMessageNotificationService.processMessageNotification(
+          message,
+          {
+            messageId: message.id,
+            eventId: event.id,
+            eventTitle: event.title,
+            eventType: event.type,
+            messageText: dto.text,
+            authorId: dto.userId,
+            authorName,
+            participantIds: uniqueParticipantIds,
+            source: 'http',
+          },
+        );
+
+        this.logger.log(
+          `Уведомление о новом сообщении обработано через унифицированный сервис для события ${dto.eventId} от пользователя ${dto.userId}`,
+        );
+      }
+    } catch (notificationError) {
+      this.logger.error(
+        `Ошибка отправки уведомления о новом сообщении: ${notificationError.message}`,
+      );
+    }
+
+    return message;
   }
 
   async markEventAsReadByDto(dto: MarkEventReadDto): Promise<void> {

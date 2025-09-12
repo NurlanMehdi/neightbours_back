@@ -8,49 +8,11 @@ import { EventMessage } from '@prisma/client';
 export class EventMessagesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Creates a message with duplicate prevention
-   * 
-   * DUPLICATE PREVENTION: Checks for identical messages from same user to same event
-   * within the last 5 seconds to prevent frontend retry/double-call issues.
-   */
   async createMessage(
     userId: number,
     eventId: number,
     dto: CreateMessageDto,
   ): Promise<EventMessage> {
-    // Check for recent duplicate messages (last 5 seconds)
-    const fiveSecondsAgo = new Date(Date.now() - 5000);
-    
-    const recentDuplicate = await this.prisma.eventMessage.findFirst({
-      where: {
-        userId,
-        eventId,
-        text: dto.text,
-        createdAt: {
-          gte: fiveSecondsAgo,
-        },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-          },
-        },
-      },
-    });
-
-    if (recentDuplicate) {
-      console.log(`🛡️ DATABASE DUPLICATE PREVENTION: Found identical message from user ${userId} to event ${eventId} within 5 seconds`);
-      console.log(`   Existing messageId: ${recentDuplicate.id}, text: "${recentDuplicate.text}"`);
-      console.log(`   Returning existing message instead of creating duplicate`);
-      return recentDuplicate;
-    }
-
-    // Create new message if no recent duplicate found
     return this.prisma.eventMessage.create({
       data: {
         text: dto.text,
@@ -70,16 +32,24 @@ export class EventMessagesRepository {
     });
   }
 
-  /**
-   * DEPRECATED - NO LONGER USED
-   * 
-   * This method was removed as part of the notification duplication fix.
-   * All message creation now goes through createMessage() for unified notification logic.
-   * 
-   * If this method is called, it means the refactoring is incomplete.
-   */
   async addMessage(dto: AddMessageDto): Promise<EventMessage> {
-    throw new Error('addMessage() is deprecated. Use createMessage() instead to prevent duplicate notifications.');
+    return this.prisma.eventMessage.create({
+      data: {
+        text: dto.text,
+        userId: dto.userId,
+        eventId: dto.eventId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
+      },
+    });
   }
 
   async getEventMessages(
