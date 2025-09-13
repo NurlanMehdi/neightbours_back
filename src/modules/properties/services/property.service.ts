@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PropertyRepository } from '../repositories/property.repository';
 import { UserRepository } from '../../users/repositories/user.repository';
 import { CreatePropertyAdminDto } from '../dto/create-property-admin.dto';
@@ -132,6 +136,54 @@ export class PropertyService {
     }
 
     return this.transformToAdminDto(property);
+  }
+
+  /**
+   * Получить объект по ID для пользователя с проверкой доступа по сообществам
+   */
+  async getPropertyByIdForUser(
+    id: number,
+    userId: number,
+  ): Promise<PropertyDto> {
+    // Проверяем существование пользователя
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    // Ищем объект
+    const property = await this.propertyRepository.findById(id);
+    if (!property) {
+      throw new NotFoundException(`Объект с ID ${id} не найден`);
+    }
+
+    // Если объект принадлежит другому пользователю — проверяем общее сообщество
+    if (property.userId !== userId) {
+      const ownerCommunityIds =
+        property.user?.Communities?.map((uc: any) => uc?.community?.id).filter(
+          Boolean,
+        ) || [];
+
+      let sameCommunity = false;
+      for (const communityId of ownerCommunityIds) {
+        if (await this.userRepository.isUserInCommunity(userId, communityId)) {
+          sameCommunity = true;
+          break;
+        }
+      }
+
+      if (!sameCommunity) {
+        throw new ForbiddenException('Forbidden');
+      }
+    }
+
+    // Преобразуем в PropertyDto и добавим verifiedAt (если текущий пользователь подтверждал)
+    const dto = this.transformToUserDto(property);
+    const verification = await this.propertyRepository.findUserVerification(
+      id,
+      userId,
+    );
+    return { ...dto, verifiedAt: verification?.createdAt } as PropertyDto;
   }
 
   /**

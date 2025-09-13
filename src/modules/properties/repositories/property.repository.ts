@@ -492,6 +492,24 @@ export class PropertyRepository {
   }
 
   /**
+   * Возвращает запись подтверждения объекта пользователем (для получения даты)
+   */
+  async findUserVerification(
+    propertyId: number,
+    userId: number,
+  ): Promise<{ createdAt: Date } | null> {
+    return this.prisma.propertyVerification.findUnique({
+      where: {
+        propertyId_userId: {
+          propertyId,
+          userId,
+        },
+      },
+      select: { createdAt: true },
+    });
+  }
+
+  /**
    * Добавляет подтверждение объекта
    */
   async addVerification(propertyId: number, userId: number) {

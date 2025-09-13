@@ -33,7 +33,7 @@ import { VerifyPropertyDto } from '../dto/verify-property.dto';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
-@ApiTags('Объекты недвижимости')
+@ApiTags('properties')
 @Controller('properties')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
@@ -305,5 +305,18 @@ export class PropertiesController {
       longitude,
       radius,
     });
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get property by ID' })
+  @ApiParam({ name: 'id', description: 'Property ID', type: Number })
+  @ApiResponse({ status: 200, type: PropertyDto })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Not Found' })
+  async getPropertyById(
+    @Param('id', ParseIntPipe) id: number,
+    @UserId() userId: number,
+  ): Promise<PropertyDto> {
+    return this.propertyService.getPropertyByIdForUser(id, userId);
   }
 }

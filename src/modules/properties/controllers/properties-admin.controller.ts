@@ -34,7 +34,7 @@ import { UserRole } from '@prisma/client';
 import { ApiStandardResponses } from '../../../common/decorators/api-responses.decorator';
 import { PropertyCategory } from '@prisma/client';
 
-@ApiTags('Админка - Объекты недвижимости')
+@ApiTags('admin/properties')
 @Controller('admin/properties')
 export class PropertiesAdminController {
   constructor(private readonly propertyService: PropertyService) {}
