@@ -191,61 +191,12 @@ export class EventCategoriesRepository {
   }
 
   /**
-   * Проверяет, используется ли категория в активных событиях
+   * Проверяет, используется ли категория в событиях
    */
-  async isUsedInActiveEvents(id: number): Promise<boolean> {
+  async isUsedInEvents(id: number): Promise<boolean> {
     const eventsCount = await this.prisma.event.count({
-      where: { 
-        categoryId: id,
-        isActive: true,
-      },
+      where: { categoryId: id },
     });
     return eventsCount > 0;
-  }
-
-  /**
-   * Получает количество событий, использующих категорию
-   */
-  async getEventsCountByCategory(id: number): Promise<{
-    total: number;
-    active: number;
-    inactive: number;
-  }> {
-    const [total, active] = await Promise.all([
-      this.prisma.event.count({
-        where: { categoryId: id },
-      }),
-      this.prisma.event.count({
-        where: { 
-          categoryId: id,
-          isActive: true,
-        },
-      }),
-    ]);
-
-    return {
-      total,
-      active,
-      inactive: total - active,
-    };
-  }
-
-  /**
-   * Принудительно удаляет категорию, обнуляя categoryId во всех связанных событиях
-   */
-  async forceDelete(id: number): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      // Обнуляем categoryId во всех событиях, использующих эту категорию
-      await tx.event.updateMany({
-        where: { categoryId: id },
-        data: { categoryId: null },
-      });
-
-      // Мягко удаляем категорию
-      await tx.eventCategory.update({
-        where: { id },
-        data: { isActive: false },
-      });
-    });
   }
 }

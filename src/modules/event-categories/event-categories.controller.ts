@@ -193,52 +193,8 @@ export class EventCategoriesController {
     status: 200,
     description: 'Категория события успешно мягко удалена',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Категория используется в активных событиях',
-  })
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.eventCategoriesService.delete(id);
-  }
-
-  @Delete(':id/force')
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ 
-    summary: 'Принудительно удалить категорию события',
-    description: 'Удаляет категорию и обнуляет categoryId во всех связанных событиях'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Категория события успешно принудительно удалена',
-  })
-  async forceRemove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.eventCategoriesService.forceDelete(id);
-  }
-
-  @Get(':id/usage')
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ 
-    summary: 'Получить информацию об использовании категории',
-    description: 'Показывает количество событий, использующих данную категорию'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Информация об использовании категории',
-    schema: {
-      type: 'object',
-      properties: {
-        total: { type: 'number', description: 'Общее количество событий' },
-        active: { type: 'number', description: 'Количество активных событий' },
-        inactive: { type: 'number', description: 'Количество неактивных событий' },
-      },
-    },
-  })
-  async getCategoryUsage(@Param('id', ParseIntPipe) id: number): Promise<{
-    total: number;
-    active: number;
-    inactive: number;
-  }> {
-    return this.eventCategoriesService.getCategoryUsage(id);
   }
 
   @Patch(':id/restore')
