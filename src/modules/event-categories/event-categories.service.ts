@@ -207,15 +207,45 @@ export class EventCategoriesService {
       throw new NotFoundException(`Категория события с ID ${id} не найдена`);
     }
 
-    // Проверяем, используется ли категория в событиях
-    const isUsed = await this.eventCategoriesRepository.isUsedInEvents(id);
-    if (isUsed) {
+    // Проверяем, используется ли категория в активных событиях
+    const eventsCount = await this.eventCategoriesRepository.getEventsCountByCategory(id);
+    
+    if (eventsCount.active > 0) {
       throw new BadRequestException(
-        'Нельзя удалить категорию, которая используется в событиях',
+        `Нельзя удалить категорию, которая используется в ${eventsCount.active} активных событиях. ` +
+        `Используйте принудительное удаление, если необходимо удалить категорию.`,
       );
     }
 
     await this.eventCategoriesRepository.softDelete(id);
+  }
+
+  /**
+   * Принудительно удаляет категорию события, обнуляя categoryId в связанных событиях
+   */
+  async forceDelete(id: number): Promise<void> {
+    const existingCategory = await this.eventCategoriesRepository.findById(id);
+    if (!existingCategory) {
+      throw new NotFoundException(`Категория события с ID ${id} не найдена`);
+    }
+
+    await this.eventCategoriesRepository.forceDelete(id);
+  }
+
+  /**
+   * Получает информацию об использовании категории в событиях
+   */
+  async getCategoryUsage(id: number): Promise<{
+    total: number;
+    active: number;
+    inactive: number;
+  }> {
+    const existingCategory = await this.eventCategoriesRepository.findById(id);
+    if (!existingCategory) {
+      throw new NotFoundException(`Категория события с ID ${id} не найдена`);
+    }
+
+    return this.eventCategoriesRepository.getEventsCountByCategory(id);
   }
 
   /**
