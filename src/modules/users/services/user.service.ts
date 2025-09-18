@@ -1007,46 +1007,69 @@ export class UserService {
   ): Promise<UserVerificationsPaginatedDto> {
     this.logger.log(`Получение подтверждений пользователя ${userId}`);
 
-    const { page = 1, limit = 10 } = filters;
+    const { page = 1, limit = 10, isVerified } = filters;
     const { data, total } = await this.propertyRepository.findUserVerifications(
       userId,
       filters,
     );
-    const totalPages = Math.ceil(total / limit);
+
+    // Трансформируем данные и применяем фильтр по статусу верификации
+    let transformedData = data.map((property) => {
+      // Находим дату подтверждения текущим пользователем
+      const currentUserVerification = property.verifications?.find(
+        (v: any) => v.userId === userId,
+      );
+      const verifiedAt = currentUserVerification?.createdAt;
+
+      const verificationCount = property.verifications?.length || 0;
+      //if verificationsUserIds count is greater than or equal to verificationCount, then property is verified
+      const isVerified = property.verifications?.length >= verificationCount;
+      const verificationStatus = isVerified ? 'VERIFIED' : 'UNVERIFIED';
+
+      return {
+        property: {
+          id: property.id,
+          name: property.name,
+          category: property.category,
+          latitude: property.latitude,
+          longitude: property.longitude,
+          photo: property.photo,
+          verificationStatus: verificationStatus,
+          verificationCount: verificationCount,
+          verifiedUserIds:
+            property.verifications?.map(
+              (verification: any) => verification.userId,
+            ) || [],
+          createdById: property.userId,
+          createdBy: property.user
+            ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
+            : 'Неизвестный пользователь',
+          createdAt: property.createdAt,
+          updatedAt: property.updatedAt,
+        },
+        verifiedAt: verifiedAt,
+      };
+    });
+
+    // ВСЕГДА показываем только VERIFIED объекты
+    // Этот API должен возвращать только успешно подтвержденные объекты (≥2 подтверждения)
+    // UNVERIFIED объекты (< 2 подтверждения) не должны показываться никогда
+    transformedData = transformedData.filter(
+      (item) => item.property.verificationStatus === 'VERIFIED',
+    );
+
+    // Если передан фильтр isVerified=false, возвращаем пустой результат
+    // так как UNVERIFIED объекты не должны показываться в этом API
+    if (isVerified === false) {
+      transformedData = [];
+    }
+
+    const filteredTotal = transformedData.length;
+    const totalPages = Math.ceil(filteredTotal / limit);
 
     return {
-      data: data.filter((property) => property.verificationStatus === 'VERIFIED').map((property) => {
-        // Находим дату подтверждения текущим пользователем
-        const currentUserVerification = property.verifications?.find(
-          (v: any) => v.userId === userId,
-        );
-        const verifiedAt = currentUserVerification?.createdAt;
-
-        return {
-          property: {
-            id: property.id,
-            name: property.name,
-            category: property.category,
-            latitude: property.latitude,
-            longitude: property.longitude,
-            photo: property.photo,
-            verificationStatus: property.verificationStatus,
-            verificationCount: property.verifications?.length || 0,
-            verifiedUserIds:
-              property.verifications?.map(
-                (verification: any) => verification.userId,
-              ) || [],
-            createdById: property.userId,
-            createdBy: property.user
-              ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
-              : 'Неизвестный пользователь',
-            createdAt: property.createdAt,
-            updatedAt: property.updatedAt,
-          },
-          verifiedAt: verifiedAt,
-        };
-      }),
-      total: data.filter((property) => property.verificationStatus === 'VERIFIED').length,
+      data: transformedData,
+      total: filteredTotal,
       page,
       limit,
       totalPages,
