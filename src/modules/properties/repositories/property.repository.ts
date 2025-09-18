@@ -632,11 +632,9 @@ export class PropertyRepository {
       where.category = category;
     }
 
-    // Удаляем фильтрацию по verificationStatus из базы данных
-    // Статус будет рассчитываться динамически в сервисе
-    // if (isVerified !== undefined) {
-    //   where.verificationStatus = isVerified ? 'VERIFIED' : 'UNVERIFIED';
-    // }
+    if (isVerified !== undefined) {
+      where.verificationStatus = isVerified ? 'VERIFIED' : 'UNVERIFIED';
+    }
 
     // Обработка фильтра по датам
     if (dateFrom || dateTo) {

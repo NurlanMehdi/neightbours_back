@@ -23,7 +23,7 @@ export class GetUserVerificationsDto extends PaginationQueryDto {
   category?: PropertyCategory;
 
   @ApiPropertyOptional({
-    description: 'Фильтр по статусу подтверждения. ВНИМАНИЕ: API всегда возвращает только VERIFIED объекты. При isVerified=false возвращается пустой список.',
+    description: 'Фильтр по статусу подтверждения',
     example: true,
   })
   @IsOptional()
