@@ -1015,17 +1015,12 @@ export class UserService {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: data.map((property) => {
+      data: data.filter((property) => property.verificationStatus === 'VERIFIED').map((property) => {
         // Находим дату подтверждения текущим пользователем
         const currentUserVerification = property.verifications?.find(
           (v: any) => v.userId === userId,
         );
         const verifiedAt = currentUserVerification?.createdAt;
-
-        //only return verified properties
-        if (property.verificationStatus !== 'VERIFIED') {
-          return null;
-        }
 
         return {
           property: {
@@ -1051,7 +1046,7 @@ export class UserService {
           verifiedAt: verifiedAt,
         };
       }),
-      total,
+      total: data.filter((property) => property.verificationStatus === 'VERIFIED').length,
       page,
       limit,
       totalPages,
