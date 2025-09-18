@@ -1022,9 +1022,7 @@ export class UserService {
       const verifiedAt = currentUserVerification?.createdAt;
 
       const verificationCount = property.verifications?.length || 0;
-      //if verificationsUserIds count is greater than or equal to verificationCount, then property is verified
-      const isVerified = property.verifications?.length >= verificationCount;
-      const verificationStatus = isVerified ? 'VERIFIED' : 'UNVERIFIED';
+      const verificationStatus = verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
 
       return {
         property: {
