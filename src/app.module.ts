@@ -19,6 +19,7 @@ import { FamilyTypesModule } from './modules/family-types/family-types.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { FirebaseModule } from './firebase/firebase.module'; // ← BU SATIRI EKLEYİN
+import { PrivateChatModule } from './modules/private-chat/private-chat.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { FirebaseModule } from './firebase/firebase.module'; // ← BU SATIRI EK
     DocumentsModule,
     NotificationsModule,
     FirebaseModule, // ← BU SATIRI EKLEYİN
+    PrivateChatModule,
   ],
   controllers: [],
   providers: [JwtService],

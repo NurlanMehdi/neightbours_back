@@ -44,28 +44,12 @@ export class NotificationService implements INotificationService {
       throw new NotFoundException(`Пользователь с ID ${data.userId} не найден`);
     }
 
-    let notification: any;
-    let notificationDto: NotificationDto;
+    const notification = await this.notificationRepository.create(data);
+    const notificationDto: NotificationDto = this.transformToDto(notification);
 
     if (data.type === NotificationType.MESSAGE_RECEIVED) {
-      // Commented out DB saving for MESSAGE_RECEIVED notifications
-      // notification = await this.notificationRepository.create(data);
-      // notificationDto = this.transformToDto(notification);
-      
-      notificationDto = {
-        id: 0,
-        type: data.type,
-        title: data.title,
-        message: data.message,
-        isRead: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        userId: data.userId,
-        payload: data.payload,
-      } as NotificationDto;
-    } else {
-      notification = await this.notificationRepository.create(data);
-      notificationDto = this.transformToDto(notification);
+      const messageId = data.payload?.messageId;
+      this.logger.log(`[NotificationService] Created MESSAGE_RECEIVED for user ${data.userId}, message ${messageId}`);
     }
 
     await this.sendPushNotificationIfEnabled(user, {
@@ -105,24 +89,27 @@ export class NotificationService implements INotificationService {
       throw new NotFoundException(`Пользователи с ID ${invalidUsers.join(', ')} не найдены`);
     }
 
-    const messageReceivedNotifications = notifications.filter(n => n.type === NotificationType.MESSAGE_RECEIVED);
-    const otherNotifications = notifications.filter(n => n.type !== NotificationType.MESSAGE_RECEIVED);
+    const createdNotifications = await this.notificationRepository.createMany(notifications);
 
-    let createdNotifications: any[] = [];
-
-    if (otherNotifications.length > 0) {
-      createdNotifications = await this.notificationRepository.createMany(otherNotifications);
-    }
-
-    // Commented out DB saving for MESSAGE_RECEIVED notifications
-    // if (messageReceivedNotifications.length > 0) {
-    //   const messageReceivedCreated = await this.notificationRepository.createMany(messageReceivedNotifications);
-    //   createdNotifications = [...createdNotifications, ...messageReceivedCreated];
-    // }
+    notifications.forEach((n, idx) => {
+      if (n.type === NotificationType.MESSAGE_RECEIVED) {
+        const messageId = n.payload?.messageId;
+        this.logger.log(`[NotificationService] Created MESSAGE_RECEIVED for user ${n.userId}, message ${messageId}`);
+      }
+    });
 
     await this.sendBulkPushNotifications(users, notifications);
 
-    this.sendBulkRealtimeNotifications(notifications, createdNotifications);
+    // keep realtime behavior: skip MESSAGE_RECEIVED in realtime channel
+    const filteredCreated: any[] = [];
+    const filteredInput: ICreateNotification[] = [];
+    createdNotifications.forEach((created, index) => {
+      if (notifications[index].type !== NotificationType.MESSAGE_RECEIVED) {
+        filteredCreated.push(created);
+        filteredInput.push(notifications[index]);
+      }
+    });
+    this.sendBulkRealtimeNotifications(filteredInput, filteredCreated);
 
     this.logger.log(`Создано ${notifications.length} уведомлений`);
   }

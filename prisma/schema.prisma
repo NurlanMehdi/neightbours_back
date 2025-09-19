@@ -100,6 +100,9 @@ model Users {
   eventReads              EventRead[]              @relation("UserEventReads")
   profileDeletionRequests ProfileDeletionRequest[]
   notifications           Notification[]
+  privateConversations    ConversationParticipant[]
+  privateMessages         PrivateMessage[]        @relation("UserPrivateMessages")
+  messageSeens            MessageSeen[]
 
   @@map("users")
 }
@@ -503,4 +506,67 @@ model Notification {
   @@index([userId, createdAt])
   @@index([type])
   @@map("notifications")
+}
+
+// ==========================
+// Private 1-to-1 Chat Models
+// ==========================
+
+model Conversation {
+  id          Int                      @id @default(autoincrement())
+  // Sorted userId pair key: `${minUserId}_${maxUserId}` to ensure uniqueness
+  pairKey     String                   @unique
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  participants ConversationParticipant[]
+  messages     PrivateMessage[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  conversationId Int
+  userId         Int
+  lastReadAt     DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         Users        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId, conversationId])
+  @@map("conversation_participants")
+}
+
+model PrivateMessage {
+  id             Int           @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+  text           String
+  replyToId      Int?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  conversation Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       Users          @relation("UserPrivateMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo      PrivateMessage? @relation("MessageReply", fields: [replyToId], references: [id])
+  replies      PrivateMessage[] @relation("MessageReply")
+  seens        MessageSeen[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("private_messages")
+}
+
+model MessageSeen {
+  messageId Int
+  userId    Int
+  seenAt    DateTime @default(now())
+
+  message PrivateMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    Users          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+  @@index([userId])
+  @@map("message_seen")
 }
