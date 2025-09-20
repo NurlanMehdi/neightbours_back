@@ -38,11 +38,10 @@ export class GetEventsDto {
   @ApiProperty({
     description: 'Количество элементов на странице',
     required: false,
-    default: 10,
   })
   @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @TransformToInt()
-  limit?: number = 10;
+  limit?: number;
 }

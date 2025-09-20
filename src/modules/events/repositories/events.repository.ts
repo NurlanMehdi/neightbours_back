@@ -177,8 +177,8 @@ export class EventsRepository {
     communityId: number,
     filters: GetEventsDto,
   ): Promise<{ events: any[]; total: number }> {
-    const { type, categoryId, page = 1, limit = 10 } = filters;
-    const skip = (page - 1) * limit;
+    const { type, categoryId, page = 1, limit } = filters;
+    const skip = limit ? (page - 1) * limit : 0;
 
     const where: any = {
       communityId,
@@ -191,7 +191,7 @@ export class EventsRepository {
       this.prisma.event.findMany({
         where,
         skip,
-        take: limit,
+        ...(limit && { take: limit }),
         orderBy: { createdAt: 'desc' },
         include: {
           creator: {
