@@ -293,12 +293,14 @@ export class NotificationService implements INotificationService {
       [NotificationType.SYSTEM_UPDATE]: 'Обновление системы',
     };
 
-    const types: NotificationTypeDto[] = Object.values(NotificationType).map(type => 
-      plainToInstance(NotificationTypeDto, {
-        value: type,
-        label: typeLabels[type],
-      })
-    );
+    const types: NotificationTypeDto[] = Object.values(NotificationType)
+      .filter(type => type !== NotificationType.MESSAGE_RECEIVED)
+      .map(type => 
+        plainToInstance(NotificationTypeDto, {
+          value: type,
+          label: typeLabels[type],
+        })
+      );
 
     return plainToInstance(NotificationTypesDto, { types });
   }

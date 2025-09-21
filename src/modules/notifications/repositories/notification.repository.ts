@@ -117,6 +117,9 @@ export class NotificationRepository implements INotificationRepository {
 
     const where: any = {
       userId,
+      type: {
+        not: 'MESSAGE_RECEIVED',
+      },
     };
 
     if (isRead !== undefined) {
@@ -226,6 +229,9 @@ export class NotificationRepository implements INotificationRepository {
       where: {
         userId,
         isRead: false,
+        type: {
+          not: 'MESSAGE_RECEIVED',
+        },
       },
       data: { isRead: true },
     });
@@ -247,6 +253,9 @@ export class NotificationRepository implements INotificationRepository {
       where: {
         userId,
         isRead: false,
+        type: {
+          not: 'MESSAGE_RECEIVED',
+        },
       },
     });
 
