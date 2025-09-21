@@ -1,17 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class CreateMessageDto {
-  @ApiProperty({
-    description: 'Текст сообщения',
-    example: 'Привет всем!',
-  })
+export class SendCommunityMessageDto {
+  @ApiProperty({ description: 'Текст сообщения', example: 'Привет, соседи!' })
   @IsString()
   @IsNotEmpty()
   text: string;
 
-  @ApiPropertyOptional({ type: Number, description: 'ID of parent message being replied to' })
+  @ApiPropertyOptional({ description: 'ID сообщения, на которое отвечаем' })
   @IsOptional()
   @IsInt()
   replyToMessageId?: number;
 }
+

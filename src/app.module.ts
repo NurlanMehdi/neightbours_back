@@ -20,6 +20,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { FirebaseModule } from './firebase/firebase.module'; // ← BU SATIRI EKLEYİN
 import { PrivateChatModule } from './modules/private-chat/private-chat.module';
+import { CommunityChatModule } from './modules/community-chat/community-chat.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { PrivateChatModule } from './modules/private-chat/private-chat.module';
     NotificationsModule,
     FirebaseModule, // ← BU SATIRI EKLEYİN
     PrivateChatModule,
+    CommunityChatModule,
   ],
   controllers: [],
   providers: [JwtService],

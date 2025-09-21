@@ -52,7 +52,7 @@ describe('PrivateChatService', () => {
     expect(res).toBeDefined();
     expect(repo.createMessage).toHaveBeenCalled();
     expect(notifications.createGlobalNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'MESSAGE_RECEIVED', userId: 2 }),
+      expect.objectContaining({ type: 'MESSAGE_RECEIVED', userId: [2] }),
     );
   });
 
@@ -80,4 +80,3 @@ describe('PrivateChatService', () => {
     expect(res.updated).toBe(2);
   });
 });
-

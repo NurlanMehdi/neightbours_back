@@ -35,6 +35,7 @@ import { AddMessageDto } from './dto/add-message.dto';
 import { MarkEventReadDto } from './dto/mark-event-read.dto';
 import { IEvent, IEventsList } from './interfaces/event.interface';
 import { UnreadMessagesResponseDto } from './dto/unread-messages.dto';
+import { EventMessageDto } from './dto/message.dto';
 import { plainToInstance } from 'class-transformer';
 
 @ApiTags('События')
@@ -268,6 +269,8 @@ export class EventsController {
   @ApiResponse({
     status: 200,
     description: 'Список сообщений мероприятия',
+    type: EventMessageDto,
+    isArray: true,
   })
   @ApiResponse({
     status: 403,
@@ -291,6 +294,7 @@ export class EventsController {
   @ApiResponse({
     status: 201,
     description: 'Сообщение успешно отправлено',
+    type: EventMessageDto,
   })
   @ApiResponse({
     status: 400,

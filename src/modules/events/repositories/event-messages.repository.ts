@@ -13,11 +13,12 @@ export class EventMessagesRepository {
     eventId: number,
     dto: CreateMessageDto,
   ): Promise<EventMessage> {
-    return this.prisma.eventMessage.create({
+    return (this.prisma as any).eventMessage.create({
       data: {
         text: dto.text,
         userId,
         eventId,
+        replyToMessageId: dto.replyToMessageId,
       },
       include: {
         user: {
@@ -28,16 +29,26 @@ export class EventMessagesRepository {
             avatar: true,
           },
         },
+        replyTo: {
+          select: {
+            id: true,
+            text: true,
+            userId: true,
+            createdAt: true,
+            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+          },
+        },
       },
     });
   }
 
   async addMessage(dto: AddMessageDto): Promise<EventMessage> {
-    return this.prisma.eventMessage.create({
+    return (this.prisma as any).eventMessage.create({
       data: {
         text: dto.text,
         userId: dto.userId,
         eventId: dto.eventId,
+        replyToMessageId: dto.replyToMessageId,
       },
       include: {
         user: {
@@ -46,6 +57,15 @@ export class EventMessagesRepository {
             firstName: true,
             lastName: true,
             avatar: true,
+          },
+        },
+        replyTo: {
+          select: {
+            id: true,
+            text: true,
+            userId: true,
+            createdAt: true,
+            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
           },
         },
       },
@@ -57,7 +77,7 @@ export class EventMessagesRepository {
     page: number = 1,
     limit: number = 50,
   ): Promise<EventMessage[]> {
-    return this.prisma.eventMessage.findMany({
+    return (this.prisma as any).eventMessage.findMany({
       where: {
         eventId,
       },
@@ -68,6 +88,15 @@ export class EventMessagesRepository {
             firstName: true,
             lastName: true,
             avatar: true,
+          },
+        },
+        replyTo: {
+          select: {
+            id: true,
+            text: true,
+            userId: true,
+            createdAt: true,
+            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
           },
         },
       },

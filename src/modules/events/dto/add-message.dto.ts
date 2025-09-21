@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsInt } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, IsInt, IsOptional } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class AddMessageDto {
@@ -26,4 +26,10 @@ export class AddMessageDto {
   @IsString()
   @IsNotEmpty()
   text: string;
+
+  @ApiPropertyOptional({ type: Number, description: 'ID of parent message being replied to' })
+  @IsOptional()
+  @IsInt()
+  @Transform(({ value }) => (value === undefined ? undefined : parseInt(value, 10)))
+  replyToMessageId?: number;
 }
