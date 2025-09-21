@@ -35,13 +35,6 @@ export class FirebasePushService {
     data: IPushNotificationData,
   ): Promise<boolean> {
     try {
-      const canSend = user.pushNotificationsEnabled ?? true;
-      if (!canSend) {
-        this.logger.log(
-          `Push-уведомления отключены для пользователя ${user.userId}`,
-        );
-        return false;
-      }
 
       if (!user.fcmToken) {
         this.logger.log(`FCM токен не найден для пользователя ${user.userId}`);
@@ -96,7 +89,7 @@ export class FirebasePushService {
     this.logger.log(`Отправка push-уведомлений ${users.length} пользователям`);
 
     const enabledUsers = users.filter(
-      (user) => (user.pushNotificationsEnabled ?? true) && user.fcmToken,
+      (user) => user.fcmToken,
     );
 
     if (enabledUsers.length === 0) {
