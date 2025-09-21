@@ -1262,7 +1262,8 @@ export class UserService {
       message: 'FCM токен успешно обновлен',
       pushNotificationsEnabled:
         updateFcmTokenDto.pushNotificationsEnabled ??
-        (user as any).pushNotificationsEnabled,
+        (user as any).pushNotificationsEnabled ??
+        true,
     };
   }
 
@@ -1289,7 +1290,7 @@ export class UserService {
 
     return {
       message: 'Настройки push-уведомлений успешно обновлены',
-      pushNotificationsEnabled: settings.pushNotificationsEnabled,
+      pushNotificationsEnabled: settings.pushNotificationsEnabled ?? true,
     };
   }
 

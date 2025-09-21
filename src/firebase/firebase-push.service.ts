@@ -35,7 +35,8 @@ export class FirebasePushService {
     data: IPushNotificationData,
   ): Promise<boolean> {
     try {
-      if (!user.pushNotificationsEnabled) {
+      const canSend = user.pushNotificationsEnabled ?? true;
+      if (!canSend) {
         this.logger.log(
           `Push-уведомления отключены для пользователя ${user.userId}`,
         );
@@ -95,7 +96,7 @@ export class FirebasePushService {
     this.logger.log(`Отправка push-уведомлений ${users.length} пользователям`);
 
     const enabledUsers = users.filter(
-      (user) => user.pushNotificationsEnabled && user.fcmToken,
+      (user) => (user.pushNotificationsEnabled ?? true) && user.fcmToken,
     );
 
     if (enabledUsers.length === 0) {

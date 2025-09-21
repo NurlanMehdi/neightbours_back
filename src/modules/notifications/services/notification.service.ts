@@ -441,12 +441,13 @@ export class NotificationService implements INotificationService {
     user: { id: number; fcmToken?: string; pushNotificationsEnabled: boolean },
     data: { title: string; body: string; userId: number; type: NotificationType; payload?: any },
   ): Promise<void> {
-    if (user.pushNotificationsEnabled && user.fcmToken) {
+    const canSend = user.pushNotificationsEnabled ?? true;
+    if (canSend && user.fcmToken) {
       await this.firebasePushService.sendPushNotificationToUser(
         {
           userId: user.id,
           fcmToken: user.fcmToken,
-          pushNotificationsEnabled: user.pushNotificationsEnabled,
+          pushNotificationsEnabled: canSend,
         },
         data,
       );
@@ -473,14 +474,15 @@ export class NotificationService implements INotificationService {
 
     for (const user of users) {
       const userNotifications = notificationsByUser.get(user.id);
-      if (userNotifications && user.pushNotificationsEnabled && user.fcmToken) {
+      const canSend = user.pushNotificationsEnabled ?? true;
+      if (userNotifications && canSend && user.fcmToken) {
         for (const notification of userNotifications) {
           pushPromises.push(
             this.firebasePushService.sendPushNotificationToUser(
               {
                 userId: user.id,
                 fcmToken: user.fcmToken,
-                pushNotificationsEnabled: user.pushNotificationsEnabled,
+                pushNotificationsEnabled: canSend,
               },
               {
                 title: notification.title,
