@@ -23,3 +23,17 @@ export class UserPropertyDataDto {
   })
   verificationStatus: string;
 }
+
+@Exclude()
+export class UserPropertyResponseDto {
+  @Expose()
+  @ApiProperty({ description: 'ID объекта недвижимости', example: 101 })
+  propertyId: number;
+
+  @Expose()
+  @ApiProperty({
+    description: 'Данные объекта недвижимости',
+    type: UserPropertyDataDto,
+  })
+  data: UserPropertyDataDto;
+}

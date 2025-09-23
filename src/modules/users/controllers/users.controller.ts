@@ -52,13 +52,13 @@ import {
   FcmTokenResponseDto,
 } from '../dto/fcm-token.dto';
 import { UserInfoDto } from '../dto/user-info.dto';
-import { UserPropertyDataDto } from '../dto/user-properties.dto';
-import { ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
+import { UserPropertyResponseDto } from '../dto/user-properties.dto';
+import { ApiExtraModels } from '@nestjs/swagger';
 
 @ApiTags('Пользователи')
 @Controller('users')
 @ApiBearerAuth()
-@ApiExtraModels(UserPropertyDataDto)
+@ApiExtraModels(UserPropertyResponseDto)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(
@@ -537,29 +537,32 @@ export class UsersController {
   @ApiResponse({
     status: 200,
     description: 'Список объектов успешно получен',
+    type: [UserPropertyResponseDto],
     schema: {
-      type: 'object',
-      additionalProperties: {
-        $ref: getSchemaPath(UserPropertyDataDto),
-      },
-      example: {
-        '101': {
-          name: 'Таунхаус премиум класса',
-          picture: 'townhouse1.jpg',
-          verificationStatus: 'UNVERIFIED',
+      example: [
+        {
+          propertyId: 101,
+          data: {
+            name: 'Таунхаус премиум класса',
+            picture: 'townhouse1.jpg',
+            verificationStatus: 'UNVERIFIED',
+          },
         },
-        '102': {
-          name: 'Земельный участок',
-          picture: 'land1.jpg',
-          verificationStatus: 'VERIFIED',
+        {
+          propertyId: 102,
+          data: {
+            name: 'Земельный участок',
+            picture: 'land1.jpg',
+            verificationStatus: 'VERIFIED',
+          },
         },
-      },
+      ],
     },
   })
   @ApiStandardResponses()
   async getUserProperties(
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<Record<number, UserPropertyDataDto>> {
+  ): Promise<UserPropertyResponseDto[]> {
     return this.userService.getUserPropertiesById(id);
   }
 }

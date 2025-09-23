@@ -49,7 +49,7 @@ import {
   FcmTokenResponseDto,
 } from '../dto/fcm-token.dto';
 import { UserInfoDto } from '../dto/user-info.dto';
-import { UserPropertyDataDto } from '../dto/user-properties.dto';
+import { UserPropertyDataDto, UserPropertyResponseDto } from '../dto/user-properties.dto';
 
 type UserWithBlocking = Users & {
   Blocking?: Blocking[];
@@ -257,16 +257,16 @@ export class UserService {
    */
   async getUserPropertiesById(
     userId: number,
-  ): Promise<Record<number, UserPropertyDataDto>> {
+  ): Promise<UserPropertyResponseDto[]> {
     const user = await this.userRepository.findBasicById(userId);
     if (!user) {
       throw new UserNotFoundException();
     }
 
     const properties = await this.propertyRepository.findByUserId(userId);
-    const result: Record<number, UserPropertyDataDto> = {};
-    for (const p of properties) {
-      result[p.id] = plainToInstance(
+    const result: UserPropertyResponseDto[] = properties.map((p) => ({
+      propertyId: p.id,
+      data: plainToInstance(
         UserPropertyDataDto,
         {
           name: p.name,
@@ -274,8 +274,8 @@ export class UserService {
           verificationStatus: (p as any).verificationStatus,
         },
         { excludeExtraneousValues: true },
-      );
-    }
+      ),
+    }));
     return result;
   }
 
