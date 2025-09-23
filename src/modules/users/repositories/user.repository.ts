@@ -86,6 +86,41 @@ export class UserRepository {
   }
 
   /**
+   * Находит пользователя по id (базовая информация + сообщества + блокировки)
+   * Используется для легковесных ответов и проверок существования
+   */
+  async findBasicById(id: number): Promise<any | null> {
+    this.logger.log(
+      `Репозиторий: базовый поиск пользователя с id: ${id}.`,
+    );
+    return this.prisma.users.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        avatar: true,
+        createdAt: true,
+        isVerified: true,
+        gender: true,
+        birthDate: true,
+        Blockings: {
+          select: { id: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        Communities: {
+          select: {
+            community: {
+              select: { id: true, name: true },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
    * Создаёт нового пользователя.
    * @param data Данные для создания пользователя.
    * @returns Созданный пользователь.

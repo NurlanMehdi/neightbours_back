@@ -48,6 +48,8 @@ import {
   PushNotificationSettingsDto,
   FcmTokenResponseDto,
 } from '../dto/fcm-token.dto';
+import { UserInfoDto } from '../dto/user-info.dto';
+import { UserPropertyDataDto } from '../dto/user-properties.dto';
 
 type UserWithBlocking = Users & {
   Blocking?: Blocking[];
@@ -191,10 +193,90 @@ export class UserService {
     if (!user) {
       throw new UserNotFoundException();
     }
-    const blocking = user.Blocking?.sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-    )[0];
+    const blocking = (user as any).Blockings?.sort(
+      (a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime(),
+    )?.[0];
     return this.buildUserDto(user, blocking?.id);
+  }
+
+  /**
+   * Получение информации о пользователе по id с учетом общих сообществ
+   * Всегда возвращает базовую информацию; при наличии общего сообщества
+   * добавляет communityId и communityName
+   */
+  async getUserInfoById(
+    requestedUserId: number,
+    currentUserId: number,
+  ): Promise<UserInfoDto> {
+    const requested = await this.userRepository.findBasicById(requestedUserId);
+    if (!requested) {
+      throw new UserNotFoundException();
+    }
+
+    // Получаем сообщества текущего пользователя
+    const current = await this.userRepository.findBasicById(currentUserId);
+    // Теоретически текущий пользователь всегда существует, но на всякий случай
+    if (!current) {
+      throw new UserNotFoundException();
+    }
+
+    const requestedCommunitiesMap = new Map<number, string>(
+      (requested.Communities || []).map((c: any) => [c.community.id, c.community.name]),
+    );
+    const currentCommunityIds = new Set<number>(
+      (current.Communities || []).map((c: any) => c.community.id),
+    );
+
+    const sharedCommunities = Array.from(requestedCommunitiesMap.entries())
+      .filter(([cid]) => currentCommunityIds.has(cid))
+      .map(([id, name]) => ({ id, name }));
+
+    const latestBlockingId = requested.Blockings?.[0]?.id ?? null;
+
+    return plainToInstance(
+      UserInfoDto,
+      {
+        id: requested.id,
+        firstName: requested.firstName ?? null,
+        lastName: requested.lastName ?? null,
+        email: requested.email ?? null,
+        avatar: requested.avatar ?? null,
+        createdAt: requested.createdAt,
+        isVerified: requested.isVerified,
+        gender: (requested as any).gender ?? null,
+        birthDate: requested.birthDate ?? null,
+        blockingId: latestBlockingId,
+        ...(sharedCommunities.length > 0 && { communities: sharedCommunities }),
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  /**
+   * Получение списка объектов недвижимости, созданных пользователем
+   */
+  async getUserPropertiesById(
+    userId: number,
+  ): Promise<Record<number, UserPropertyDataDto>> {
+    const user = await this.userRepository.findBasicById(userId);
+    if (!user) {
+      throw new UserNotFoundException();
+    }
+
+    const properties = await this.propertyRepository.findByUserId(userId);
+    const result: Record<number, UserPropertyDataDto> = {};
+    for (const p of properties) {
+      result[p.id] = plainToInstance(
+        UserPropertyDataDto,
+        {
+          name: p.name,
+          picture: (p as any).photo ?? null,
+          verificationStatus: (p as any).verificationStatus,
+        },
+        { excludeExtraneousValues: true },
+      );
+    }
+    return result;
   }
 
   async createAdmin(dto: CreateAdminDto): Promise<UserDto> {

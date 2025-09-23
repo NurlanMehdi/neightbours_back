@@ -51,10 +51,14 @@ import {
   PushNotificationSettingsDto,
   FcmTokenResponseDto,
 } from '../dto/fcm-token.dto';
+import { UserInfoDto } from '../dto/user-info.dto';
+import { UserPropertyDataDto } from '../dto/user-properties.dto';
+import { ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
 
 @ApiTags('Пользователи')
 @Controller('users')
 @ApiBearerAuth()
+@ApiExtraModels(UserPropertyDataDto)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(
@@ -71,6 +75,8 @@ export class UsersController {
   async getMe(@UserId() userId: number): Promise<UserDto> {
     return this.userService.findById(userId);
   }
+
+  
 
   @Patch('me')
   @Roles(UserRole.USER)
@@ -488,5 +494,72 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async removeFcmToken(@UserId() userId: number): Promise<FcmTokenResponseDto> {
     return this.userService.removeFcmToken(userId);
+  }
+
+  // ДОЛЖНО ИДТИ В КОНЦЕ, ЧТОБЫ НЕ ПЕРЕКРЫВАТЬ СТАТИЧЕСКИЕ ПУТИ
+  @Get(':id')
+  @ApiOperation({ summary: 'Получить информацию о пользователе по ID' })
+  @ApiParam({ name: 'id', type: Number, description: 'ID пользователя' })
+  @ApiResponse({
+    status: 200,
+    description: 'Информация успешно получена',
+    type: UserInfoDto,
+    schema: {
+      example: {
+        id: 8,
+        firstName: 'Мария',
+        lastName: 'Сидорова',
+        email: 'maria@test.ru',
+        avatar: null,
+        createdAt: '2025-09-16T19:37:30.312Z',
+        isVerified: true,
+        blockingId: null,
+        gender: 'FEMALE',
+        birthDate: null,
+        communities: [
+          { id: 2, name: 'Тестовое сообщество "Центр"' },
+          { id: 3, name: 'ЖК Солнечный' },
+        ],
+      },
+    },
+  })
+  @ApiStandardResponses()
+  async getUserById(
+    @UserId() currentUserId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<UserInfoDto> {
+    return this.userService.getUserInfoById(id, currentUserId);
+  }
+
+  @Get(':id/properties')
+  @ApiOperation({ summary: 'Получить список объектов пользователя' })
+  @ApiParam({ name: 'id', type: Number, description: 'ID пользователя' })
+  @ApiResponse({
+    status: 200,
+    description: 'Список объектов успешно получен',
+    schema: {
+      type: 'object',
+      additionalProperties: {
+        $ref: getSchemaPath(UserPropertyDataDto),
+      },
+      example: {
+        '101': {
+          name: 'Таунхаус премиум класса',
+          picture: 'townhouse1.jpg',
+          verificationStatus: 'UNVERIFIED',
+        },
+        '102': {
+          name: 'Земельный участок',
+          picture: 'land1.jpg',
+          verificationStatus: 'VERIFIED',
+        },
+      },
+    },
+  })
+  @ApiStandardResponses()
+  async getUserProperties(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<Record<number, UserPropertyDataDto>> {
+    return this.userService.getUserPropertiesById(id);
   }
 }
