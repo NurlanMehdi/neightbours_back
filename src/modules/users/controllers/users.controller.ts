@@ -541,16 +541,20 @@ export class UsersController {
     schema: {
       example: [
         {
-          id: 101,
-          name: 'Таунхаус премиум класса',
-          picture: 'townhouse1.jpg',
-          verificationStatus: 'UNVERIFIED',
+          propertyId: 101,
+          data: {
+            name: 'Таунхаус премиум класса',
+            picture: 'townhouse1.jpg',
+            verificationStatus: 'UNVERIFIED',
+          },
         },
         {
-          id: 102,
-          name: 'Земельный участок',
-          picture: 'land1.jpg',
-          verificationStatus: 'VERIFIED',
+          propertyId: 102,
+          data: {
+            name: 'Земельный участок',
+            picture: 'land1.jpg',
+            verificationStatus: 'VERIFIED',
+          },
         },
       ],
     },

@@ -2,11 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose } from 'class-transformer';
 
 @Exclude()
-export class UserPropertyResponseDto {
-  @Expose()
-  @ApiProperty({ description: 'ID объекта недвижимости', example: 101 })
-  id: number;
-
+export class UserPropertyDataDto {
   @Expose()
   @ApiProperty({ description: 'Название объекта недвижимости', example: 'Дом у озера' })
   name: string;
@@ -26,4 +22,18 @@ export class UserPropertyResponseDto {
     example: 'VERIFIED',
   })
   verificationStatus: string;
+}
+
+@Exclude()
+export class UserPropertyResponseDto {
+  @Expose()
+  @ApiProperty({ description: 'ID объекта недвижимости', example: 101 })
+  propertyId: number;
+
+  @Expose()
+  @ApiProperty({
+    description: 'Данные объекта недвижимости',
+    type: UserPropertyDataDto,
+  })
+  data: UserPropertyDataDto;
 }
