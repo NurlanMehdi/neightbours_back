@@ -49,7 +49,7 @@ import {
   FcmTokenResponseDto,
 } from '../dto/fcm-token.dto';
 import { UserInfoDto } from '../dto/user-info.dto';
-import { UserPropertyDataDto, UserPropertyResponseDto } from '../dto/user-properties.dto';
+import { UserPropertyResponseDto } from '../dto/user-properties.dto';
 
 type UserWithBlocking = Users & {
   Blocking?: Blocking[];
@@ -265,19 +265,18 @@ export class UserService {
     }
 
     const properties = await this.propertyRepository.findByUserId(userId);
-    const result: UserPropertyResponseDto[] = properties.map((p) => ({
-      propertyId: p.id,
-      data: plainToInstance(
-        UserPropertyDataDto,
+    return properties.map((p) =>
+      plainToInstance(
+        UserPropertyResponseDto,
         {
+          id: p.id,
           name: p.name,
           picture: (p as any).photo ?? null,
           verificationStatus: (p as any).verificationStatus,
         },
         { excludeExtraneousValues: true },
       ),
-    }));
-    return result;
+    );
   }
 
   async createAdmin(dto: CreateAdminDto): Promise<UserDto> {
@@ -837,7 +836,7 @@ export class UserService {
       createdAt: createdProperty.createdAt,
       updatedAt: createdProperty.updatedAt,
       verificationStatus: createdProperty.verificationStatus,
-      confirmationStatus: createdProperty.confirmationStatus,
+      confirmationStatus: (createdProperty as any).confirmationStatus,
       verificationCount: verificationCount,
       verifiedUserIds:
         createdProperty.verifications?.map(
