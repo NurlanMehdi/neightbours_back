@@ -25,7 +25,6 @@ import { GeoModerationService } from '../../geo-moderation/services/geo-moderati
 import { NotificationService } from '../../notifications/services/notification.service';
 import { NotificationType } from '../../notifications/interfaces/notification.interface';
 import { PropertyConfirmationService } from './property-confirmation.service';
-import { PropertyConfirmationStatus } from '@prisma/client';
 
 /**
  * Параметры фильтрации чужих неподтвержденных объектов
@@ -301,8 +300,9 @@ export class PropertyService {
     if (
       (updatePropertyDto.latitude !== undefined ||
         updatePropertyDto.longitude !== undefined) &&
-      existingProperty.confirmationStatus !==
-        PropertyConfirmationStatus.CONFIRMED
+      !['CONFIRMED', 'VERIFIED'].includes(
+        existingProperty.verificationStatus,
+      )
     ) {
       throw new ForbiddenException(
         'Изменение геопозиции разрешено только после подтверждения объекта по коду',
@@ -514,11 +514,6 @@ export class PropertyService {
       [];
     const verificationCount = property.verifications?.length || 0;
 
-    // Определяем статус проверки на основе количества подтверждений
-    // Статус VERIFIED только если есть минимум 2 подтверждения
-    const verificationStatus =
-      verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
-
     return plainToInstance(PropertyDto, {
       id: property.id,
       name: property.name,
@@ -526,10 +521,9 @@ export class PropertyService {
       latitude: property.latitude,
       longitude: property.longitude,
       photo: property.photo,
-      verificationStatus,
+      verificationStatus: property.verificationStatus,
       verificationCount,
       verifiedUserIds,
-      confirmationStatus: property.confirmationStatus,
       createdById: property.userId,
       createdAt: property.createdAt,
       updatedAt: property.updatedAt,
@@ -562,7 +556,7 @@ export class PropertyService {
     }
 
     // Запрещаем верификацию, если объект не подтвержден кодом
-    if (property.confirmationStatus !== PropertyConfirmationStatus.CONFIRMED) {
+    if (!['CONFIRMED', 'VERIFIED'].includes(property.verificationStatus)) {
       throw new ForbiddenException(
         'Объект должен быть подтвержден по коду перед верификацией',
       );

@@ -104,7 +104,6 @@ export class UserService {
         longitude: p.longitude,
         photo: p.photo,
         verificationStatus: p.verificationStatus,
-        confirmationStatus: p.confirmationStatus,
         verificationCount: p.verifications?.length || 0,
         verifiedUserIds:
           p.verifications?.map((verification: any) => verification.userId) ||
@@ -836,7 +835,6 @@ export class UserService {
       createdAt: createdProperty.createdAt,
       updatedAt: createdProperty.updatedAt,
       verificationStatus: createdProperty.verificationStatus,
-      confirmationStatus: (createdProperty as any).confirmationStatus,
       verificationCount: verificationCount,
       verifiedUserIds:
         createdProperty.verifications?.map(
@@ -1114,7 +1112,6 @@ export class UserService {
             longitude: property.longitude,
             photo: property.photo,
             verificationStatus: property.verifications?.length >= 2 ? 'VERIFIED' : 'UNVERIFIED',
-            confirmationStatus: property.confirmationStatus,
             verificationCount: property.verifications?.length || 0,
             verifiedUserIds:
               property.verifications?.map(
@@ -1155,7 +1152,6 @@ export class UserService {
       longitude: property.longitude,
       photo: property.photo,
       verificationStatus: property.verificationStatus,
-      confirmationStatus: property.confirmationStatus,
       verificationCount: property.verifications?.length || 0,
       verifiedUserIds:
         property.verifications?.map(

@@ -261,7 +261,8 @@ export class PropertiesController {
   @Post(':id/generate-code')
   @ApiOperation({
     summary: 'Сгенерировать код подтверждения для объекта (владелец)',
-    description: 'Генерирует уникальный код подтверждения, действующий 24 часа',
+    description:
+      'Генерирует уникальный код подтверждения (24ч). Поле `verificationStatus` переключается в `PENDING`.',
   })
   @ApiParam({ name: 'id', description: 'ID объекта недвижимости', type: 'number' })
   @ApiResponse({ status: 201, description: 'Код сгенерирован', type: GenerateConfirmationCodeResponseDto })
@@ -278,7 +279,8 @@ export class PropertiesController {
   @Post(':id/confirm')
   @ApiOperation({
     summary: 'Подтверждение объекта по коду',
-    description: 'Участники вводят код для подтверждения объекта. После подтверждения возможна гео-верификация.',
+    description:
+      'Владелец вводит код для подтверждения объекта. При успешной проверке `verificationStatus` становится `CONFIRMED`, что открывает гео-верификацию.',
   })
   @ApiParam({ name: 'id', description: 'ID объекта недвижимости', type: 'number' })
   @ApiResponse({ status: 204, description: 'Объект подтвержден' })

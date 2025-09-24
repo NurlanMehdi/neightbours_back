@@ -3,11 +3,13 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { PropertyRepository } from '../repositories/property.repository';
 import { NotificationService } from '../../notifications/services/notification.service';
 import { NotificationType } from '../../notifications/interfaces/notification.interface';
-import { PropertyConfirmationStatus } from '@prisma/client';
+// Note: Using string literals to avoid dependency on regenerated Prisma enums
 
 @Injectable()
 export class PropertyConfirmationService {
   private readonly CODE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+  // In-memory storage for codes; resets on process restart
+  private readonly codes = new Map<number, { code: string; expiresAt: Date }>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -23,33 +25,19 @@ export class PropertyConfirmationService {
     if (property.userId !== userId) {
       throw new ForbiddenException('Вы не являетесь владельцем объекта');
     }
-    if (property.confirmationStatus === PropertyConfirmationStatus.CONFIRMED) {
+    const currentStatus = ((property as any).verificationStatus || '') as string;
+    if (currentStatus === 'CONFIRMED' || currentStatus === 'VERIFIED') {
       throw new ConflictException('Объект уже подтвержден');
     }
 
     const expiresAt = new Date(Date.now() + this.CODE_TTL_MS);
-    // Try a few times to avoid rare unique collisions
-    for (let i = 0; i < 5; i++) {
-      const code = this.generateCode();
-      try {
-        await this.prisma.property.update({
-          where: { id: propertyId },
-          data: {
-            confirmationCode: code,
-            confirmationCodeExpiresAt: expiresAt,
-            confirmationStatus: PropertyConfirmationStatus.PENDING,
-          },
-        });
-        return { code, expiresAt };
-      } catch (e: any) {
-        // Unique constraint violation code for Prisma
-        if (e?.code === 'P2002') {
-          continue; // retry
-        }
-        throw e;
-      }
-    }
-    throw new ConflictException('Не удалось сгенерировать уникальный код подтверждения');
+    const code = this.generateCode();
+    this.codes.set(propertyId, { code, expiresAt });
+    await this.prisma.property.update({
+      where: { id: propertyId },
+      data: { verificationStatus: 'PENDING' as any },
+    });
+    return { code, expiresAt };
   }
 
   async confirmProperty(propertyId: number, code: string): Promise<void> {
@@ -58,31 +46,37 @@ export class PropertyConfirmationService {
       throw new NotFoundException(`Объект с ID ${propertyId} не найден`);
     }
 
-    if (property.confirmationStatus === PropertyConfirmationStatus.CONFIRMED) {
+    const currentStatus2 = ((property as any).verificationStatus || '') as string;
+    if (currentStatus2 === 'CONFIRMED' || currentStatus2 === 'VERIFIED') {
       // idempotent: already confirmed
       return;
     }
 
-    if (!property.confirmationCode || !property.confirmationCodeExpiresAt) {
+    const entry = this.codes.get(propertyId);
+    if (!entry) {
       throw new BadRequestException('Код подтверждения не сгенерирован');
     }
 
-    if (property.confirmationCode !== code) {
+    if (entry.code !== code) {
       throw new BadRequestException('Неверный код подтверждения');
     }
 
-    if (new Date(property.confirmationCodeExpiresAt).getTime() < Date.now()) {
+    if (new Date(entry.expiresAt).getTime() < Date.now()) {
+      await this.prisma.property.update({
+        where: { id: propertyId },
+        data: { verificationStatus: 'EXPIRED' as any },
+      });
+      this.codes.delete(propertyId);
       throw new BadRequestException('Срок действия кода подтверждения истек');
     }
 
     await this.prisma.property.update({
       where: { id: propertyId },
       data: {
-        confirmationStatus: PropertyConfirmationStatus.CONFIRMED,
-        confirmationCode: null,
-        confirmationCodeExpiresAt: null,
+        verificationStatus: 'CONFIRMED' as any,
       },
     });
+    this.codes.delete(propertyId);
 
     // Notify owner
     try {
@@ -103,7 +97,7 @@ export class PropertyConfirmationService {
     const res = await this.prisma.property.deleteMany({
       where: {
         isActive: true,
-        confirmationStatus: { not: PropertyConfirmationStatus.CONFIRMED },
+        verificationStatus: { notIn: ['CONFIRMED', 'VERIFIED'] as any },
         createdAt: { lt: threshold },
       },
     });
