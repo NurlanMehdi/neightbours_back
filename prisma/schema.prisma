@@ -35,6 +35,12 @@ enum PropertyVerificationStatus {
   VERIFIED
 }
 
+enum PropertyConfirmationStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
+}
+
 enum PropertyResourceCategory {
   WELL
   GENERATOR
@@ -179,6 +185,11 @@ model Property {
   resources          PropertyResource[]
   verificationStatus PropertyVerificationStatus @default(UNVERIFIED)
   verifications      PropertyVerification[]
+
+  // Confirmation layer
+  confirmationCode           String?                      @unique
+  confirmationCodeExpiresAt  DateTime?
+  confirmationStatus         PropertyConfirmationStatus   @default(PENDING)
 
   @@map("properties")
 }

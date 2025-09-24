@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { PropertyCategory } from '@prisma/client';
+import { PropertyCategory, PropertyConfirmationStatus } from '@prisma/client';
 
 export class PropertyDto {
   @ApiProperty({ description: 'ID объекта недвижимости' })
@@ -38,6 +38,14 @@ export class PropertyDto {
   })
   @Expose()
   verificationStatus: string;
+
+  @ApiProperty({
+    description: 'Статус кодового подтверждения объекта',
+    enum: PropertyConfirmationStatus,
+    example: PropertyConfirmationStatus.PENDING,
+  })
+  @Expose()
+  confirmationStatus: PropertyConfirmationStatus;
 
   @ApiProperty({
     description: 'Количество подтверждений объекта',

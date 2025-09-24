@@ -24,6 +24,8 @@ import {
 import { GeoModerationService } from '../../geo-moderation/services/geo-moderation.service';
 import { NotificationService } from '../../notifications/services/notification.service';
 import { NotificationType } from '../../notifications/interfaces/notification.interface';
+import { PropertyConfirmationService } from './property-confirmation.service';
+import { PropertyConfirmationStatus } from '@prisma/client';
 
 /**
  * Параметры фильтрации чужих неподтвержденных объектов
@@ -42,6 +44,7 @@ export class PropertyService {
     private readonly userRepository: UserRepository,
     private readonly geoModerationService: GeoModerationService,
     private readonly notificationService: NotificationService,
+    private readonly propertyConfirmationService: PropertyConfirmationService,
   ) {}
 
   /**
@@ -294,6 +297,18 @@ export class PropertyService {
       );
     }
 
+    // Если пытаемся менять геокоординаты — разрешено только после кодового подтверждения
+    if (
+      (updatePropertyDto.latitude !== undefined ||
+        updatePropertyDto.longitude !== undefined) &&
+      existingProperty.confirmationStatus !==
+        PropertyConfirmationStatus.CONFIRMED
+    ) {
+      throw new ForbiddenException(
+        'Изменение геопозиции разрешено только после подтверждения объекта по коду',
+      );
+    }
+
     // Создаем объект только с переданными полями
     const updateData: any = {};
 
@@ -435,6 +450,16 @@ export class PropertyService {
     };
 
     const property = await this.propertyRepository.create(propertyData);
+
+    // Автоматически генерируем код подтверждения для владельца
+    try {
+      await this.propertyConfirmationService.generateConfirmationCode(
+        property.id,
+        userId,
+      );
+    } catch (e) {
+      // не фейлим создание при ошибке генерации кода
+    }
     return this.transformToUserDto(property);
   }
 
@@ -504,6 +529,7 @@ export class PropertyService {
       verificationStatus,
       verificationCount,
       verifiedUserIds,
+      confirmationStatus: property.confirmationStatus,
       createdById: property.userId,
       createdAt: property.createdAt,
       updatedAt: property.updatedAt,
@@ -533,6 +559,13 @@ export class PropertyService {
     const property = await this.propertyRepository.findById(propertyId);
     if (!property) {
       throw new NotFoundException(`Объект с ID ${propertyId} не найден`);
+    }
+
+    // Запрещаем верификацию, если объект не подтвержден кодом
+    if (property.confirmationStatus !== PropertyConfirmationStatus.CONFIRMED) {
+      throw new ForbiddenException(
+        'Объект должен быть подтвержден по коду перед верификацией',
+      );
     }
 
     // Проверяем, не является ли пользователь владельцем объекта

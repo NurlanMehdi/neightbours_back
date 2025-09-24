@@ -11,6 +11,7 @@ import {
   UploadedFile,
   ParseIntPipe,
   Query,
+  HttpCode,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -25,11 +26,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { UserId } from '../../../common/decorators/user-id.decorator';
 import { PropertyService } from '../services/property.service';
+import { PropertyConfirmationService } from '../services/property-confirmation.service';
 import { PropertyDto } from '../dto/property.dto';
 import { UpdatePropertyDto } from '../dto/update-property.dto';
 import { CreatePropertyDto } from '../dto/create-property.dto';
 import { GetCommunityPropertiesDto } from '../dto/get-community-properties.dto';
 import { VerifyPropertyDto } from '../dto/verify-property.dto';
+import { ConfirmPropertyDto } from '../dto/confirm-property.dto';
+import { GenerateConfirmationCodeResponseDto } from '../dto/generate-confirmation-code.dto';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
@@ -39,7 +43,10 @@ import { UserRole } from '@prisma/client';
 @ApiBearerAuth()
 @Roles(UserRole.USER)
 export class PropertiesController {
-  constructor(private readonly propertyService: PropertyService) {}
+  constructor(
+    private readonly propertyService: PropertyService,
+    private readonly propertyConfirmationService: PropertyConfirmationService,
+  ) {}
 
   @Get('my')
   @ApiOperation({
@@ -242,12 +249,47 @@ export class PropertiesController {
     status: 404,
     description: 'Объект не найден',
   })
+  @HttpCode(200)
   async verifyProperty(
     @Param('id', ParseIntPipe) id: number,
     @UserId() userId: number,
     @Body() verifyPropertyDto: VerifyPropertyDto,
   ): Promise<PropertyDto> {
     return this.propertyService.verifyProperty(id, userId, verifyPropertyDto);
+  }
+
+  @Post(':id/generate-code')
+  @ApiOperation({
+    summary: 'Сгенерировать код подтверждения для объекта (владелец)',
+    description: 'Генерирует уникальный код подтверждения, действующий 24 часа',
+  })
+  @ApiParam({ name: 'id', description: 'ID объекта недвижимости', type: 'number' })
+  @ApiResponse({ status: 201, description: 'Код сгенерирован', type: GenerateConfirmationCodeResponseDto })
+  @ApiResponse({ status: 403, description: 'Пользователь не владелец' })
+  @ApiResponse({ status: 404, description: 'Объект не найден' })
+  async generateConfirmationCode(
+    @Param('id', ParseIntPipe) id: number,
+    @UserId() userId: number,
+  ): Promise<GenerateConfirmationCodeResponseDto> {
+    const { code, expiresAt } = await this.propertyConfirmationService.generateConfirmationCode(id, userId);
+    return { code, expiresAt };
+  }
+
+  @Post(':id/confirm')
+  @ApiOperation({
+    summary: 'Подтверждение объекта по коду',
+    description: 'Участники вводят код для подтверждения объекта. После подтверждения возможна гео-верификация.',
+  })
+  @ApiParam({ name: 'id', description: 'ID объекта недвижимости', type: 'number' })
+  @ApiResponse({ status: 204, description: 'Объект подтвержден' })
+  @ApiResponse({ status: 400, description: 'Неверный или просроченный код' })
+  @ApiResponse({ status: 404, description: 'Объект не найден' })
+  @HttpCode(204)
+  async confirmProperty(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ConfirmPropertyDto,
+  ): Promise<void> {
+    await this.propertyConfirmationService.confirmProperty(id, dto.code);
   }
 
   /**
