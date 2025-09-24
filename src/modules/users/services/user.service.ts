@@ -813,6 +813,8 @@ export class UserService {
       longitude: dto.longitude,
       photo: photo?.filename || null,
       userId: userId,
+      confirmationCode: Math.floor(100000 + Math.random() * 900000).toString(),
+      confirmationCodeExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
 
     // Получаем количество подтверждений для созданного объекта
@@ -828,20 +830,8 @@ export class UserService {
     return plainToInstance(PropertyDto, {
       id: createdProperty.id,
       name: createdProperty.name,
-      category: createdProperty.category,
-      latitude: createdProperty.latitude,
-      longitude: createdProperty.longitude,
-      photo: createdProperty.photo,
-      createdAt: createdProperty.createdAt,
-      updatedAt: createdProperty.updatedAt,
+      picture: createdProperty.photo,
       verificationStatus: createdProperty.verificationStatus,
-      verificationCount: verificationCount,
-      verifiedUserIds:
-        createdProperty.verifications?.map(
-          (verification: any) => verification.userId,
-        ) || [],
-      createdById: createdProperty.userId,
-      createdBy: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
     });
   }
 
@@ -1138,33 +1128,12 @@ export class UserService {
    * Преобразует объект недвижимости в DTO
    */
   private transformPropertyToDto(property: any): PropertyDto {
-    // Находим дату подтверждения текущим пользователем
-    const currentUserVerification = property.verifications?.find(
-      (v: any) => v.userId === property.currentUserId,
-    );
-    const verifiedAt = currentUserVerification?.createdAt;
-
     return {
       id: property.id,
       name: property.name,
-      category: property.category,
-      latitude: property.latitude,
-      longitude: property.longitude,
-      photo: property.photo,
+      picture: property.photo,
       verificationStatus: property.verificationStatus,
-      verificationCount: property.verifications?.length || 0,
-      verifiedUserIds:
-        property.verifications?.map(
-          (verification: any) => verification.userId,
-        ) || [],
-      createdById: property.userId,
-      createdBy: property.user
-        ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
-        : 'Неизвестный пользователь',
-      createdAt: property.createdAt,
-      updatedAt: property.updatedAt,
-      verifiedAt: verifiedAt,
-    };
+    } as PropertyDto;
   }
 
   /**

@@ -294,8 +294,8 @@ export class PropertiesAdminController {
         },
         verificationStatus: {
           type: 'string',
-          enum: ['UNVERIFIED', 'VERIFIED', 'PENDING', 'CONFIRMED', 'EXPIRED'],
-          description: 'Статус верификации/подтверждения',
+          enum: ['UNVERIFIED', 'VERIFIED'],
+          description: 'Статус подтверждения',
           example: 'UNVERIFIED',
         },
         userId: {

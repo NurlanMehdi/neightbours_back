@@ -22,7 +22,7 @@ export class UserPropertyResponseDto {
   @Expose()
   @ApiProperty({
     description: 'Статус подтверждения объекта',
-    enum: ['UNVERIFIED', 'VERIFIED', 'PENDING'],
+    enum: ['UNVERIFIED', 'VERIFIED'],
     example: 'VERIFIED',
   })
   verificationStatus: string;

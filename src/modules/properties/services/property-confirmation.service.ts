@@ -8,8 +8,6 @@ import { NotificationType } from '../../notifications/interfaces/notification.in
 @Injectable()
 export class PropertyConfirmationService {
   private readonly CODE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
-  // In-memory storage for codes; resets on process restart
-  private readonly codes = new Map<number, { code: string; expiresAt: Date }>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -17,73 +15,47 @@ export class PropertyConfirmationService {
     private readonly notificationService: NotificationService,
   ) {}
 
-  async generateConfirmationCode(propertyId: number, userId: number): Promise<{ code: string; expiresAt: Date }> {
-    const property = await this.propertyRepository.findById(propertyId);
-    if (!property || !property.isActive) {
-      throw new NotFoundException(`Объект с ID ${propertyId} не найден`);
-    }
-    if (property.userId !== userId) {
-      throw new ForbiddenException('Вы не являетесь владельцем объекта');
-    }
-    const currentStatus = ((property as any).verificationStatus || '') as string;
-    if (currentStatus === 'CONFIRMED' || currentStatus === 'VERIFIED') {
-      throw new ConflictException('Объект уже подтвержден');
-    }
-
-    const expiresAt = new Date(Date.now() + this.CODE_TTL_MS);
-    const code = this.generateCode();
-    this.codes.set(propertyId, { code, expiresAt });
-    await this.prisma.property.update({
-      where: { id: propertyId },
-      data: { verificationStatus: 'PENDING' as any },
-    });
-    return { code, expiresAt };
-  }
+  // Note: Code generation on creation is handled in PropertyService
 
   async confirmProperty(propertyId: number, code: string): Promise<void> {
     const property = await this.propertyRepository.findById(propertyId);
     if (!property || !property.isActive) {
       throw new NotFoundException(`Объект с ID ${propertyId} не найден`);
     }
-
-    const currentStatus2 = ((property as any).verificationStatus || '') as string;
-    if (currentStatus2 === 'CONFIRMED' || currentStatus2 === 'VERIFIED') {
-      // idempotent: already confirmed
+    const currentStatus = ((property as any).verificationStatus || '') as string;
+    if (currentStatus === 'VERIFIED') {
+      // idempotent: already verified
       return;
     }
 
-    const entry = this.codes.get(propertyId);
-    if (!entry) {
-      throw new BadRequestException('Код подтверждения не сгенерирован');
+    const storedCode = (property as any).confirmationCode as string | undefined;
+    const expiresAt = (property as any).confirmationCodeExpiresAt as Date | undefined;
+    if (!storedCode || !expiresAt) {
+      throw new BadRequestException('Код подтверждения не найден');
     }
 
-    if (entry.code !== code) {
+    if (storedCode !== code) {
       throw new BadRequestException('Неверный код подтверждения');
     }
 
-    if (new Date(entry.expiresAt).getTime() < Date.now()) {
-      await this.prisma.property.update({
-        where: { id: propertyId },
-        data: { verificationStatus: 'EXPIRED' as any },
-      });
-      this.codes.delete(propertyId);
+    if (new Date(expiresAt).getTime() < Date.now()) {
+      // Code expired; do not update status
       throw new BadRequestException('Срок действия кода подтверждения истек');
     }
 
     await this.prisma.property.update({
       where: { id: propertyId },
       data: {
-        verificationStatus: 'CONFIRMED' as any,
+        verificationStatus: 'VERIFIED' as any,
       },
     });
-    this.codes.delete(propertyId);
 
     // Notify owner
     try {
       await this.notificationService.createNotification({
         type: NotificationType.INFO,
         title: 'Объект подтвержден',
-        message: 'Ваш объект успешно подтвержден по коду и готов к верификации.',
+        message: 'Ваш объект успешно подтвержден.',
         userId: property.userId,
         payload: { propertyId },
       });
@@ -93,13 +65,14 @@ export class PropertyConfirmationService {
   }
 
   async cleanupExpiredProperties(): Promise<number> {
-    const threshold = new Date(Date.now() - this.CODE_TTL_MS);
+    const now = new Date();
     const res = await this.prisma.property.deleteMany({
       where: {
         isActive: true,
-        verificationStatus: { notIn: ['CONFIRMED', 'VERIFIED'] as any },
-        createdAt: { lt: threshold },
-      },
+        verificationStatus: 'UNVERIFIED' as any,
+        // @ts-ignore: field exists after prisma generate
+        confirmationCodeExpiresAt: { lt: now },
+      } as any,
     });
     return res.count;
   }

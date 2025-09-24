@@ -62,7 +62,14 @@ export class PropertyService {
       photo: photo?.filename || null,
     };
     console.log('Property data to create:', propertyData);
-    const property = await this.propertyRepository.create(propertyData);
+    // Generate confirmation code and expiry
+    const confirmationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const confirmationCodeExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const property = await this.propertyRepository.create({
+      ...propertyData,
+      confirmationCode,
+      confirmationCodeExpiresAt,
+    });
     return this.transformToAdminDto(property);
   }
 
@@ -181,11 +188,7 @@ export class PropertyService {
 
     // Преобразуем в PropertyDto и добавим verifiedAt (если текущий пользователь подтверждал)
     const dto = this.transformToUserDto(property);
-    const verification = await this.propertyRepository.findUserVerification(
-      id,
-      userId,
-    );
-    return { ...dto, verifiedAt: verification?.createdAt } as PropertyDto;
+    return dto;
   }
 
   /**
@@ -296,17 +299,9 @@ export class PropertyService {
       );
     }
 
-    // Если пытаемся менять геокоординаты — разрешено только после кодового подтверждения
-    if (
-      (updatePropertyDto.latitude !== undefined ||
-        updatePropertyDto.longitude !== undefined) &&
-      !['CONFIRMED', 'VERIFIED'].includes(
-        existingProperty.verificationStatus,
-      )
-    ) {
-      throw new ForbiddenException(
-        'Изменение геопозиции разрешено только после подтверждения объекта по коду',
-      );
+    // Если объект уже VERIFIED — запрещаем любые изменения
+    if (existingProperty.verificationStatus === 'VERIFIED') {
+      throw new ForbiddenException('Нельзя изменять подтвержденный объект');
     }
 
     // Создаем объект только с переданными полями
@@ -388,29 +383,26 @@ export class PropertyService {
       query.communityId,
       query.category,
     );
+    let filtered = properties;
 
-    let result = properties.map((property) =>
-      this.transformToUserDto(property),
-    );
-
-    // Применяем фильтрацию по радиусу
+    // Применяем фильтрацию по радиусу до трансформации
     if (
       query.latitude !== undefined &&
       query.longitude !== undefined &&
       query.radius !== undefined
     ) {
-      result = result.filter((property) => {
-        return isWithinRadius(
+      filtered = filtered.filter((p) =>
+        isWithinRadius(
           query.latitude!,
           query.longitude!,
-          property.latitude,
-          property.longitude,
+          p.latitude,
+          p.longitude,
           query.radius!,
-        );
-      });
+        ),
+      );
     }
 
-    return result;
+    return filtered.map((property) => this.transformToUserDto(property));
   }
 
   /**
@@ -440,7 +432,7 @@ export class PropertyService {
       this.geoModerationService.throwGeoModerationError(geoCheck);
     }
 
-    const propertyData = {
+    const propertyData: any = {
       name: createPropertyDto.name,
       category: createPropertyDto.category,
       latitude: createPropertyDto.latitude,
@@ -448,18 +440,11 @@ export class PropertyService {
       photo: photo?.filename || null,
       userId,
     };
+    // Автоматически генерируем код подтверждения и срок истечения
+    propertyData.confirmationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    propertyData.confirmationCodeExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const property = await this.propertyRepository.create(propertyData);
-
-    // Автоматически генерируем код подтверждения для владельца
-    try {
-      await this.propertyConfirmationService.generateConfirmationCode(
-        property.id,
-        userId,
-      );
-    } catch (e) {
-      // не фейлим создание при ошибке генерации кода
-    }
     return this.transformToUserDto(property);
   }
 
@@ -504,30 +489,11 @@ export class PropertyService {
    * Трансформирует данные объекта в DTO для пользователей
    */
   private transformToUserDto(property: any): PropertyDto {
-    const createdBy = property.user
-      ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
-      : '';
-
-    // Извлекаем список ID пользователей, которые подтвердили объект
-    const verifiedUserIds =
-      property.verifications?.map((verification: any) => verification.userId) ||
-      [];
-    const verificationCount = property.verifications?.length || 0;
-
     return plainToInstance(PropertyDto, {
       id: property.id,
       name: property.name,
-      category: property.category,
-      latitude: property.latitude,
-      longitude: property.longitude,
-      photo: property.photo,
+      picture: property.photo,
       verificationStatus: property.verificationStatus,
-      verificationCount,
-      verifiedUserIds,
-      createdById: property.userId,
-      createdAt: property.createdAt,
-      updatedAt: property.updatedAt,
-      createdBy,
     });
   }
 
@@ -556,7 +522,7 @@ export class PropertyService {
     }
 
     // Запрещаем верификацию, если объект не подтвержден кодом
-    if (!['CONFIRMED', 'VERIFIED'].includes(property.verificationStatus)) {
+    if (property.verificationStatus !== 'VERIFIED') {
       throw new ForbiddenException(
         'Объект должен быть подтвержден по коду перед верификацией',
       );

@@ -21,6 +21,8 @@ export class PropertyRepository {
     longitude: number;
     photo?: string;
     userId: number;
+    confirmationCode: string;
+    confirmationCodeExpiresAt: Date;
   }) {
     return this.prisma.property.create({
       data: {
@@ -30,6 +32,8 @@ export class PropertyRepository {
         longitude: data.longitude,
         photo: data.photo || '',
         userId: data.userId,
+        confirmationCode: data.confirmationCode,
+        confirmationCodeExpiresAt: data.confirmationCodeExpiresAt,
       } as any,
       include: {
         user: {

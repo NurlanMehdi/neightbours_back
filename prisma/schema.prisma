@@ -33,9 +33,6 @@ enum PropertyCategory {
 enum PropertyVerificationStatus {
   UNVERIFIED
   VERIFIED
-  PENDING
-  CONFIRMED
-  EXPIRED
 }
 
 enum PropertyResourceCategory {
@@ -182,6 +179,10 @@ model Property {
   resources          PropertyResource[]
   verificationStatus PropertyVerificationStatus @default(UNVERIFIED)
   verifications      PropertyVerification[]
+
+  // Code-based confirmation flow
+  confirmationCode           String
+  confirmationCodeExpiresAt  DateTime
 
   @@map("properties")
 }
