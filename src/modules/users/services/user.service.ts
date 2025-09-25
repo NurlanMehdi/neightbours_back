@@ -1127,13 +1127,13 @@ export class UserService {
   /**
    * Преобразует объект недвижимости в DTO
    */
-  private transformPropertyToDto(property: any): PropertyDto {
+  private transformPropertyToDto(property: any): UserPropertyResponseDto {
     return {
       id: property.id,
       name: property.name,
       picture: property.photo,
       verificationStatus: property.verificationStatus,
-    } as PropertyDto;
+    } as UserPropertyResponseDto;
   }
 
   /**

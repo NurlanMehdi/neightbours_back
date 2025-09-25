@@ -188,7 +188,11 @@ export class PropertyService {
 
     // Преобразуем в PropertyDto и добавим verifiedAt (если текущий пользователь подтверждал)
     const dto = this.transformToUserDto(property);
-    return dto;
+    const verification = await this.propertyRepository.findUserVerification(
+      id,
+      userId,
+    );
+    return { ...dto, verifiedAt: verification?.createdAt } as PropertyDto;
   }
 
   /**
@@ -489,11 +493,48 @@ export class PropertyService {
    * Трансформирует данные объекта в DTO для пользователей
    */
   private transformToUserDto(property: any): PropertyDto {
+    const createdBy = property.user
+      ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
+      : '';
+
+    // Извлекаем список ID пользователей, которые подтвердили объект
+    const verifiedUserIds =
+      property.verifications?.map((verification: any) => verification.userId) ||
+      [];
+    const verificationCount = property.verifications?.length || 0;
+
+    // Определяем статус проверки на основе количества подтверждений
+    // Статус VERIFIED только если есть минимум 2 подтверждения
+    const verificationStatus =
+      verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
+
+    // Определяем статус кодового подтверждения
+    let confirmationStatus = 'PENDING';
+    if (property.confirmationCodeExpiresAt) {
+      const now = new Date();
+      const expiresAt = new Date(property.confirmationCodeExpiresAt);
+      if (now > expiresAt) {
+        confirmationStatus = 'EXPIRED';
+      } else if (verificationStatus === 'VERIFIED') {
+        confirmationStatus = 'CONFIRMED';
+      }
+    }
+
     return plainToInstance(PropertyDto, {
       id: property.id,
       name: property.name,
-      picture: property.photo,
-      verificationStatus: property.verificationStatus,
+      category: property.category,
+      latitude: property.latitude,
+      longitude: property.longitude,
+      photo: property.photo,
+      verificationStatus,
+      verificationCount,
+      verifiedUserIds,
+      confirmationStatus,
+      createdById: property.userId,
+      createdAt: property.createdAt,
+      updatedAt: property.updatedAt,
+      createdBy,
     });
   }
 
