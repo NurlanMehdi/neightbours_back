@@ -92,4 +92,12 @@ export class PropertyDto {
   })
   @Expose()
   verifiedAt?: Date;
+
+  @ApiProperty({
+    description: 'Код подтверждения объекта (только для владельца)',
+    required: false,
+    example: '236072',
+  })
+  @Expose()
+  confirmationCode?: string;
 }

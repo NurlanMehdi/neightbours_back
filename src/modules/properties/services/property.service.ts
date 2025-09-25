@@ -187,7 +187,7 @@ export class PropertyService {
     }
 
     // Преобразуем в PropertyDto и добавим verifiedAt (если текущий пользователь подтверждал)
-    const dto = this.transformToUserDto(property);
+    const dto = this.transformToUserDto(property, userId);
     const verification = await this.propertyRepository.findUserVerification(
       id,
       userId,
@@ -492,7 +492,7 @@ export class PropertyService {
   /**
    * Трансформирует данные объекта в DTO для пользователей
    */
-  private transformToUserDto(property: any): PropertyDto {
+  private transformToUserDto(property: any, requestingUserId?: number): PropertyDto {
     const createdBy = property.user
       ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
       : '';
@@ -520,7 +520,7 @@ export class PropertyService {
       }
     }
 
-    return plainToInstance(PropertyDto, {
+    const dtoData: any = {
       id: property.id,
       name: property.name,
       category: property.category,
@@ -535,7 +535,13 @@ export class PropertyService {
       createdAt: property.createdAt,
       updatedAt: property.updatedAt,
       createdBy,
-    });
+    };
+
+    if (requestingUserId && property.userId === requestingUserId) {
+      dtoData.confirmationCode = property.confirmationCode;
+    }
+
+    return plainToInstance(PropertyDto, dtoData);
   }
 
   /**
