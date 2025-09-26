@@ -290,7 +290,10 @@ export class EventsController {
   }
 
   @Post(':id/messages')
-  @ApiOperation({ summary: 'Отправить сообщение в мероприятие' })
+  @ApiOperation({ 
+    summary: 'Отправить сообщение в мероприятие',
+    description: 'Отправляет сообщение в чат мероприятия. Поведение зависит от глобальных настроек чата: если чаты событий отключены, возвращает 403 Forbidden. Если включена модерация, сообщение будет ожидать одобрения администратора.'
+  })
   @ApiResponse({
     status: 201,
     description: 'Сообщение успешно отправлено',
@@ -298,7 +301,7 @@ export class EventsController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Некорректные данные сообщения',
+    description: 'Некорректные данные сообщения или сообщение слишком длинное',
   })
   @ApiResponse({
     status: 401,
@@ -306,7 +309,7 @@ export class EventsController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Пользователь не является участником мероприятия',
+    description: 'Пользователь не является участником мероприятия или чаты событий отключены администратором',
   })
   @ApiResponse({
     status: 404,

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
+import { ChatAdminModule } from '../chat-admin/chat-admin.module';
 import { CommunityChatService } from './community-chat.service';
 import { CommunityChatRepository } from './repositories/community-chat.repository';
 import { CommunityChatController } from './community-chat.controller';
@@ -14,6 +15,7 @@ import { CommunityChatGateway } from './community-chat.gateway';
     PrismaModule,
     NotificationsModule,
     UsersModule,
+    ChatAdminModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({

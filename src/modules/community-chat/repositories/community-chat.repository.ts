@@ -51,7 +51,7 @@ export class CommunityChatRepository {
     });
   }
 
-  async createMessage(params: { communityId: number; userId: number; text: string; replyToMessageId?: number }) {
+  async createMessage(params: { communityId: number; userId: number; text: string; replyToMessageId?: number; isModerated?: boolean }) {
     // optional: validate replyTo belongs to same community
     if (params.replyToMessageId) {
       const replied = await (this.prisma as any).communityMessage.findUnique({ where: { id: params.replyToMessageId } });
@@ -66,6 +66,7 @@ export class CommunityChatRepository {
         userId: params.userId,
         text: params.text,
         replyToMessageId: params.replyToMessageId,
+        isModerated: params.isModerated ?? true,
       },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
@@ -84,7 +85,11 @@ export class CommunityChatRepository {
 
   async getMessages(communityId: number, page = 1, limit = 50) {
     return (this.prisma as any).communityMessage.findMany({
-      where: { communityId },
+      where: { 
+        communityId,
+        isModerated: true,
+        isDeleted: false,
+      },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
         replyTo: {

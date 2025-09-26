@@ -280,6 +280,8 @@ model EventMessage {
   replyToMessageId Int?
   replyTo          EventMessage?  @relation("EventMessageReply", fields: [replyToMessageId], references: [id])
   replies          EventMessage[] @relation("EventMessageReply")
+  isDeleted        Boolean        @default(false)
+  isModerated      Boolean        @default(true)
 
   @@map("event_messages")
 }
@@ -607,6 +609,8 @@ model CommunityMessage {
   replyToMessageId Int?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  isDeleted        Boolean  @default(false)
+  isModerated      Boolean  @default(true)
 
   community Community          @relation(fields: [communityId], references: [id], onDelete: Cascade, map: "community_messages_communityId_fkey")
   user      Users              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -631,4 +635,18 @@ model CommunityRead {
 
   @@unique([userId, communityId])
   @@map("community_reads")
+}
+
+model GlobalChatSettings {
+  id                   Int      @id @default(autoincrement())
+  allowCommunityChat    Boolean  @default(true)
+  allowEventChat        Boolean  @default(true)
+  allowPrivateChat      Boolean  @default(true)
+  messageRetentionDays  Int      @default(365)
+  maxMessageLength      Int      @default(1000)
+  moderationEnabled     Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("global_chat_settings")
 }

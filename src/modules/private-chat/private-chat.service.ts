@@ -1,15 +1,22 @@
 import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrivateChatRepository } from './repositories/private-chat.repository';
 import { NotificationService } from '../notifications/services/notification.service';
+import { GlobalChatSettingsService } from '../chat-admin/services/global-chat-settings.service';
 
 @Injectable()
 export class PrivateChatService {
   constructor(
     private readonly repo: PrivateChatRepository,
     private readonly notificationService: NotificationService,
+    private readonly globalChatSettings: GlobalChatSettingsService,
   ) {}
 
   async createConversation(currentUserId: number, otherUserId: number) {
+    const isPrivateChatAllowed = await this.globalChatSettings.isPrivateChatAllowed();
+    if (!isPrivateChatAllowed) {
+      throw new ForbiddenException('Приватные чаты отключены администратором');
+    }
+
     const conversation = await this.repo.getOrCreateConversation(currentUserId, otherUserId);
     // ensure current user is participant
     await this.repo.ensureParticipant(conversation.id, currentUserId);
@@ -17,6 +24,16 @@ export class PrivateChatService {
   }
 
   async sendMessage(currentUserId: number, params: { text: string; conversationId?: number; receiverId?: number; replyToId?: number }) {
+    const isPrivateChatAllowed = await this.globalChatSettings.isPrivateChatAllowed();
+    if (!isPrivateChatAllowed) {
+      throw new ForbiddenException('Приватные чаты отключены администратором');
+    }
+
+    const maxMessageLength = await this.globalChatSettings.getMaxMessageLength();
+    if (params.text.length > maxMessageLength) {
+      throw new BadRequestException(`Сообщение слишком длинное. Максимальная длина: ${maxMessageLength} символов`);
+    }
+
     if (!params.conversationId && !params.receiverId) {
       throw new BadRequestException('Нужно указать conversationId или receiverId');
     }
