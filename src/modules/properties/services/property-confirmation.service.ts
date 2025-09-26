@@ -3,6 +3,8 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { PropertyRepository } from '../repositories/property.repository';
 import { NotificationService } from '../../notifications/services/notification.service';
 import { NotificationType } from '../../notifications/interfaces/notification.interface';
+import { PropertyDto } from '../dto/property.dto';
+import { plainToInstance } from 'class-transformer';
 // Note: Using string literals to avoid dependency on regenerated Prisma enums
 
 @Injectable()
@@ -17,15 +19,16 @@ export class PropertyConfirmationService {
 
   // Note: Code generation on creation is handled in PropertyService
 
-  async confirmProperty(propertyId: number, code: string): Promise<void> {
+  async confirmProperty(propertyId: number, userId: number, code: string): Promise<PropertyDto> {
     const property = await this.propertyRepository.findById(propertyId);
     if (!property || !property.isActive) {
       throw new NotFoundException(`Объект с ID ${propertyId} не найден`);
     }
     const currentStatus = ((property as any).verificationStatus || '') as string;
     if (currentStatus === 'VERIFIED') {
-      // idempotent: already verified
-      return;
+      // idempotent: already verified - return current property data
+      const updatedProperty = await this.propertyRepository.findByIdWithVerifications(propertyId);
+      return this.transformToUserDto(updatedProperty, userId);
     }
 
     const storedCode = (property as any).confirmationCode as string | undefined;
@@ -62,6 +65,10 @@ export class PropertyConfirmationService {
     } catch (e) {
       // Swallow notification errors
     }
+
+    // Return updated property data
+    const updatedProperty = await this.propertyRepository.findByIdWithVerifications(propertyId);
+    return this.transformToUserDto(updatedProperty, userId);
   }
 
   async cleanupExpiredProperties(): Promise<number> {
@@ -80,5 +87,60 @@ export class PropertyConfirmationService {
   private generateCode(): string {
     // 6-digit numeric code
     return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  /**
+   * Трансформирует данные объекта в DTO для пользователей
+   */
+  private transformToUserDto(property: any, requestingUserId?: number): PropertyDto {
+    const createdBy = property.user
+      ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
+      : '';
+
+    // Извлекаем список ID пользователей, которые подтвердили объект
+    const verifiedUserIds =
+      property.verifications?.map((verification: any) => verification.userId) ||
+      [];
+    const verificationCount = property.verifications?.length || 0;
+
+    // Определяем статус проверки на основе количества подтверждений
+    // Статус VERIFIED только если есть минимум 2 подтверждения
+    const verificationStatus =
+      verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
+
+    // Определяем статус кодового подтверждения
+    let confirmationStatus = 'PENDING';
+    if (property.confirmationCodeExpiresAt) {
+      const now = new Date();
+      const expiresAt = new Date(property.confirmationCodeExpiresAt);
+      if (now > expiresAt) {
+        confirmationStatus = 'EXPIRED';
+      } else if (verificationStatus === 'VERIFIED') {
+        confirmationStatus = 'CONFIRMED';
+      }
+    }
+
+    const dtoData: any = {
+      id: property.id,
+      name: property.name,
+      category: property.category,
+      latitude: property.latitude,
+      longitude: property.longitude,
+      photo: property.photo,
+      verificationStatus,
+      verificationCount,
+      verifiedUserIds,
+      confirmationStatus,
+      createdById: property.userId,
+      createdAt: property.createdAt,
+      updatedAt: property.updatedAt,
+      createdBy,
+    };
+
+    if (requestingUserId && property.userId === requestingUserId) {
+      dtoData.confirmationCode = property.confirmationCode;
+    }
+
+    return plainToInstance(PropertyDto, dtoData);
   }
 }

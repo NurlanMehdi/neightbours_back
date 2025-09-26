@@ -18,6 +18,7 @@ describe('PropertyConfirmationService', () => {
 
     repo = {
       findById: jest.fn(),
+      findByIdWithVerifications: jest.fn(),
     } as any;
 
     service = new PropertyConfirmationService(prisma as any, repo as any, notificationService as any);
@@ -25,10 +26,30 @@ describe('PropertyConfirmationService', () => {
 
   it('confirms property with valid code -> VERIFIED', async () => {
     const expiresAt = new Date(Date.now() + 60_000);
-    (repo.findById as any).mockResolvedValue({ id: 1, isActive: true, verificationStatus: 'UNVERIFIED', userId: 10, confirmationCode: '123456', confirmationCodeExpiresAt: expiresAt } as any);
+    const mockProperty = { 
+      id: 1, 
+      isActive: true, 
+      verificationStatus: 'UNVERIFIED', 
+      userId: 10, 
+      confirmationCode: '123456', 
+      confirmationCodeExpiresAt: expiresAt,
+      name: 'Test Property',
+      category: 'PRIVATE_HOUSE',
+      latitude: 55.7558,
+      longitude: 37.6176,
+      photo: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      user: { firstName: 'John', lastName: 'Doe' },
+      verifications: []
+    } as any;
+    
+    (repo.findById as any).mockResolvedValue(mockProperty);
+    (repo.findByIdWithVerifications as any).mockResolvedValue(mockProperty);
     (prisma.property.update as any).mockResolvedValue({});
 
-    await expect(service.confirmProperty(1, '123456')).resolves.toBeUndefined();
+    const result = await service.confirmProperty(1, 10, '123456');
+    expect(result).toBeDefined();
     expect(prisma.property.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 1 },
@@ -40,7 +61,7 @@ describe('PropertyConfirmationService', () => {
   it('throws error on wrong code', async () => {
     const expiresAt = new Date(Date.now() + 60_000);
     (repo.findById as any).mockResolvedValue({ id: 1, isActive: true, verificationStatus: 'UNVERIFIED', userId: 10, confirmationCode: '999999', confirmationCodeExpiresAt: expiresAt } as any);
-    await expect(service.confirmProperty(1, '000000')).rejects.toBeTruthy();
+    await expect(service.confirmProperty(1, 10, '000000')).rejects.toBeTruthy();
   });
 
   it('cleanupExpiredProperties deletes UNVERIFIED with expired codes', async () => {
