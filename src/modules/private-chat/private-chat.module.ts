@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ChatAdminModule } from '../chat-admin/chat-admin.module';
 import { PrivateChatService } from './private-chat.service';
 import { PrivateChatController } from './private-chat.controller';
 import { PrivateChatRepository } from './repositories/private-chat.repository';
@@ -15,6 +16,7 @@ import { PrivateChatGateway } from './private-chat.gateway';
     }),
     PrismaModule,
     forwardRef(() => NotificationsModule),
+    ChatAdminModule,
   ],
   controllers: [PrivateChatController],
   providers: [PrivateChatService, PrivateChatRepository, PrivateChatGateway],

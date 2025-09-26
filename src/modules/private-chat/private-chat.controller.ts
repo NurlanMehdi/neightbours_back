@@ -62,10 +62,13 @@ export class PrivateChatController {
   }
 
   @Post('messages')
-  @ApiOperation({ summary: 'Отправить приватное сообщение' })
+  @ApiOperation({ 
+    summary: 'Отправить приватное сообщение',
+    description: 'Отправляет приватное сообщение. Поведение зависит от глобальных настроек чата: если приватные чаты отключены, возвращает 403 Forbidden.'
+  })
   @ApiResponse({ status: 201, description: 'Сообщение успешно отправлено' })
-  @ApiResponse({ status: 400, description: 'Некорректные данные' })
-  @ApiResponse({ status: 403, description: 'Нет доступа к диалогу' })
+  @ApiResponse({ status: 400, description: 'Некорректные данные или сообщение слишком длинное' })
+  @ApiResponse({ status: 403, description: 'Нет доступа к диалогу или приватные чаты отключены администратором' })
   @ApiResponse({ status: 404, description: 'Диалог или получатель не найден' })
   async sendMessage(@UserId() userId: number, @Body() dto: SendPrivateMessageDto) {
     return this.service.sendMessage(userId, dto);
@@ -91,10 +94,13 @@ export class PrivateChatController {
   }
 
   @Post('conversations')
-  @ApiOperation({ summary: 'Создать приватный диалог (или вернуть существующий)' })
+  @ApiOperation({ 
+    summary: 'Создать приватный диалог (или вернуть существующий)',
+    description: 'Создает новый приватный диалог или возвращает существующий. Поведение зависит от глобальных настроек чата: если приватные чаты отключены, возвращает 403 Forbidden.'
+  })
   @ApiResponse({ status: 201, description: 'Диалог создан или возвращен существующий' })
   @ApiResponse({ status: 400, description: 'Некорректные данные' })
-  @ApiResponse({ status: 403, description: 'Нельзя создать диалог с самим собой' })
+  @ApiResponse({ status: 403, description: 'Нельзя создать диалог с самим собой или приватные чаты отключены администратором' })
   @ApiResponse({ status: 404, description: 'Пользователь не найден' })
   async createConversation(@UserId() userId: number, @Body() dto: CreateConversationDto) {
     try {

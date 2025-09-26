@@ -12,6 +12,7 @@ export class EventMessagesRepository {
     userId: number,
     eventId: number,
     dto: CreateMessageDto,
+    isModerated?: boolean,
   ): Promise<EventMessage> {
     return (this.prisma as any).eventMessage.create({
       data: {
@@ -19,6 +20,7 @@ export class EventMessagesRepository {
         userId,
         eventId,
         replyToMessageId: dto.replyToMessageId,
+        isModerated: isModerated ?? true,
       },
       include: {
         user: {
@@ -42,12 +44,13 @@ export class EventMessagesRepository {
     });
   }
 
-  async addMessage(dto: AddMessageDto): Promise<EventMessage> {
+  async addMessage(dto: AddMessageDto, isModerated?: boolean): Promise<EventMessage> {
     return (this.prisma as any).eventMessage.create({
       data: {
         text: dto.text,
         userId: dto.userId,
         eventId: dto.eventId,
+        isModerated: isModerated ?? true,
         replyToMessageId: dto.replyToMessageId,
       },
       include: {
@@ -80,6 +83,8 @@ export class EventMessagesRepository {
     return (this.prisma as any).eventMessage.findMany({
       where: {
         eventId,
+        isModerated: true,
+        isDeleted: false,
       },
       include: {
         user: {

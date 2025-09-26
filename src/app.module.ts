@@ -21,6 +21,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { FirebaseModule } from './firebase/firebase.module'; // ← BU SATIRI EKLEYİN
 import { PrivateChatModule } from './modules/private-chat/private-chat.module';
 import { CommunityChatModule } from './modules/community-chat/community-chat.module';
+import { ChatAdminModule } from './modules/chat-admin/chat-admin.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { CommunityChatModule } from './modules/community-chat/community-chat.mod
     FirebaseModule, // ← BU SATIRI EKLEYİN
     PrivateChatModule,
     CommunityChatModule,
+    ChatAdminModule,
   ],
   controllers: [],
   providers: [JwtService],

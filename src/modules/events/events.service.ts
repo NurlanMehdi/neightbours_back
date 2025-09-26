@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { GetEventsDto } from './dto/get-events.dto';
@@ -6,6 +6,7 @@ import { UnreadMessagesResponseDto } from './dto/unread-messages.dto';
 import { EventsRepository } from './repositories/events.repository';
 import { VotingRepository } from './repositories/voting.repository';
 import { Event, EventMessage } from '@prisma/client';
+import { GlobalChatSettingsService } from '../chat-admin/services/global-chat-settings.service';
 import {
   EventAccessDeniedException,
   EventNotFoundException,
@@ -56,6 +57,7 @@ export class EventsService {
     private readonly userService: UserService,
     private readonly prisma: PrismaService,
     private readonly unifiedMessageNotificationService: UnifiedMessageNotificationService,
+    private readonly globalChatSettings: GlobalChatSettingsService,
   ) {}
 
   /**
@@ -558,6 +560,16 @@ export class EventsService {
     eventId: number,
     dto: CreateMessageDto,
   ): Promise<EventMessage> {
+    const isEventChatAllowed = await this.globalChatSettings.isEventChatAllowed();
+    if (!isEventChatAllowed) {
+      throw new ForbiddenException('Чаты событий отключены администратором');
+    }
+
+    const maxMessageLength = await this.globalChatSettings.getMaxMessageLength();
+    if (dto.text.length > maxMessageLength) {
+      throw new BadRequestException(`Сообщение слишком длинное. Максимальная длина: ${maxMessageLength} символов`);
+    }
+
     const event = await this.eventsRepository.findById(eventId);
 
     if (!event) {
@@ -572,10 +584,14 @@ export class EventsService {
       throw new UserNotInCommunityException();
     }
 
+    const isModerationEnabled = await this.globalChatSettings.isModerationEnabled();
+    const isModerated = !isModerationEnabled;
+
     const message = await this.eventMessagesRepository.createMessage(
       userId,
       eventId,
       dto,
+      isModerated,
     );
 
     try {
@@ -628,6 +644,16 @@ export class EventsService {
   }
 
   async addMessage(dto: AddMessageDto): Promise<EventMessage> {
+    const isEventChatAllowed = await this.globalChatSettings.isEventChatAllowed();
+    if (!isEventChatAllowed) {
+      throw new ForbiddenException('Чаты событий отключены администратором');
+    }
+
+    const maxMessageLength = await this.globalChatSettings.getMaxMessageLength();
+    if (dto.text.length > maxMessageLength) {
+      throw new BadRequestException(`Сообщение слишком длинное. Максимальная длина: ${maxMessageLength} символов`);
+    }
+
     const event = await this.eventsRepository.findById(dto.eventId);
 
     if (!event) {
@@ -642,7 +668,10 @@ export class EventsService {
       throw new UserNotInCommunityException();
     }
 
-    const message = await this.eventMessagesRepository.addMessage(dto);
+    const isModerationEnabled = await this.globalChatSettings.isModerationEnabled();
+    const isModerated = !isModerationEnabled;
+
+    const message = await this.eventMessagesRepository.addMessage(dto, isModerated);
 
     try {
       const eventWithParticipants = await this.prisma.event.findUnique({

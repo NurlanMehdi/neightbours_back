@@ -55,7 +55,7 @@ export class EventsAdminController {
     return this.eventsService.findAllEventsForAdmin(query);
   }
 
-  @Get(':id')
+  @Get('by-id/:id')
   @ApiOperation({ summary: 'Получить событие по ID' })
   @ApiResponse({ status: 200, description: 'Событие', type: EventDto })
   async getEventById(@Param('id', ParseIntPipe) id: number): Promise<EventDto> {

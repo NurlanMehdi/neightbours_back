@@ -13,6 +13,7 @@ import { MulterConfigModule } from '../files/multer.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { ChatAdminModule } from '../chat-admin/chat-admin.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
     NotificationsModule,
     UsersModule,
     PrismaModule,
+    ChatAdminModule,
   ],
   controllers: [EventsController, EventsAdminController, MessageNotificationDebugController],
   providers: [
