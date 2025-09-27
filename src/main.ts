@@ -15,9 +15,8 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // Убираем лишние поля, не указанные в DTO
-      forbidNonWhitelisted: true, // Блокируем запросы с лишними полями
-      transform: true, // Преобразуем типы (например, строки в числа)
-      transformOptions: { enableImplicitConversion: true }, // Включаем неявное преобразование типов
+      forbidNonWhitelisted: false, // Блокируем запросы с лишними полями
+      transform: true,
     }),
   );
 

@@ -1,8 +1,7 @@
-import { Injectable, ForbiddenException, Inject, forwardRef, BadRequestException } from '@nestjs/common';
+import { Injectable, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { CommunityChatRepository } from './repositories/community-chat.repository';
 import { NotificationService } from '../notifications/services/notification.service';
 import { CommunityChatGateway } from './community-chat.gateway';
-import { GlobalChatSettingsService } from '../chat-admin/services/global-chat-settings.service';
 
 @Injectable()
 export class CommunityChatService {
@@ -10,33 +9,13 @@ export class CommunityChatService {
     private readonly repo: CommunityChatRepository,
     private readonly notifications: NotificationService,
     @Inject(forwardRef(() => CommunityChatGateway)) private readonly gateway: CommunityChatGateway,
-    private readonly globalChatSettings: GlobalChatSettingsService,
   ) {}
 
   async sendMessage(userId: number, communityId: number, params: { text: string; replyToMessageId?: number }) {
-    const isCommunityChatAllowed = await this.globalChatSettings.isCommunityChatAllowed();
-    if (!isCommunityChatAllowed) {
-      throw new ForbiddenException('Чаты сообществ отключены администратором');
-    }
-
-    const maxMessageLength = await this.globalChatSettings.getMaxMessageLength();
-    if (params.text.length > maxMessageLength) {
-      throw new BadRequestException(`Сообщение слишком длинное. Максимальная длина: ${maxMessageLength} символов`);
-    }
-
-    const isModerationEnabled = await this.globalChatSettings.isModerationEnabled();
-    const isModerated = !isModerationEnabled;
-
     const isMember = await this.repo.isMember(userId, communityId);
     if (!isMember) throw new ForbiddenException('Нет доступа: вы не являетесь членом сообщества');
     await this.repo.ensureChatExists(communityId);
-    const message = await this.repo.createMessage({ 
-      communityId, 
-      userId, 
-      text: params.text, 
-      replyToMessageId: params.replyToMessageId,
-      isModerated 
-    });
+    const message = await this.repo.createMessage({ communityId, userId, text: params.text, replyToMessageId: params.replyToMessageId });
 
     const memberIds = await this.repo.getMemberIds(communityId);
     const title = 'Сообщение в сообществе';
@@ -86,11 +65,6 @@ export class CommunityChatService {
   }
 
   async createConversation(adminUserId: number, communityId: number) {
-    const isCommunityChatAllowed = await this.globalChatSettings.isCommunityChatAllowed();
-    if (!isCommunityChatAllowed) {
-      throw new ForbiddenException('Чаты сообществ отключены администратором');
-    }
-
     const isAdmin = await this.repo.isAdmin(adminUserId);
     if (!isAdmin) throw new ForbiddenException('Только администратор может создавать чат');
     return this.repo.createChat(communityId);

@@ -21,13 +21,8 @@ export class CommunityChatController {
   constructor(private readonly service: CommunityChatService) {}
 
   @Post(':id/messages')
-  @ApiOperation({ 
-    summary: 'Отправить сообщение в чат сообщества',
-    description: 'Отправляет сообщение в чат сообщества. Поведение зависит от глобальных настроек чата: если чаты сообществ отключены, возвращает 403 Forbidden. Если включена модерация, сообщение будет ожидать одобрения администратора.'
-  })
+  @ApiOperation({ summary: 'Отправить сообщение в чат сообщества' })
   @ApiResponse({ status: 201, description: 'Сообщение отправлено' })
-  @ApiResponse({ status: 403, description: 'Чаты сообществ отключены администратором' })
-  @ApiResponse({ status: 400, description: 'Сообщение слишком длинное или некорректные данные' })
   async sendMessage(
     @UserId() userId: number,
     @Param('id', ParseIntPipe) communityId: number,
