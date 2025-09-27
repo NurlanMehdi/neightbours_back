@@ -33,6 +33,7 @@ import { CreateUserAdminDto } from '../dto/create-user-admin.dto';
 import { GetUsersAdminDto } from '../dto/get-users-admin.dto';
 import { PropertyDto } from '../../properties/dto/property.dto';
 import { PropertyRepository } from '../../properties/repositories/property.repository';
+import { PropertyService } from '../../properties/services/property.service';
 import { EventsRepository } from '../../events/repositories/events.repository';
 import { QualificationsService } from '../../qualifications/services/qualifications.service';
 import { ProductsService } from '../../products/services/products.service';
@@ -68,6 +69,7 @@ export class UserService {
     private readonly filesService: FilesService,
     private readonly communityService: CommunityService,
     private readonly propertyRepository: PropertyRepository,
+    private readonly propertyService: PropertyService,
     private readonly eventsRepository: EventsRepository,
     private readonly qualificationsService: QualificationsService,
     private readonly productsService: ProductsService,
@@ -817,22 +819,16 @@ export class UserService {
       confirmationCodeExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
 
-    // Получаем количество подтверждений для созданного объекта
-    const verificationCount =
-      await this.propertyRepository.getVerificationCount(createdProperty.id);
-
     // Обновляем шаг регистрации
     await this.userRepository.update(userId, {
       registrationStep: 4,
     });
 
-    // Возвращаем созданный объект недвижимости
-    return plainToInstance(PropertyDto, {
-      id: createdProperty.id,
-      name: createdProperty.name,
-      picture: createdProperty.photo,
-      verificationStatus: createdProperty.verificationStatus,
-    });
+    // Получаем созданный объект с полной информацией о подтверждениях
+    const propertyWithVerifications = await this.propertyRepository.findByIdWithVerifications(createdProperty.id);
+    
+    // Используем тот же метод трансформации, что и в /properties/my
+    return this.propertyService.transformToUserDto(propertyWithVerifications, userId);
   }
 
   /**

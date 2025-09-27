@@ -46,11 +46,31 @@ export class PropertyConfirmationService {
       throw new BadRequestException('Срок действия кода подтверждения истек');
     }
 
-    await this.prisma.property.update({
-      where: { id: propertyId },
-      data: {
-        verificationStatus: 'VERIFIED' as any,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.propertyVerification.upsert({
+        where: {
+          propertyId_userId: {
+            propertyId,
+            userId,
+          },
+        },
+        update: {},
+        create: {
+          propertyId,
+          userId,
+        },
+      });
+
+      const count = await tx.propertyVerification.count({
+        where: { propertyId },
+      });
+
+      await tx.property.update({
+        where: { id: propertyId },
+        data: {
+          verificationStatus: count >= 2 ? 'VERIFIED' : 'UNVERIFIED',
+        },
+      });
     });
 
     // Notify owner
@@ -103,10 +123,8 @@ export class PropertyConfirmationService {
       [];
     const verificationCount = property.verifications?.length || 0;
 
-    // Определяем статус проверки на основе количества подтверждений
-    // Статус VERIFIED только если есть минимум 2 подтверждения
-    const verificationStatus =
-      verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
+    // Определяем статус проверки на основе количества подтверждений (как в /properties/my)
+    const verificationStatus = verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
 
     // Определяем статус кодового подтверждения
     let confirmationStatus = 'PENDING';
