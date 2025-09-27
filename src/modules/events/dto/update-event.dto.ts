@@ -8,7 +8,7 @@ import {
   ValidateNested,
   ArrayMinSize,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { CreateVotingOptionDto } from './create-event.dto';
 import {
   TransformToFloat,
@@ -95,6 +95,12 @@ export class UpdateEventDto {
     description: 'Дата и время проведения мероприятия',
     required: false,
     example: '2025-08-01T18:00:00.000Z',
+  })
+  @Transform(({ value }) => {
+    if (typeof value === 'string' && !value.endsWith('Z')) {
+      return value + 'Z';
+    }
+    return value;
   })
   @IsOptional()
   @IsDateString()
