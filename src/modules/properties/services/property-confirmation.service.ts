@@ -24,46 +24,44 @@ export class PropertyConfirmationService {
     if (!property || !property.isActive) {
       throw new NotFoundException(`Объект с ID ${propertyId} не найден`);
     }
-    const currentStatus = ((property as any).verificationStatus || '') as string;
-    if (currentStatus === 'VERIFIED') {
-      // idempotent: already verified - return current property data
-      const updatedProperty = await this.propertyRepository.findByIdWithVerifications(propertyId);
-      return this.transformToUserDto(updatedProperty, userId);
-    }
 
+    // Always validate the provided code first
     const storedCode = (property as any).confirmationCode as string | undefined;
     const expiresAt = (property as any).confirmationCodeExpiresAt as Date | undefined;
     if (!storedCode || !expiresAt) {
-      throw new BadRequestException('Код подтверждения не найден');
+      throw new BadRequestException('Confirmation code not found');
     }
 
     if (storedCode !== code) {
-      throw new BadRequestException('Неверный код подтверждения');
+      throw new BadRequestException('Invalid confirmation code');
     }
 
     if (new Date(expiresAt).getTime() < Date.now()) {
       // Code expired; do not update status
-      throw new BadRequestException('Срок действия кода подтверждения истек');
+      throw new BadRequestException('Confirmation code expired');
     }
 
-    await this.prisma.property.update({
-      where: { id: propertyId },
-      data: {
-        verificationStatus: 'VERIFIED' as any,
-      },
-    });
-
-    // Notify owner
-    try {
-      await this.notificationService.createNotification({
-        type: NotificationType.INFO,
-        title: 'Объект подтвержден',
-        message: 'Ваш объект успешно подтвержден.',
-        userId: property.userId,
-        payload: { propertyId },
+    const currentStatus = ((property as any).verificationStatus || '') as string;
+    if (currentStatus !== 'VERIFIED') {
+      await this.prisma.property.update({
+        where: { id: propertyId },
+        data: {
+          verificationStatus: 'VERIFIED' as any,
+        },
       });
-    } catch (e) {
-      // Swallow notification errors
+
+      // Notify owner on first successful confirmation
+      try {
+        await this.notificationService.createNotification({
+          type: NotificationType.INFO,
+          title: 'Объект подтвержден',
+          message: 'Ваш объект успешно подтвержден.',
+          userId: property.userId,
+          payload: { propertyId },
+        });
+      } catch (e) {
+        // Swallow notification errors
+      }
     }
 
     // Return updated property data

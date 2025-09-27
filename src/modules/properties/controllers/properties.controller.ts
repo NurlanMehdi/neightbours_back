@@ -266,6 +266,7 @@ export class PropertiesController {
   @ApiResponse({ status: 200, description: 'Объект подтвержден (VERIFIED)', type: PropertyDto })
   @ApiResponse({ status: 400, description: 'Неверный или просроченный код' })
   @ApiResponse({ status: 404, description: 'Объект не найден' })
+  @HttpCode(200)
   async confirmProperty(
     @Param('id', ParseIntPipe) id: number,
     @UserId() userId: number,
