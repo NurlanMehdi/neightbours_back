@@ -123,8 +123,8 @@ export class PropertyConfirmationService {
       [];
     const verificationCount = property.verifications?.length || 0;
 
-    // Используем статус проверки из базы данных
-    const verificationStatus = property.verificationStatus || 'UNVERIFIED';
+    // Определяем статус проверки на основе количества подтверждений (как в /properties/my)
+    const verificationStatus = verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
 
     // Определяем статус кодового подтверждения
     let confirmationStatus = 'PENDING';

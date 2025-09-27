@@ -492,7 +492,7 @@ export class PropertyService {
   /**
    * Трансформирует данные объекта в DTO для пользователей
    */
-  private transformToUserDto(property: any, requestingUserId?: number): PropertyDto {
+  public transformToUserDto(property: any, requestingUserId?: number): PropertyDto {
     const createdBy = property.user
       ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
       : '';

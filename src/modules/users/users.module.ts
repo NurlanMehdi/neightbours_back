@@ -22,6 +22,7 @@ import { FamilyTypesModule } from '../family-types/family-types.module';
 import { SmsService } from '../auth/services/sms.service';
 import { JwtModule } from '@nestjs/jwt';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { PropertiesModule } from '../properties/properties.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     QualificationsModule,
     ProductsModule,
     FamilyTypesModule,
+    PropertiesModule,
     ScheduleModule.forRoot(),
     JwtModule.register({}),
     NotificationsModule,
