@@ -36,6 +36,21 @@ export const TransformToBoolean = () =>
   });
 
 /**
+ * Трансформер для преобразования строки в дату
+ */
+export const TransformToDate = () =>
+  Transform(({ value }) => {
+    if (!value) return value;
+    
+    if (typeof value === 'string') {
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? value : date;
+    }
+    
+    return value;
+  });
+
+/**
  * Трансформер для преобразования строки votingOptions в массив объектов
  */
 export const TransformVotingOptions = () =>

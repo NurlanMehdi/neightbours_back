@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsBoolean,
   IsDateString,
+  IsDate,
   ValidateNested,
   ArrayMinSize,
 } from 'class-validator';
@@ -13,6 +14,7 @@ import {
   TransformToFloat,
   TransformToInt,
   TransformToBoolean,
+  TransformToDate,
   TransformVotingOptions,
 } from '../../../common/utils/form-data-transformers.util';
 
@@ -98,7 +100,8 @@ export class CreateEventDto {
     example: '2025-08-01T18:00:00.000Z',
   })
   @IsOptional()
-  @IsDateString()
+  @IsDate()
+  @TransformToDate()
   eventDateTime?: Date;
 
   @ApiProperty({ description: 'ID сообщества' })
