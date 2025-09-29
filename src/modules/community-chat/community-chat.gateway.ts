@@ -20,7 +20,6 @@ import { CommunityChatService } from './community-chat.service';
   transports: ['websocket'],
   pingTimeout: 60000,
   pingInterval: 25000,
-  namespace: '/community-chat',
 })
 @UseFilters(WsExceptionFilter)
 export class CommunityChatGateway
