@@ -55,11 +55,15 @@ export class CommunityChatGateway
     @MessageBody() payload: { communityId: number },
   ) {
     try {
+      this.logger.log(`joinCommunity called for community ${payload.communityId}`);
       const userId = client.data.user.sub;
+      this.logger.log(`User ID: ${userId}`);
       await this.chatService.getMessages(userId, payload.communityId, 1, 1);
       client.join(`community:${payload.communityId}`);
+      this.logger.log(`User ${userId} joined community ${payload.communityId}`);
       return { status: 'joined', communityId: payload.communityId };
     } catch (err) {
+      this.logger.error(`joinCommunity error: ${err.message}`, err.stack);
       throw new WsException(err.message || 'Ошибка при подключении к чату');
     }
   }
@@ -71,11 +75,15 @@ export class CommunityChatGateway
     @MessageBody() payload: { communityId: number; text: string; replyToMessageId?: number },
   ) {
     try {
+      this.logger.log(`sendCommunityMessage called for community ${payload.communityId}`);
       const userId = client.data.user.sub;
+      this.logger.log(`User ID: ${userId}, text: ${payload.text}`);
       const message = await this.chatService.sendMessage(userId, payload.communityId, { text: payload.text, replyToMessageId: payload.replyToMessageId });
       this.io.to(`community:${payload.communityId}`).emit('newCommunityMessage', message);
+      this.logger.log(`Message sent by user ${userId} to community ${payload.communityId}`);
       return message;
     } catch (err) {
+      this.logger.error(`sendCommunityMessage error: ${err.message}`, err.stack);
       throw new WsException(err.message || 'Ошибка при отправке сообщения');
     }
   }
