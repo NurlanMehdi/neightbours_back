@@ -14,8 +14,7 @@ export class CommunityChatService {
   async sendMessage(userId: number, communityId: number, params: { text: string; replyToMessageId?: number }) {
     const isMember = await this.repo.isMember(userId, communityId);
     if (!isMember) throw new ForbiddenException('Нет доступа: вы не являетесь членом сообщества');
-    await this.repo.ensureChatExists(communityId);
-    const message = await this.repo.createMessage({ communityId, userId, text: params.text, replyToMessageId: params.replyToMessageId });
+    const message = await this.repo.createMessageWithAutoChat({ communityId, userId, text: params.text, replyToMessageId: params.replyToMessageId });
 
     const memberIds = await this.repo.getMemberIds(communityId);
     const title = 'Сообщение в сообществе';
@@ -44,7 +43,10 @@ export class CommunityChatService {
   async getMessages(userId: number, communityId: number, page = 1, limit = 50) {
     const isMember = await this.repo.isMember(userId, communityId);
     if (!isMember) throw new ForbiddenException('Нет доступа');
-    await this.repo.ensureChatExists(communityId);
+    const chat = await this.repo.ensureChatExists(communityId);
+    if (!chat) {
+      await this.repo.createChat(communityId);
+    }
     return this.repo.getMessages(communityId, page, limit);
   }
 
