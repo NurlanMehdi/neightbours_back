@@ -8,6 +8,7 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
@@ -54,10 +55,14 @@ export class CommunityChatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { communityId: number },
   ) {
-    const userId = client.data.user.sub;
-    await this.chatService.getMessages(userId, payload.communityId, 1, 1);
-    client.join(`community:${payload.communityId}`);
-    return { status: 'joined', communityId: payload.communityId };
+    try {
+      const userId = client.data.user.sub;
+      await this.chatService.getMessages(userId, payload.communityId, 1, 1);
+      client.join(`community:${payload.communityId}`);
+      return { status: 'joined', communityId: payload.communityId };
+    } catch (err) {
+      throw new WsException(err.message || 'Ошибка при подключении к чату');
+    }
   }
 
   @UseGuards(WsJwtAuthGuard)
@@ -66,9 +71,13 @@ export class CommunityChatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { communityId: number; text: string; replyToMessageId?: number },
   ) {
-    const userId = client.data.user.sub;
-    const message = await this.chatService.sendMessage(userId, payload.communityId, { text: payload.text, replyToMessageId: payload.replyToMessageId });
-    this.io.to(`community:${payload.communityId}`).emit('newCommunityMessage', message);
-    return message;
+    try {
+      const userId = client.data.user.sub;
+      const message = await this.chatService.sendMessage(userId, payload.communityId, { text: payload.text, replyToMessageId: payload.replyToMessageId });
+      this.io.to(`community:${payload.communityId}`).emit('newCommunityMessage', message);
+      return message;
+    } catch (err) {
+      throw new WsException(err.message || 'Ошибка при отправке сообщения');
+    }
   }
 }
