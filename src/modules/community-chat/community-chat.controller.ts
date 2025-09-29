@@ -81,17 +81,7 @@ export class CommunityChatController {
     return this.service.search(userId, q, communityId, page, limit);
   }
 
-  @Post()
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Создать чат для сообщества (админ)' })
-  @ApiResponse({ status: 201, description: 'Чат создан' })
-  async createConversation(
-    @UserId() adminId: number,
-    @Body() dto: CreateCommunityConversationDto,
-  ) {
-    return this.service.createConversation(adminId, dto.communityId);
-  }
+  // Эндпоинт создания чата отключен: чат создается автоматически при первом сообщении
 
   @Delete(':id')
   @UseGuards(RolesGuard)

@@ -20,7 +20,7 @@ export class CommunityChatRepository {
 
   async ensureChatExists(communityId: number) {
     const chat = await (this.prisma as any).communityChat.findUnique({ where: { communityId } });
-    if (!chat) throw new NotFoundException('Чат сообщества не создан');
+    if (!chat) return null;
     if (chat.isActive === false) throw new ForbiddenException('Чат отключен администратором');
     return chat;
   }
@@ -80,6 +80,46 @@ export class CommunityChatRepository {
           },
         },
       },
+    });
+  }
+
+  async createMessageWithAutoChat(params: { communityId: number; userId: number; text: string; replyToMessageId?: number; isModerated?: boolean }) {
+    return (this.prisma as any).$transaction(async (tx: any) => {
+      const existing = await tx.communityChat.findUnique({ where: { communityId: params.communityId } });
+      if (!existing) {
+        await tx.communityChat.create({ data: { communityId: params.communityId, isActive: true } });
+      } else if (existing.isActive === false) {
+        throw new ForbiddenException('Чат отключен администратором');
+      }
+
+      if (params.replyToMessageId) {
+        const replied = await tx.communityMessage.findUnique({ where: { id: params.replyToMessageId } });
+        if (!replied || replied.communityId !== params.communityId) {
+          throw new ForbiddenException('Нельзя отвечать на сообщение из другого сообщества');
+        }
+      }
+
+      return tx.communityMessage.create({
+        data: {
+          communityId: params.communityId,
+          userId: params.userId,
+          text: params.text,
+          replyToMessageId: params.replyToMessageId,
+          isModerated: params.isModerated ?? true,
+        },
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+          replyTo: {
+            select: {
+              id: true,
+              text: true,
+              userId: true,
+              createdAt: true,
+              user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+            },
+          },
+        },
+      });
     });
   }
 
