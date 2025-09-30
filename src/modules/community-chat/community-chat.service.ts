@@ -115,4 +115,11 @@ export class CommunityChatService {
       );
     return this.repo.updateSettings(communityId, data);
   }
+
+  /**
+   * Получить количество непрочитанных сообщений для пользователя
+   */
+  async getUnreadCounts(userId: number) {
+    return this.repo.getUnreadCounts(userId);
+  }
 }

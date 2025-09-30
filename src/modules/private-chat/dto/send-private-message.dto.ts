@@ -1,29 +1,22 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsPositive,
+  IsString,
+} from 'class-validator';
 
 export class SendPrivateMessageDto {
-  @ApiProperty({ description: 'Текст сообщения', example: 'Привет!' })
+  @IsInt()
+  @IsPositive()
+  conversationId: number;
+
   @IsString()
-  @MinLength(1)
+  @IsNotEmpty()
   text: string;
 
-  @ApiPropertyOptional({ description: 'ID диалога' })
   @IsOptional()
   @IsInt()
-  @Min(1)
-  conversationId?: number;
-
-  @ApiPropertyOptional({ description: 'ID получателя (если диалог не создан)' })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  receiverId?: number;
-
-  @ApiPropertyOptional({
-    description: 'ID сообщения, на которое формируется ответ',
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  replyToId?: number;
+  @IsPositive()
+  replyToMessageId?: number;
 }
