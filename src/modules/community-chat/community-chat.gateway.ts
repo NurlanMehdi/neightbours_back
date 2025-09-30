@@ -20,14 +20,18 @@ import { CommunityChatService } from './community-chat.service';
   transports: ['websocket'],
   pingTimeout: 60000,
   pingInterval: 25000,
-  namespace: '/',
+  namespace: '/community-chat',
 })
 @UseFilters(WsExceptionFilter)
 export class CommunityChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(CommunityChatGateway.name);
-  constructor(@Inject(forwardRef(() => CommunityChatService)) private readonly chatService: CommunityChatService) {}
+  
+  constructor(
+    @Inject(forwardRef(() => CommunityChatService)) 
+    private readonly chatService: CommunityChatService
+  ) {}
 
   @WebSocketServer() io: Server;
 
@@ -37,18 +41,34 @@ export class CommunityChatGateway
   }
 
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
-    client.emit('connected', { status: 'ok', clientId: client.id, timestamp: new Date().toISOString() });
+    try {
+      this.logger.log(`Client connected: ${client.id}`);
+      
+      // EventsGateway kimi - sadəcə connected emit edirik
+      client.emit('connected', { 
+        status: 'ok', 
+        clientId: client.id, 
+        timestamp: new Date().toISOString() 
+      });
+    } catch (error) {
+      this.logger.error(`Error in handleConnection: ${error.message}`);
+      client.disconnect();
+    }
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+    try {
+      this.logger.log(`Client disconnected: ${client.id}`);
+    } catch (error) {
+      this.logger.error(`Error in handleDisconnect: ${error.message}`);
+    }
   }
 
   broadcastNewMessage(communityId: number, message: any) {
     this.io.to(`community:${communityId}`).emit('newCommunityMessage', message);
   }
 
+  // EventsGateway kimi - @UseGuards handler-də
   @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('joinCommunity')
   async joinCommunity(
@@ -57,11 +77,20 @@ export class CommunityChatGateway
   ) {
     try {
       this.logger.log(`joinCommunity called for community ${payload.communityId}`);
+      
+      // EventsGateway kimi - user məlumatını oxuyuruq
       const userId = client.data.user.sub;
-      this.logger.log(`User ID: ${userId}`);
+      this.logger.log(`User ${userId} joining community ${payload.communityId}`);
+      
+      // İlk olaraq access yoxla
       await this.chatService.getMessages(userId, payload.communityId, 1, 1);
+      
+      // Room-a qoşul
       client.join(`community:${payload.communityId}`);
-      this.logger.log(`User ${userId} joined community ${payload.communityId}`);
+      
+      this.logger.log(`User ${userId} successfully joined community ${payload.communityId}`);
+      this.logger.log(`Current rooms for client ${client.id}: ${Array.from(client.rooms)}`);
+      
       return { status: 'joined', communityId: payload.communityId };
     } catch (err) {
       this.logger.error(`joinCommunity error: ${err.message}`, err.stack);
@@ -77,11 +106,25 @@ export class CommunityChatGateway
   ) {
     try {
       this.logger.log(`sendCommunityMessage called for community ${payload.communityId}`);
+      
       const userId = client.data.user.sub;
-      this.logger.log(`User ID: ${userId}, text: ${payload.text}`);
-      const message = await this.chatService.sendMessage(userId, payload.communityId, { text: payload.text, replyToMessageId: payload.replyToMessageId });
+      this.logger.log(`User ${userId} sending message to community ${payload.communityId}`);
+      this.logger.log(`Message text: ${payload.text}`);
+      
+      const message = await this.chatService.sendMessage(
+        userId, 
+        payload.communityId, 
+        { text: payload.text, replyToMessageId: payload.replyToMessageId }
+      );
+      
+      this.logger.log(`Message created successfully: ${JSON.stringify(message)}`);
+      this.logger.log(`Broadcasting to room: community:${payload.communityId}`);
+      
+      // Broadcast
       this.io.to(`community:${payload.communityId}`).emit('newCommunityMessage', message);
-      this.logger.log(`Message sent by user ${userId} to community ${payload.communityId}`);
+      
+      this.logger.log(`Message successfully sent to community ${payload.communityId}`);
+      
       return message;
     } catch (err) {
       this.logger.error(`sendCommunityMessage error: ${err.message}`, err.stack);
