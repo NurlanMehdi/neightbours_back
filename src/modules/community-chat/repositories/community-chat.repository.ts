@@ -2,11 +2,14 @@ import {
   Injectable,
   ForbiddenException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class CommunityChatRepository {
+  private readonly logger = new Logger(CommunityChatRepository.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async isMember(userId: number, communityId: number): Promise<boolean> {
@@ -294,5 +297,53 @@ export class CommunityChatRepository {
       select: { userId: true },
     });
     return rows.map((r) => r.userId);
+  }
+
+  /**
+   * Получить количество непрочитанных сообщений для пользователя во всех его сообществах
+   */
+  async getUnreadCounts(
+    userId: number,
+  ): Promise<Array<{ communityId: number; unreadCount: number }>> {
+    // Найти все сообщества, в которых пользователь является членом
+    const memberships = await (this.prisma as any).usersOnCommunities.findMany({
+      where: { userId },
+      select: { communityId: true },
+    });
+    const communityIds = memberships.map((m) => m.communityId);
+    if (communityIds.length === 0) return [];
+
+    // Получить последнее время прочтения для каждого сообщества
+    const reads = await (this.prisma as any).communityRead.findMany({
+      where: {
+        userId,
+        communityId: { in: communityIds },
+      },
+      select: { communityId: true, readAt: true },
+    });
+    const readMap = new Map(reads.map((r) => [r.communityId, r.readAt]));
+
+    // Для каждого сообщества подсчитать непрочитанные сообщения
+    const results = await Promise.all(
+      communityIds.map(async (communityId) => {
+        const lastReadAt = readMap.get(communityId);
+        const where: any = {
+          communityId,
+          isDeleted: false,
+          isModerated: true,
+        };
+        if (lastReadAt) {
+          where.createdAt = { gt: lastReadAt };
+        }
+        const count = await (this.prisma as any).communityMessage.count({
+          where,
+        });
+        this.logger.debug(
+          `User ${userId} has ${count} unread messages in community ${communityId}`,
+        );
+        return { communityId, unreadCount: count };
+      }),
+    );
+    return results;
   }
 }

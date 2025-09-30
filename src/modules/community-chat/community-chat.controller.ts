@@ -125,4 +125,22 @@ export class CommunityChatController {
   ) {
     return this.service.updateSettings(adminId, communityId, dto);
   }
+
+  @Get('unread')
+  @ApiOperation({
+    summary: 'Получить количество непрочитанных сообщений по всем сообществам',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Список непрочитанных сообщений по сообществам',
+    schema: {
+      example: [
+        { communityId: 2, unreadCount: 5 },
+        { communityId: 3, unreadCount: 12 },
+      ],
+    },
+  })
+  async getUnreadCounts(@UserId() userId: number) {
+    return this.service.getUnreadCounts(userId);
+  }
 }

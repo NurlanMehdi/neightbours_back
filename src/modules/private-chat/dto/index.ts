@@ -1,5 +1,7 @@
 export * from './create-conversation.dto';
 export * from './send-private-message.dto';
+export * from './join-private-chat.dto';
+export * from './leave-private-chat.dto';
 export * from './mark-messages-read.dto';
 export * from './search-messages.dto';
 export * from './reply-message.dto';

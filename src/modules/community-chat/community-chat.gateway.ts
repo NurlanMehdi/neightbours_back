@@ -199,6 +199,31 @@ export class CommunityChatGateway
       const roomName = `community:${payload.communityId}`;
       this.io.to(roomName).emit('community:message', message);
       this.logger.log(`Сообщение отправлено в комнату ${roomName}`);
+
+      // Broadcast unread counts to all members of this community
+      try {
+        const memberIds = await this.chatRepository.getMemberIds(
+          payload.communityId,
+        );
+        for (const memberId of memberIds) {
+          const unreadCounts = await this.chatService.getUnreadCounts(memberId);
+          const memberSockets = this.userSockets.get(memberId);
+          if (memberSockets) {
+            for (const socketId of memberSockets) {
+              this.io.to(socketId).emit('community:unread', {
+                status: 'ok',
+                data: unreadCounts,
+              });
+            }
+          }
+        }
+        this.logger.debug(
+          `Обновлены счётчики непрочитанных для ${memberIds.length} членов сообщества ${payload.communityId}`,
+        );
+      } catch (error) {
+        this.logger.error(`Ошибка при обновлении счётчиков: ${error.message}`);
+      }
+
       return { status: 'sent', messageId: message.id };
     } catch (error) {
       this.logger.error(
@@ -206,6 +231,34 @@ export class CommunityChatGateway
       );
       this.logger.error(`Stack: ${error.stack}`);
       throw new WsException('Не удалось отправить сообщение');
+    }
+  }
+
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('community:unread')
+  async handleGetUnreadCounts(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload?: { communityIds?: number[] },
+  ): Promise<{ status: string; data: Array<{ communityId: number; unreadCount: number }> }> {
+    try {
+      const userId = client.data.user?.sub;
+      if (!userId) {
+        throw new WsException('Пользователь не аутентифицирован');
+      }
+      this.logger.log(
+        `Пользователь ${userId} запрашивает счётчики непрочитанных сообщений`,
+      );
+      const unreadCounts = await this.chatService.getUnreadCounts(userId);
+      this.logger.log(
+        `Найдено непрочитанных сообщений для пользователя ${userId}: ${JSON.stringify(unreadCounts)}`,
+      );
+      return { status: 'ok', data: unreadCounts };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при получении счётчиков непрочитанных: ${error.message}`,
+      );
+      this.logger.error(`Stack: ${error.stack}`);
+      throw new WsException('Не удалось получить счётчики непрочитанных');
     }
   }
 }
