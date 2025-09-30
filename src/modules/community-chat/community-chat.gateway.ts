@@ -92,7 +92,7 @@ export class CommunityChatGateway
   @SubscribeMessage('community:join')
   async handleJoinCommunity(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: JoinCommunityDto,
+    @MessageBody() payload: JoinCommunityDto | number,
   ): Promise<{ status: string; communityId: number }> {
     try {
       const userId = client.data.user?.sub;
@@ -100,12 +100,10 @@ export class CommunityChatGateway
         throw new WsException('Пользователь не аутентифицирован');
       }
 
-      // Extract and validate communityId from payload
-      const rawCommunityId: any = payload?.communityId;
-      const communityId =
-        typeof rawCommunityId === 'string'
-          ? Number(rawCommunityId)
-          : rawCommunityId;
+      // Extract and validate communityId from payload (number or { communityId })
+      const rawCommunityId: any =
+        typeof payload === 'number' ? payload : (payload as any)?.communityId;
+      const communityId = Number(rawCommunityId);
       if (!Number.isFinite(communityId)) {
         throw new WsException('communityId is required');
       }
@@ -127,13 +125,13 @@ export class CommunityChatGateway
       await this.chatRepository.isMember(userId, communityId);
       // Also trigger initial fetch to ensure chat exists
       await this.chatService.getMessages(userId, communityId, 1, 1);
-      const roomName = `community:${communityId}`;
+      const roomName = `community_${communityId}`;
       client.join(roomName);
       this.logger.log(
         `Пользователь ${userId} успешно присоединился к комнате ${roomName}`,
       );
       client.emit('community:joined', { communityId });
-      return { status: 'joined', communityId };
+      return { status: 'ok', communityId };
     } catch (error) {
       this.logger.error(`Ошибка при присоединении к сообществу: ${error.message}`);
       this.logger.error(`Stack: ${error.stack}`);
