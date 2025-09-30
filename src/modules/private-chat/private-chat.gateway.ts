@@ -8,6 +8,7 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { WsJwtAuthGuard } from '../../common/guards/ws-jwt-auth.guard';
@@ -59,13 +60,18 @@ export class PrivateChatGateway
   @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('identify')
   async identify(@ConnectedSocket() client: Socket) {
-    const userId = client.data.user.sub;
-    this.socketUser.set(client.id, userId);
-    if (!this.userSockets.has(userId)) this.userSockets.set(userId, new Set());
-    this.userSockets.get(userId)!.add(client.id);
-    client.join(`user:${userId}`);
-    this.logger.log(`User ${userId} identified on socket ${client.id}`);
-    return { status: 'ok' };
+    try {
+      const userId = client.data.user.sub;
+      this.socketUser.set(client.id, userId);
+      if (!this.userSockets.has(userId)) this.userSockets.set(userId, new Set());
+      this.userSockets.get(userId)!.add(client.id);
+      client.join(`user:${userId}`);
+      this.logger.log(`User ${userId} identified on socket ${client.id}`);
+      return { status: 'ok' };
+    } catch (err) {
+      this.logger.error(`identify error: ${err.message}`, err.stack);
+      throw new WsException(err.message || 'Ошибка при идентификации пользователя');
+    }
   }
 
   @UseGuards(WsJwtAuthGuard)
@@ -74,10 +80,16 @@ export class PrivateChatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { conversationId: number },
   ) {
-    const userId = client.data.user.sub;
-    await this.chatService.getMessages(userId, data.conversationId, 1, 1); // access check
-    client.join(`conversation:${data.conversationId}`);
-    return { status: 'joined', conversationId: data.conversationId };
+    try {
+      const userId = client.data.user.sub;
+      await this.chatService.getMessages(userId, data.conversationId, 1, 1); // access check
+      client.join(`conversation:${data.conversationId}`);
+      this.logger.log(`User ${userId} joined conversation ${data.conversationId}`);
+      return { status: 'joined', conversationId: data.conversationId };
+    } catch (err) {
+      this.logger.error(`joinConversation error: ${err.message}`, err.stack);
+      throw new WsException(err.message || 'Ошибка при подключении к диалогу');
+    }
   }
 
   @UseGuards(WsJwtAuthGuard)
@@ -87,25 +99,32 @@ export class PrivateChatGateway
     @MessageBody()
     payload: { text: string; conversationId?: number; receiverId?: number; replyToId?: number },
   ) {
-    const userId = client.data.user.sub;
-    const message = await this.chatService.sendMessage(userId, payload);
-    const convId = message.conversationId;
+    try {
+      const userId = client.data.user.sub;
+      this.logger.log(`sendPrivateMessage called by user ${userId}`);
+      const message = await this.chatService.sendMessage(userId, payload);
+      const convId = message.conversationId;
 
-    // Emit to conversation room and both users
-    this.io.to(`conversation:${convId}`).emit('newPrivateMessage', message);
+      // Emit to conversation room and both users
+      this.io.to(`conversation:${convId}`).emit('newPrivateMessage', message);
 
-    // determine receiver
-    let otherUserId: number | null = null;
-    if (payload.receiverId) {
-      otherUserId = payload.receiverId;
-    } else {
-      otherUserId = await this.chatService.getOtherParticipantId(convId, userId);
+      // determine receiver
+      let otherUserId: number | null = null;
+      if (payload.receiverId) {
+        otherUserId = payload.receiverId;
+      } else {
+        otherUserId = await this.chatService.getOtherParticipantId(convId, userId);
+      }
+
+      // emit to user rooms
+      this.io.to(`user:${userId}`).emit('newPrivateMessage', message);
+      if (otherUserId) this.io.to(`user:${otherUserId}`).emit('newPrivateMessage', message);
+      this.logger.log(`Message sent by user ${userId} to conversation ${convId}`);
+      return message;
+    } catch (err) {
+      this.logger.error(`sendPrivateMessage error: ${err.message}`, err.stack);
+      throw new WsException(err.message || 'Ошибка при отправке сообщения');
     }
-
-    // emit to user rooms
-    this.io.to(`user:${userId}`).emit('newPrivateMessage', message);
-    if (otherUserId) this.io.to(`user:${otherUserId}`).emit('newPrivateMessage', message);
-    return message;
   }
 
   @UseGuards(WsJwtAuthGuard)
@@ -114,12 +133,18 @@ export class PrivateChatGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { conversationId: number; upToMessageId?: number },
   ) {
-    const userId = client.data.user.sub;
-    const res = await this.chatService.markAsRead(userId, payload.conversationId, payload.upToMessageId);
-    // notify room about read receipt
-    this.io
-      .to(`conversation:${payload.conversationId}`)
-      .emit('messagesRead', { conversationId: payload.conversationId, userId, readAt: res.readAt });
-    return { success: true };
+    try {
+      const userId = client.data.user.sub;
+      const res = await this.chatService.markAsRead(userId, payload.conversationId, payload.upToMessageId);
+      // notify room about read receipt
+      this.io
+        .to(`conversation:${payload.conversationId}`)
+        .emit('messagesRead', { conversationId: payload.conversationId, userId, readAt: res.readAt });
+      this.logger.log(`User ${userId} marked conversation ${payload.conversationId} as read`);
+      return { success: true };
+    } catch (err) {
+      this.logger.error(`markRead error: ${err.message}`, err.stack);
+      throw new WsException(err.message || 'Ошибка при отметке сообщений как прочитанных');
+    }
   }
 }

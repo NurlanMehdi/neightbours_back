@@ -331,6 +331,122 @@ export class PrivateChatRepository {
     return message;
   }
 
+  /**
+   * Создает сообщение с автоматическим созданием диалога если необходимо.
+   * Все операции выполняются в транзакции.
+   * 
+   * @param params - параметры для создания сообщения
+   * @param params.senderId - ID отправителя
+   * @param params.receiverId - ID получателя
+   * @param params.text - текст сообщения
+   * @param params.replyToMessageId - ID сообщения, на которое отвечаем (опционально)
+   * @returns созданное сообщение с данными отправителя и replyTo
+   */
+  async createMessageWithAutoConversation(params: {
+    senderId: number;
+    receiverId: number;
+    text: string;
+    replyToMessageId?: number;
+  }) {
+    if (!Number.isInteger(params.receiverId) || params.receiverId <= 0) {
+      throw new BadRequestException('Некорректный receiverId');
+    }
+    if (params.senderId === params.receiverId) {
+      throw new ForbiddenException('Нельзя отправить сообщение самому себе');
+    }
+
+    const receiver = await this.prisma.users.findUnique({ where: { id: params.receiverId } });
+    if (!receiver) {
+      throw new NotFoundException('Получатель не найден');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const pairKey = this.buildPairKey(params.senderId, params.receiverId);
+      
+      let conversation = await tx.conversation.findUnique({
+        where: { pairKey },
+        select: { id: true },
+      });
+
+      if (!conversation) {
+        this.logger.debug(`Creating new conversation for users ${params.senderId} and ${params.receiverId}`);
+        conversation = await tx.conversation.create({
+          data: {
+            pairKey,
+            participants: {
+              createMany: {
+                data: [
+                  { userId: params.senderId },
+                  { userId: params.receiverId },
+                ],
+              },
+            },
+          },
+          select: { id: true },
+        });
+      } else {
+        const existingParticipants = await tx.conversationParticipant.findMany({
+          where: { conversationId: conversation.id },
+          select: { userId: true },
+        });
+        const existingIds = new Set(existingParticipants.map((p) => p.userId));
+        const toCreate: { conversationId: number; userId: number }[] = [];
+        
+        if (!existingIds.has(params.senderId)) {
+          toCreate.push({ conversationId: conversation.id, userId: params.senderId });
+        }
+        if (!existingIds.has(params.receiverId)) {
+          toCreate.push({ conversationId: conversation.id, userId: params.receiverId });
+        }
+        
+        if (toCreate.length > 0) {
+          this.logger.debug(`Adding missing participants to conversation ${conversation.id}`);
+          await tx.conversationParticipant.createMany({
+            data: toCreate,
+            skipDuplicates: true,
+          });
+        }
+      }
+
+      if (params.replyToMessageId) {
+        const repliedMessage = await tx.privateMessage.findUnique({
+          where: { id: params.replyToMessageId },
+          select: { id: true, conversationId: true },
+        });
+        
+        if (!repliedMessage) {
+          throw new NotFoundException('Сообщение для ответа не найдено');
+        }
+        
+        if (repliedMessage.conversationId !== conversation.id) {
+          throw new ForbiddenException('Нельзя отвечать на сообщение из другого диалога');
+        }
+      }
+
+      const message = await tx.privateMessage.create({
+        data: {
+          conversationId: conversation.id,
+          senderId: params.senderId,
+          text: params.text,
+          replyToId: params.replyToMessageId,
+        },
+        include: {
+          sender: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+          replyTo: {
+            select: { id: true, text: true, senderId: true, createdAt: true },
+          },
+        },
+      });
+
+      await tx.conversation.update({
+        where: { id: conversation.id },
+        data: { updatedAt: new Date() },
+      });
+
+      return message;
+    });
+  }
+
   async deleteConversation(conversationId: number, userId: number): Promise<void> {
     await this.ensureParticipant(conversationId, userId);
     await this.prisma.conversation.delete({ where: { id: conversationId } });
