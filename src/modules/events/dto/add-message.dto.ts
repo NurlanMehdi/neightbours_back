@@ -27,9 +27,14 @@ export class AddMessageDto {
   @IsNotEmpty()
   text: string;
 
-  @ApiPropertyOptional({ type: Number, description: 'ID of parent message being replied to' })
+  @ApiPropertyOptional({
+    type: Number,
+    description: 'ID of parent message being replied to',
+  })
   @IsOptional()
   @IsInt()
-  @Transform(({ value }) => (value === undefined ? undefined : parseInt(value, 10)))
+  @Transform(({ value }) =>
+    value === undefined ? undefined : parseInt(value, 10),
+  )
   replyToMessageId?: number;
 }

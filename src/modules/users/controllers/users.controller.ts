@@ -76,8 +76,6 @@ export class UsersController {
     return this.userService.findById(userId);
   }
 
-  
-
   @Patch('me')
   @Roles(UserRole.USER)
   @UseInterceptors(FileInterceptor('avatar'))

@@ -1,8 +1,33 @@
-import { Body, Controller, Get, InternalServerErrorException, Param, ParseIntPipe, Post, Query, UseGuards, HttpException, HttpCode, Delete } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  InternalServerErrorException,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards,
+  HttpException,
+  HttpCode,
+  Delete,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UserId } from '../../common/decorators/user-id.decorator';
 import { PrivateChatService } from './private-chat.service';
-import { CreateConversationDto, MarkMessagesReadDto, SearchMessagesDto, SendPrivateMessageDto, ReplyMessageDto, SuccessResponseDto } from './dto';
+import {
+  CreateConversationDto,
+  MarkMessagesReadDto,
+  SearchMessagesDto,
+  SendPrivateMessageDto,
+  ReplyMessageDto,
+  SuccessResponseDto,
+} from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Private Chat')
@@ -12,10 +37,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class PrivateChatController {
   constructor(private readonly service: PrivateChatService) {}
 
-  
-
   @Get('conversations')
-  @ApiOperation({ summary: 'Список диалогов с последним сообщением и количеством непрочитанных' })
+  @ApiOperation({
+    summary:
+      'Список диалогов с последним сообщением и количеством непрочитанных',
+  })
   @ApiResponse({ status: 200, description: 'Список диалогов успешно получен' })
   @ApiResponse({ status: 403, description: 'Доступ запрещен' })
   async getConversations(@UserId() userId: number) {
@@ -36,15 +62,18 @@ export class PrivateChatController {
     return this.service.getMessages(userId, id, page, limit);
   }
 
-  
-
   @Get('search')
   @ApiOperation({ summary: 'Поиск по тексту среди личных сообщений' })
   @ApiResponse({ status: 200, description: 'Результаты поиска' })
   @ApiResponse({ status: 400, description: 'Некорректный запрос' })
   @ApiResponse({ status: 403, description: 'Доступ запрещен' })
   async search(@UserId() userId: number, @Query() query: SearchMessagesDto) {
-    return this.service.searchMessages(userId, query.q, query.page, query.limit);
+    return this.service.searchMessages(
+      userId,
+      query.q,
+      query.page,
+      query.limit,
+    );
   }
 
   @Post('messages/:id/reply')
@@ -62,15 +91,26 @@ export class PrivateChatController {
   }
 
   @Post('messages')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Отправить приватное сообщение',
-    description: 'Отправляет приватное сообщение. Поведение зависит от глобальных настроек чата: если приватные чаты отключены, возвращает 403 Forbidden.'
+    description:
+      'Отправляет приватное сообщение. Поведение зависит от глобальных настроек чата: если приватные чаты отключены, возвращает 403 Forbidden.',
   })
   @ApiResponse({ status: 201, description: 'Сообщение успешно отправлено' })
-  @ApiResponse({ status: 400, description: 'Некорректные данные или сообщение слишком длинное' })
-  @ApiResponse({ status: 403, description: 'Нет доступа к диалогу или приватные чаты отключены администратором' })
+  @ApiResponse({
+    status: 400,
+    description: 'Некорректные данные или сообщение слишком длинное',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Нет доступа к диалогу или приватные чаты отключены администратором',
+  })
   @ApiResponse({ status: 404, description: 'Диалог или получатель не найден' })
-  async sendMessage(@UserId() userId: number, @Body() dto: SendPrivateMessageDto) {
+  async sendMessage(
+    @UserId() userId: number,
+    @Body() dto: SendPrivateMessageDto,
+  ) {
     return this.service.sendMessage(userId, dto);
   }
 
@@ -94,15 +134,26 @@ export class PrivateChatController {
   }
 
   @Post('conversations')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Создать приватный диалог (или вернуть существующий)',
-    description: 'Создает новый приватный диалог или возвращает существующий. Поведение зависит от глобальных настроек чата: если приватные чаты отключены, возвращает 403 Forbidden.'
+    description:
+      'Создает новый приватный диалог или возвращает существующий. Поведение зависит от глобальных настроек чата: если приватные чаты отключены, возвращает 403 Forbidden.',
   })
-  @ApiResponse({ status: 201, description: 'Диалог создан или возвращен существующий' })
+  @ApiResponse({
+    status: 201,
+    description: 'Диалог создан или возвращен существующий',
+  })
   @ApiResponse({ status: 400, description: 'Некорректные данные' })
-  @ApiResponse({ status: 403, description: 'Нельзя создать диалог с самим собой или приватные чаты отключены администратором' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Нельзя создать диалог с самим собой или приватные чаты отключены администратором',
+  })
   @ApiResponse({ status: 404, description: 'Пользователь не найден' })
-  async createConversation(@UserId() userId: number, @Body() dto: CreateConversationDto) {
+  async createConversation(
+    @UserId() userId: number,
+    @Body() dto: CreateConversationDto,
+  ) {
     try {
       return await this.service.createConversation(userId, dto.receiverId);
     } catch (e: any) {
@@ -113,7 +164,11 @@ export class PrivateChatController {
 
   @Delete('conversations/:id')
   @ApiOperation({ summary: 'Удалить приватный диалог' })
-  @ApiResponse({ status: 200, description: 'Диалог удален', type: SuccessResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Диалог удален',
+    type: SuccessResponseDto,
+  })
   @ApiResponse({ status: 403, description: 'Нет доступа к диалогу' })
   @ApiResponse({ status: 404, description: 'Диалог не найден' })
   async deleteConversation(
@@ -126,7 +181,11 @@ export class PrivateChatController {
 
   @Delete('messages/:id')
   @ApiOperation({ summary: 'Удалить сообщение' })
-  @ApiResponse({ status: 200, description: 'Сообщение удалено', type: SuccessResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Сообщение удалено',
+    type: SuccessResponseDto,
+  })
   @ApiResponse({ status: 403, description: 'Нет доступа к удалению' })
   @ApiResponse({ status: 404, description: 'Сообщение не найдено' })
   async deleteMessage(

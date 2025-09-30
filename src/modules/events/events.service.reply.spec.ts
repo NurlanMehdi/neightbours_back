@@ -20,13 +20,29 @@ describe('EventsService message replies', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EventsService,
-        { provide: EventsRepository, useValue: { findById: jest.fn(), isUserInCommunity: jest.fn() } },
-        { provide: EventMessagesRepository, useValue: { createMessage: jest.fn(), addMessage: jest.fn(), getEventMessages: jest.fn() } },
+        {
+          provide: EventsRepository,
+          useValue: { findById: jest.fn(), isUserInCommunity: jest.fn() },
+        },
+        {
+          provide: EventMessagesRepository,
+          useValue: {
+            createMessage: jest.fn(),
+            addMessage: jest.fn(),
+            getEventMessages: jest.fn(),
+          },
+        },
         { provide: VotingRepository, useValue: {} },
         { provide: NotificationEventService, useValue: {} },
         { provide: UserService, useValue: { findById: jest.fn() } },
-        { provide: PrismaService, useValue: { event: { findUnique: jest.fn() } } },
-        { provide: UnifiedMessageNotificationService, useValue: { processMessageNotification: jest.fn() } },
+        {
+          provide: PrismaService,
+          useValue: { event: { findUnique: jest.fn() } },
+        },
+        {
+          provide: UnifiedMessageNotificationService,
+          useValue: { processMessageNotification: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -39,15 +55,38 @@ describe('EventsService message replies', () => {
   });
 
   it('creates message with replyToMessageId', async () => {
-    eventsRepo.findById.mockResolvedValue({ id: 7, communityId: 3, title: 't', type: 'EVENT' } as any);
+    eventsRepo.findById.mockResolvedValue({
+      id: 7,
+      communityId: 3,
+      title: 't',
+      type: 'EVENT',
+    } as any);
     eventsRepo.isUserInCommunity.mockResolvedValue(true);
-    userService.findById.mockResolvedValue({ firstName: 'A', lastName: 'B' } as any);
-    (prisma.event.findUnique as any).mockResolvedValue({ participants: [], creator: { id: 1 } });
-    (eventMessages.createMessage as any).mockImplementation(async (_userId: number, _eventId: number, dto: any) => ({ id: 77, replyToMessageId: dto.replyToMessageId }));
+    userService.findById.mockResolvedValue({
+      firstName: 'A',
+      lastName: 'B',
+    } as any);
+    (prisma.event.findUnique as any).mockResolvedValue({
+      participants: [],
+      creator: { id: 1 },
+    });
+    (eventMessages.createMessage as any).mockImplementation(
+      async (_userId: number, _eventId: number, dto: any) => ({
+        id: 77,
+        replyToMessageId: dto.replyToMessageId,
+      }),
+    );
 
-    const res: any = await service.createMessage(1, 7, { text: 'hello', replyToMessageId: 10 } as any);
+    const res: any = await service.createMessage(1, 7, {
+      text: 'hello',
+      replyToMessageId: 10,
+    } as any);
     expect((res as any).replyToMessageId).toBe(10);
-    expect(eventMessages.createMessage).toHaveBeenCalledWith(1, 7, expect.objectContaining({ replyToMessageId: 10 }));
+    expect(eventMessages.createMessage).toHaveBeenCalledWith(
+      1,
+      7,
+      expect.objectContaining({ replyToMessageId: 10 }),
+    );
     expect(unified.processMessageNotification).toHaveBeenCalled();
   });
 });

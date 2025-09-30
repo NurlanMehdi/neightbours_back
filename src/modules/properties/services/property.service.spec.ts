@@ -46,7 +46,8 @@ describe('PropertyService (confirmation code on create)', () => {
     expect(propertyRepository.create).toHaveBeenCalled();
     const args = (propertyRepository.create as any).mock.calls[0][0];
     expect(args.confirmationCode).toMatch(/^\d{6}$/);
-    expect(new Date(args.confirmationCodeExpiresAt).getTime()).toBeGreaterThan(Date.now());
+    expect(new Date(args.confirmationCodeExpiresAt).getTime()).toBeGreaterThan(
+      Date.now(),
+    );
   });
 });
-

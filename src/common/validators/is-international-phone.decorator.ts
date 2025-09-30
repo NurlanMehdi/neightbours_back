@@ -10,7 +10,9 @@ import {
 } from 'class-validator';
 
 @ValidatorConstraint({ async: false })
-export class IsInternationalPhoneConstraint implements ValidatorConstraintInterface {
+export class IsInternationalPhoneConstraint
+  implements ValidatorConstraintInterface
+{
   validate(value: unknown): boolean {
     if (typeof value !== 'string') return false;
     return /^\+[1-9]\d{7,14}$/.test(value);

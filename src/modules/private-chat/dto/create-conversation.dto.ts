@@ -7,4 +7,3 @@ export class CreateConversationDto {
   @Min(1)
   receiverId: number;
 }
-

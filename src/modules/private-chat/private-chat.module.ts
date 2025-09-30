@@ -23,4 +23,3 @@ import { PrivateChatGateway } from './private-chat.gateway';
   exports: [PrivateChatService],
 })
 export class PrivateChatModule {}
-

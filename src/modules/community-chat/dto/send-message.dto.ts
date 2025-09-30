@@ -12,4 +12,3 @@ export class SendCommunityMessageDto {
   @IsInt()
   replyToMessageId?: number;
 }
-

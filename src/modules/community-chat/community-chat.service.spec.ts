@@ -51,13 +51,22 @@ describe('CommunityChatService', () => {
 
   it('should send a message and notify members', async () => {
     repo.isMember.mockResolvedValue(true);
-    repo.createMessageWithAutoChat.mockResolvedValue({ id: 10, communityId: 5, userId: 1, text: 'hi', user: { firstName: 'A', lastName: 'B' } } as any);
+    repo.createMessageWithAutoChat.mockResolvedValue({
+      id: 10,
+      communityId: 5,
+      userId: 1,
+      text: 'hi',
+      user: { firstName: 'A', lastName: 'B' },
+    } as any);
     repo.getMemberIds.mockResolvedValue([1, 2, 3]);
 
     const res = await service.sendMessage(1, 5, { text: 'hi' });
     expect(res.id).toBe(10);
     expect(notifications.createGlobalNotification).toHaveBeenCalled();
-    expect(gateway.broadcastNewMessage).toHaveBeenCalledWith(5, expect.any(Object));
+    expect(gateway.broadcastNewMessage).toHaveBeenCalledWith(
+      5,
+      expect.any(Object),
+    );
   });
 
   it('should mark messages as read', async () => {
@@ -70,12 +79,27 @@ describe('CommunityChatService', () => {
 
   it('should send a reply message', async () => {
     repo.isMember.mockResolvedValue(true);
-    repo.createMessageWithAutoChat.mockImplementation(async (p: any) => ({ id: 11, communityId: p.communityId, userId: p.userId, text: p.text, replyToMessageId: p.replyToMessageId, user: {} } as any));
+    repo.createMessageWithAutoChat.mockImplementation(
+      async (p: any) =>
+        ({
+          id: 11,
+          communityId: p.communityId,
+          userId: p.userId,
+          text: p.text,
+          replyToMessageId: p.replyToMessageId,
+          user: {},
+        }) as any,
+    );
     repo.getMemberIds.mockResolvedValue([1, 2]);
 
-    const res = await service.sendMessage(1, 5, { text: 'reply', replyToMessageId: 10 });
+    const res = await service.sendMessage(1, 5, {
+      text: 'reply',
+      replyToMessageId: 10,
+    });
     expect(res.replyToMessageId).toBe(10);
-    expect(repo.createMessageWithAutoChat).toHaveBeenCalledWith(expect.objectContaining({ replyToMessageId: 10 }));
+    expect(repo.createMessageWithAutoChat).toHaveBeenCalledWith(
+      expect.objectContaining({ replyToMessageId: 10 }),
+    );
   });
 
   it('should delete message', async () => {
@@ -98,16 +122,30 @@ describe('CommunityChatService', () => {
   it('auto-creates chat when sending first message', async () => {
     repo.isMember.mockResolvedValue(true);
     (repo.ensureChatExists as any).mockResolvedValue(null);
-    repo.createMessageWithAutoChat.mockResolvedValue({ id: 100, communityId: 7, userId: 1, text: 'first', user: {} } as any);
+    repo.createMessageWithAutoChat.mockResolvedValue({
+      id: 100,
+      communityId: 7,
+      userId: 1,
+      text: 'first',
+      user: {},
+    } as any);
     repo.getMemberIds.mockResolvedValue([1]);
     const res = await service.sendMessage(1, 7, { text: 'first' });
     expect(res.id).toBe(100);
-    expect(repo.createMessageWithAutoChat).toHaveBeenCalledWith(expect.objectContaining({ communityId: 7 }));
+    expect(repo.createMessageWithAutoChat).toHaveBeenCalledWith(
+      expect.objectContaining({ communityId: 7 }),
+    );
   });
 
   it('does not recreate chat if already exists', async () => {
     repo.isMember.mockResolvedValue(true);
-    repo.createMessageWithAutoChat.mockResolvedValue({ id: 101, communityId: 7, userId: 2, text: 'again', user: {} } as any);
+    repo.createMessageWithAutoChat.mockResolvedValue({
+      id: 101,
+      communityId: 7,
+      userId: 2,
+      text: 'again',
+      user: {},
+    } as any);
     repo.getMemberIds.mockResolvedValue([2]);
     const res = await service.sendMessage(2, 7, { text: 'again' });
     expect(res.id).toBe(101);

@@ -260,10 +260,19 @@ export class PropertiesController {
   @Post(':id/confirm')
   @ApiOperation({
     summary: 'Подтверждение объекта по коду',
-    description: 'Если код корректен и не просрочен — статус становится VERIFIED. Возвращает данные объекта с кодом подтверждения для владельца.',
+    description:
+      'Если код корректен и не просрочен — статус становится VERIFIED. Возвращает данные объекта с кодом подтверждения для владельца.',
   })
-  @ApiParam({ name: 'id', description: 'ID объекта недвижимости', type: 'number' })
-  @ApiResponse({ status: 200, description: 'Объект подтвержден (VERIFIED)', type: PropertyDto })
+  @ApiParam({
+    name: 'id',
+    description: 'ID объекта недвижимости',
+    type: 'number',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Объект подтвержден (VERIFIED)',
+    type: PropertyDto,
+  })
   @ApiResponse({ status: 400, description: 'Неверный или просроченный код' })
   @ApiResponse({ status: 404, description: 'Объект не найден' })
   async confirmProperty(
@@ -271,7 +280,11 @@ export class PropertiesController {
     @UserId() userId: number,
     @Body() dto: ConfirmPropertyDto,
   ): Promise<PropertyDto> {
-    return this.propertyConfirmationService.confirmProperty(id, userId, dto.code);
+    return this.propertyConfirmationService.confirmProperty(
+      id,
+      userId,
+      dto.code,
+    );
   }
 
   /**

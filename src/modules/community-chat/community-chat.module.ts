@@ -25,7 +25,11 @@ import { CommunityChatGateway } from './community-chat.gateway';
     }),
   ],
   controllers: [CommunityChatController],
-  providers: [CommunityChatService, CommunityChatRepository, CommunityChatGateway],
+  providers: [
+    CommunityChatService,
+    CommunityChatRepository,
+    CommunityChatGateway,
+  ],
   exports: [CommunityChatService, CommunityChatGateway],
 })
 export class CommunityChatModule {}

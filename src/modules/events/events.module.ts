@@ -27,7 +27,11 @@ import { ChatAdminModule } from '../chat-admin/chat-admin.module';
     PrismaModule,
     ChatAdminModule,
   ],
-  controllers: [EventsAdminController, EventsController, MessageNotificationDebugController],
+  controllers: [
+    EventsAdminController,
+    EventsController,
+    MessageNotificationDebugController,
+  ],
   providers: [
     EventsService,
     EventsRepository,

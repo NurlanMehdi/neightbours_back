@@ -43,7 +43,10 @@ export class UserInfoDto {
   avatar: string | null;
 
   @Expose()
-  @ApiProperty({ description: 'Дата создания', example: '2024-03-20T12:00:00Z' })
+  @ApiProperty({
+    description: 'Дата создания',
+    example: '2024-03-20T12:00:00Z',
+  })
   createdAt: Date;
 
   @Expose()
@@ -77,8 +80,7 @@ export class UserInfoDto {
   @Expose()
   @IsOptional()
   @ApiProperty({
-    description:
-      'Список общих сообществ с текущим пользователем (если есть)',
+    description: 'Список общих сообществ с текущим пользователем (если есть)',
     type: [CommunityShortDto],
     required: false,
     example: [

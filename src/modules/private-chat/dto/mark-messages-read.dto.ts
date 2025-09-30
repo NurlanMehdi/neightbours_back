@@ -7,10 +7,11 @@ export class MarkMessagesReadDto {
   @Min(1)
   conversationId: number;
 
-  @ApiPropertyOptional({ description: 'До какого сообщения отметить как прочитанные (включительно)' })
+  @ApiPropertyOptional({
+    description: 'До какого сообщения отметить как прочитанные (включительно)',
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
   upToMessageId?: number;
 }
-

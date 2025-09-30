@@ -14,13 +14,17 @@ export class PropertyConfirmationCronService {
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpired(): Promise<void> {
     try {
-      const deleted = await this.propertyConfirmationService.cleanupExpiredProperties();
+      const deleted =
+        await this.propertyConfirmationService.cleanupExpiredProperties();
       if (deleted > 0) {
-        this.logger.log(`Удалено просроченных неподтвержденных объектов: ${deleted}`);
+        this.logger.log(
+          `Удалено просроченных неподтвержденных объектов: ${deleted}`,
+        );
       }
     } catch (error) {
-      this.logger.error(`Ошибка очистки неподтвержденных объектов: ${error?.message || error}`);
+      this.logger.error(
+        `Ошибка очистки неподтвержденных объектов: ${error?.message || error}`,
+      );
     }
   }
 }
-

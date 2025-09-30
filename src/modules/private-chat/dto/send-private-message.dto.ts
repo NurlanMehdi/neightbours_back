@@ -19,10 +19,11 @@ export class SendPrivateMessageDto {
   @Min(1)
   receiverId?: number;
 
-  @ApiPropertyOptional({ description: 'ID сообщения, на которое формируется ответ' })
+  @ApiPropertyOptional({
+    description: 'ID сообщения, на которое формируется ответ',
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
   replyToId?: number;
 }
-

@@ -37,14 +37,24 @@ export class EventMessagesRepository {
             text: true,
             userId: true,
             createdAt: true,
-            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
           },
         },
       },
     });
   }
 
-  async addMessage(dto: AddMessageDto, isModerated?: boolean): Promise<EventMessage> {
+  async addMessage(
+    dto: AddMessageDto,
+    isModerated?: boolean,
+  ): Promise<EventMessage> {
     return (this.prisma as any).eventMessage.create({
       data: {
         text: dto.text,
@@ -68,7 +78,14 @@ export class EventMessagesRepository {
             text: true,
             userId: true,
             createdAt: true,
-            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
           },
         },
       },
@@ -101,7 +118,14 @@ export class EventMessagesRepository {
             text: true,
             userId: true,
             createdAt: true,
-            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
           },
         },
       },

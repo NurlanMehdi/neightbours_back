@@ -63,13 +63,18 @@ describe('PrivateChatService', () => {
         sender: { id: 1, firstName: 'Иван', lastName: 'Петров' },
       };
 
-      repo.createMessageWithAutoConversation.mockResolvedValue(mockMessage as any);
+      repo.createMessageWithAutoConversation.mockResolvedValue(
+        mockMessage as any,
+      );
       repo.findConversationById.mockResolvedValue({
         id: 1,
         participants: [{ userId: 1 }, { userId: 2 }],
       } as any);
 
-      const result = await service.sendMessage(1, { receiverId: 2, text: 'Привет!' });
+      const result = await service.sendMessage(1, {
+        receiverId: 2,
+        text: 'Привет!',
+      });
 
       expect(result).toBeDefined();
       expect(result.id).toBe(10);
@@ -100,7 +105,10 @@ describe('PrivateChatService', () => {
         participants: [{ userId: 1 }, { userId: 2 }],
       } as any);
 
-      const result = await service.sendMessage(1, { conversationId: 1, text: 'Ответ' });
+      const result = await service.sendMessage(1, {
+        conversationId: 1,
+        text: 'Ответ',
+      });
 
       expect(result).toBeDefined();
       expect(result.id).toBe(15);
@@ -124,7 +132,9 @@ describe('PrivateChatService', () => {
         replyTo: { id: 5, text: 'Исходное сообщение' },
       };
 
-      repo.createMessageWithAutoConversation.mockResolvedValue(mockMessage as any);
+      repo.createMessageWithAutoConversation.mockResolvedValue(
+        mockMessage as any,
+      );
       repo.findConversationById.mockResolvedValue({
         id: 1,
         participants: [{ userId: 1 }, { userId: 2 }],
@@ -155,7 +165,11 @@ describe('PrivateChatService', () => {
       } as any);
 
       await expect(
-        service.sendMessage(1, { conversationId: 1, text: 'Ответ', replyToId: 5 }),
+        service.sendMessage(1, {
+          conversationId: 1,
+          text: 'Ответ',
+          replyToId: 5,
+        }),
       ).rejects.toThrow(ForbiddenException);
 
       expect(repo.findMessageById).toHaveBeenCalledWith(5);
@@ -166,9 +180,9 @@ describe('PrivateChatService', () => {
       globalChatSettings.getMaxMessageLength.mockResolvedValue(100);
       const longText = 'a'.repeat(101);
 
-      await expect(service.sendMessage(1, { receiverId: 2, text: longText })).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.sendMessage(1, { receiverId: 2, text: longText }),
+      ).rejects.toThrow(BadRequestException);
 
       expect(repo.createMessageWithAutoConversation).not.toHaveBeenCalled();
     });
@@ -176,9 +190,9 @@ describe('PrivateChatService', () => {
     it('should throw ForbiddenException when private chats are disabled', async () => {
       globalChatSettings.isPrivateChatAllowed.mockResolvedValue(false);
 
-      await expect(service.sendMessage(1, { receiverId: 2, text: 'Привет' })).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.sendMessage(1, { receiverId: 2, text: 'Привет' }),
+      ).rejects.toThrow(ForbiddenException);
 
       expect(repo.createMessageWithAutoConversation).not.toHaveBeenCalled();
     });

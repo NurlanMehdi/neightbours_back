@@ -7,4 +7,3 @@ export class SearchMessagesDto {
   @IsNotEmpty()
   query: string;
 }
-

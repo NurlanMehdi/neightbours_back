@@ -1,4 +1,10 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
@@ -8,7 +14,8 @@ export class PrivateChatRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private buildPairKey(userAId: number, userBId: number): string {
-    const [minId, maxId] = userAId < userBId ? [userAId, userBId] : [userBId, userAId];
+    const [minId, maxId] =
+      userAId < userBId ? [userAId, userBId] : [userBId, userAId];
     return `${minId}_${maxId}`;
   }
 
@@ -20,7 +27,9 @@ export class PrivateChatRepository {
       throw new ForbiddenException('Нельзя создать диалог с самим собой');
     }
 
-    const receiver = await this.prisma.users.findUnique({ where: { id: otherUserId } });
+    const receiver = await this.prisma.users.findUnique({
+      where: { id: otherUserId },
+    });
     if (!receiver) {
       throw new NotFoundException('Пользователь не найден');
     }
@@ -32,7 +41,14 @@ export class PrivateChatRepository {
       include: {
         participants: {
           include: {
-            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
           },
         },
       },
@@ -44,10 +60,7 @@ export class PrivateChatRepository {
           pairKey,
           participants: {
             createMany: {
-              data: [
-                { userId },
-                { userId: otherUserId },
-              ],
+              data: [{ userId }, { userId: otherUserId }],
               skipDuplicates: true,
             },
           },
@@ -55,24 +68,45 @@ export class PrivateChatRepository {
         include: {
           participants: {
             include: {
-              user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  avatar: true,
+                },
+              },
             },
           },
         },
       });
     } else {
-      const existingIds = new Set(conversation.participants.map((p) => p.userId));
+      const existingIds = new Set(
+        conversation.participants.map((p) => p.userId),
+      );
       const toCreate: { conversationId: number; userId: number }[] = [];
-      if (!existingIds.has(userId)) toCreate.push({ conversationId: conversation.id, userId });
-      if (!existingIds.has(otherUserId)) toCreate.push({ conversationId: conversation.id, userId: otherUserId });
+      if (!existingIds.has(userId))
+        toCreate.push({ conversationId: conversation.id, userId });
+      if (!existingIds.has(otherUserId))
+        toCreate.push({ conversationId: conversation.id, userId: otherUserId });
       if (toCreate.length) {
-        await this.prisma.conversationParticipant.createMany({ data: toCreate, skipDuplicates: true });
+        await this.prisma.conversationParticipant.createMany({
+          data: toCreate,
+          skipDuplicates: true,
+        });
         conversation = await this.prisma.conversation.findUnique({
           where: { id: conversation.id },
           include: {
             participants: {
               include: {
-                user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    avatar: true,
+                  },
+                },
               },
             },
           },
@@ -108,7 +142,12 @@ export class PrivateChatRepository {
         participants: {
           include: {
             user: {
-              select: { id: true, firstName: true, lastName: true, avatar: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
             },
           },
         },
@@ -132,7 +171,9 @@ export class PrivateChatRepository {
         replyToId: params.replyToId,
       },
       include: {
-        sender: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+        sender: {
+          select: { id: true, firstName: true, lastName: true, avatar: true },
+        },
         replyTo: {
           select: { id: true, text: true, senderId: true, createdAt: true },
         },
@@ -148,12 +189,20 @@ export class PrivateChatRepository {
     return message;
   }
 
-  async getMessages(conversationId: number, page: number = 1, limit: number = 50) {
+  async getMessages(
+    conversationId: number,
+    page: number = 1,
+    limit: number = 50,
+  ) {
     return this.prisma.privateMessage.findMany({
       where: { conversationId },
       include: {
-        sender: { select: { id: true, firstName: true, lastName: true, avatar: true } },
-        replyTo: { select: { id: true, text: true, senderId: true, createdAt: true } },
+        sender: {
+          select: { id: true, firstName: true, lastName: true, avatar: true },
+        },
+        replyTo: {
+          select: { id: true, text: true, senderId: true, createdAt: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
@@ -167,15 +216,31 @@ export class PrivateChatRepository {
       include: {
         participants: {
           include: {
-            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
           },
         },
         messages: {
           orderBy: { createdAt: 'desc' },
           take: 1,
           include: {
-            sender: { select: { id: true, firstName: true, lastName: true, avatar: true } },
-            replyTo: { select: { id: true, text: true, senderId: true, createdAt: true } },
+            sender: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
+            replyTo: {
+              select: { id: true, text: true, senderId: true, createdAt: true },
+            },
           },
         },
       },
@@ -183,7 +248,11 @@ export class PrivateChatRepository {
     });
   }
 
-  async countUnread(conversationId: number, userId: number, lastReadAt?: Date | null) {
+  async countUnread(
+    conversationId: number,
+    userId: number,
+    lastReadAt?: Date | null,
+  ) {
     const where: any = {
       conversationId,
       senderId: { not: userId },
@@ -202,9 +271,11 @@ export class PrivateChatRepository {
     const participant = await this.ensureParticipant(conversationId, userId);
     const previousReadAt = participant.lastReadAt || new Date(0);
     let readUpTo = new Date();
-  
+
     if (upToMessageId) {
-      const upTo = await this.prisma.privateMessage.findUnique({ where: { id: upToMessageId } });
+      const upTo = await this.prisma.privateMessage.findUnique({
+        where: { id: upToMessageId },
+      });
       if (upTo && upTo.conversationId === conversationId) {
         readUpTo = upTo.createdAt;
       }
@@ -220,11 +291,11 @@ export class PrivateChatRepository {
         readUpTo = latestMessage.createdAt;
       }
     }
-  
+
     this.logger.debug(
       `[markAsRead] userId=${userId}, conversationId=${conversationId}, previousReadAt=${previousReadAt.toISOString()}, readUpTo=${readUpTo.toISOString()}`,
     );
-  
+
     const candidates = await this.prisma.privateMessage.findMany({
       where: {
         conversationId,
@@ -236,30 +307,34 @@ export class PrivateChatRepository {
     this.logger.debug(
       `[markAsRead] candidates: ${JSON.stringify(candidates.map((m) => ({ id: m.id, senderId: m.senderId, createdAt: m.createdAt })))}`,
     );
-  
+
     const candidateIds = candidates.map((m) => m.id);
     this.logger.debug(`[markAsRead] candidates count: ${candidateIds.length}`);
     let updated = 0;
-  
+
     if (candidateIds.length > 0) {
       const alreadySeen = await this.prisma.messageSeen.findMany({
         where: { userId, messageId: { in: candidateIds } },
         select: { messageId: true },
       });
       const seenSet = new Set(alreadySeen.map((s) => s.messageId));
-  
+
       const toInsert = candidateIds
         .filter((id) => !seenSet.has(id))
         .map((id) => ({ messageId: id, userId }));
 
       if (toInsert.length > 0) {
-        this.logger.debug(`[markAsRead] toInsert payload: ${JSON.stringify(toInsert)}`);
+        this.logger.debug(
+          `[markAsRead] toInsert payload: ${JSON.stringify(toInsert)}`,
+        );
         try {
           const result = await this.prisma.messageSeen.createMany({
             data: toInsert,
             skipDuplicates: true,
           });
-          this.logger.debug(`[markAsRead] createMany inserted count: ${result.count}`);
+          this.logger.debug(
+            `[markAsRead] createMany inserted count: ${result.count}`,
+          );
           updated = result.count ?? 0;
           if ((result.count ?? 0) === 0) {
             updated = candidateIds.length;
@@ -278,7 +353,7 @@ export class PrivateChatRepository {
         }
       }
     }
-  
+
     await this.prisma.conversationParticipant.upsert({
       where: { conversationId_userId: { conversationId, userId } },
       update: { lastReadAt: readUpTo },
@@ -287,12 +362,16 @@ export class PrivateChatRepository {
     this.logger.debug(
       `[markAsRead] lastReadAt updated for userId=${userId}, conversationId=${conversationId} -> ${readUpTo.toISOString()}`,
     );
-  
+
     return { updated, readAt: readUpTo };
   }
-  
 
-  async searchMessages(userId: number, q: string, page: number = 1, limit: number = 50) {
+  async searchMessages(
+    userId: number,
+    q: string,
+    page: number = 1,
+    limit: number = 50,
+  ) {
     // find conversation ids where user participates
     const convs = await this.prisma.conversationParticipant.findMany({
       where: { userId },
@@ -307,11 +386,22 @@ export class PrivateChatRepository {
         text: { contains: q, mode: 'insensitive' },
       },
       include: {
-        sender: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+        sender: {
+          select: { id: true, firstName: true, lastName: true, avatar: true },
+        },
         conversation: {
           include: {
             participants: {
-              include: { user: { select: { id: true, firstName: true, lastName: true, avatar: true } } },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    avatar: true,
+                  },
+                },
+              },
             },
           },
         },
@@ -334,7 +424,7 @@ export class PrivateChatRepository {
   /**
    * Создает сообщение с автоматическим созданием диалога если необходимо.
    * Все операции выполняются в транзакции.
-   * 
+   *
    * @param params - параметры для создания сообщения
    * @param params.senderId - ID отправителя
    * @param params.receiverId - ID получателя
@@ -355,21 +445,25 @@ export class PrivateChatRepository {
       throw new ForbiddenException('Нельзя отправить сообщение самому себе');
     }
 
-    const receiver = await this.prisma.users.findUnique({ where: { id: params.receiverId } });
+    const receiver = await this.prisma.users.findUnique({
+      where: { id: params.receiverId },
+    });
     if (!receiver) {
       throw new NotFoundException('Получатель не найден');
     }
 
     return this.prisma.$transaction(async (tx) => {
       const pairKey = this.buildPairKey(params.senderId, params.receiverId);
-      
+
       let conversation = await tx.conversation.findUnique({
         where: { pairKey },
         select: { id: true },
       });
 
       if (!conversation) {
-        this.logger.debug(`Creating new conversation for users ${params.senderId} and ${params.receiverId}`);
+        this.logger.debug(
+          `Creating new conversation for users ${params.senderId} and ${params.receiverId}`,
+        );
         conversation = await tx.conversation.create({
           data: {
             pairKey,
@@ -391,16 +485,24 @@ export class PrivateChatRepository {
         });
         const existingIds = new Set(existingParticipants.map((p) => p.userId));
         const toCreate: { conversationId: number; userId: number }[] = [];
-        
+
         if (!existingIds.has(params.senderId)) {
-          toCreate.push({ conversationId: conversation.id, userId: params.senderId });
+          toCreate.push({
+            conversationId: conversation.id,
+            userId: params.senderId,
+          });
         }
         if (!existingIds.has(params.receiverId)) {
-          toCreate.push({ conversationId: conversation.id, userId: params.receiverId });
+          toCreate.push({
+            conversationId: conversation.id,
+            userId: params.receiverId,
+          });
         }
-        
+
         if (toCreate.length > 0) {
-          this.logger.debug(`Adding missing participants to conversation ${conversation.id}`);
+          this.logger.debug(
+            `Adding missing participants to conversation ${conversation.id}`,
+          );
           await tx.conversationParticipant.createMany({
             data: toCreate,
             skipDuplicates: true,
@@ -413,13 +515,15 @@ export class PrivateChatRepository {
           where: { id: params.replyToMessageId },
           select: { id: true, conversationId: true },
         });
-        
+
         if (!repliedMessage) {
           throw new NotFoundException('Сообщение для ответа не найдено');
         }
-        
+
         if (repliedMessage.conversationId !== conversation.id) {
-          throw new ForbiddenException('Нельзя отвечать на сообщение из другого диалога');
+          throw new ForbiddenException(
+            'Нельзя отвечать на сообщение из другого диалога',
+          );
         }
       }
 
@@ -431,7 +535,9 @@ export class PrivateChatRepository {
           replyToId: params.replyToMessageId,
         },
         include: {
-          sender: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+          sender: {
+            select: { id: true, firstName: true, lastName: true, avatar: true },
+          },
           replyTo: {
             select: { id: true, text: true, senderId: true, createdAt: true },
           },
@@ -447,15 +553,21 @@ export class PrivateChatRepository {
     });
   }
 
-  async deleteConversation(conversationId: number, userId: number): Promise<void> {
+  async deleteConversation(
+    conversationId: number,
+    userId: number,
+  ): Promise<void> {
     await this.ensureParticipant(conversationId, userId);
     await this.prisma.conversation.delete({ where: { id: conversationId } });
   }
 
   async deleteMessage(messageId: number, userId: number): Promise<void> {
-    const message = await this.prisma.privateMessage.findUnique({ where: { id: messageId } });
+    const message = await this.prisma.privateMessage.findUnique({
+      where: { id: messageId },
+    });
     if (!message) throw new NotFoundException('Сообщение не найдено');
-    if (message.senderId !== userId) throw new ForbiddenException('Нет доступа к удалению сообщения');
+    if (message.senderId !== userId)
+      throw new ForbiddenException('Нет доступа к удалению сообщения');
     await this.prisma.privateMessage.delete({ where: { id: messageId } });
   }
 }

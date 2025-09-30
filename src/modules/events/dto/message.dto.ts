@@ -20,7 +20,7 @@ export class EventMessageDto {
   @ApiProperty() updatedAt: Date;
   @ApiProperty() eventId: number;
   @ApiProperty() userId: number;
-  @ApiPropertyOptional({ type: () => ReplyMessageDto }) replyTo?: ReplyMessageDto | null;
+  @ApiPropertyOptional({ type: () => ReplyMessageDto })
+  replyTo?: ReplyMessageDto | null;
   @ApiProperty({ type: EventMessageUserDto }) user: EventMessageUserDto;
 }
-
