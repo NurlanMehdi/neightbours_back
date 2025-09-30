@@ -63,59 +63,44 @@ export class CommunityChatGateway
 
   @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('joinCommunity')
-  async joinCommunity(
+  async handleJoinCommunity(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { communityId: number },
   ) {
     try {
-      this.logger.log(`joinCommunity called for community ${payload.communityId}`);
+      this.logger.log(`User attempting to join community ${payload.communityId}`);
       this.logger.log(`Client ID: ${client.id}`);
-      this.logger.log(`Payload received: ${JSON.stringify(payload)}`);
+      this.logger.log(`Raw payload: ${JSON.stringify(payload)}`);
       
-      // EventsGateway kimi - user məlumatını oxuyuruq
-      const userId = client.data.user?.sub;
-      if (!userId) {
-        this.logger.error('User data not found in client.data.user');
-        throw new WsException('Пользователь не авторизован');
-      }
-      
+      // Получаем userId из аутентифицированного пользователя
+      const userId = client.data.user.sub;
       this.logger.log(`User ${userId} joining community ${payload.communityId}`);
       
-      // İlk olaraq access yoxla
+      // Проверяем доступ - пользователь должен быть членом сообщества
       await this.chatService.getMessages(userId, payload.communityId, 1, 1);
       
-      // Room-a qoşul
+      // Присоединяем к комнате
       client.join(`community:${payload.communityId}`);
       
       this.logger.log(`User ${userId} successfully joined community ${payload.communityId}`);
       this.logger.log(`Current rooms for client ${client.id}: ${Array.from(client.rooms)}`);
       
-      const response = { 
-        status: 'joined', 
-        communityId: payload.communityId,
-        userId,
-        timestamp: new Date().toISOString()
-      };
-      
-      // Həm return edirik (callback üçün), həm də emit edirik (event üçün)
-      client.emit('joinedCommunity', response);
-      this.logger.log(`Sent joinedCommunity event with response: ${JSON.stringify(response)}`);
-      
-      return response;
-    } catch (err) {
-      this.logger.error(`joinCommunity error: ${err.message}`, err.stack);
-      throw new WsException(err.message || 'Ошибка при подключении к чату');
+      return { status: 'joined', communityId: payload.communityId };
+    } catch (error) {
+      this.logger.error(`Error joining community ${payload.communityId}: ${error.message}`);
+      this.logger.error(`Error stack: ${error.stack}`);
+      throw error;
     }
   }
 
   @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('sendCommunityMessage')
-  async sendCommunityMessage(
+  async handleSendCommunityMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { communityId: number; text: string; replyToMessageId?: number },
   ) {
     try {
-      this.logger.log(`sendCommunityMessage called for community ${payload.communityId}`);
+      this.logger.log(`User attempting to send message to community ${payload.communityId}`);
       
       const userId = client.data.user.sub;
       this.logger.log(`User ${userId} sending message to community ${payload.communityId}`);
@@ -127,18 +112,19 @@ export class CommunityChatGateway
         { text: payload.text, replyToMessageId: payload.replyToMessageId }
       );
       
-      this.logger.log(`Message created successfully: ${JSON.stringify(message)}`);
+      this.logger.log(`Message created successfully with ID: ${message.id}`);
       this.logger.log(`Broadcasting to room: community:${payload.communityId}`);
       
-      // Broadcast
+      // Отправляем всем в комнате
       this.io.to(`community:${payload.communityId}`).emit('newCommunityMessage', message);
       
-      this.logger.log(`Message successfully sent to community ${payload.communityId}`);
+      this.logger.log(`Message successfully broadcasted to community ${payload.communityId}`);
       
       return message;
-    } catch (err) {
-      this.logger.error(`sendCommunityMessage error: ${err.message}`, err.stack);
-      throw new WsException(err.message || 'Ошибка при отправке сообщения');
+    } catch (error) {
+      this.logger.error(`Error sending message to community ${payload.communityId}: ${error.message}`);
+      this.logger.error(`Error stack: ${error.stack}`);
+      throw error;
     }
   }
 }
