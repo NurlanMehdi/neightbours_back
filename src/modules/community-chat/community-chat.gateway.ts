@@ -1,4 +1,4 @@
-import { Inject, Logger, UseFilters, UseGuards, forwardRef } from '@nestjs/common';
+import { Logger, UseFilters, UseGuards } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -28,10 +28,7 @@ export class CommunityChatGateway
 {
   private readonly logger = new Logger(CommunityChatGateway.name);
   
-  constructor(
-    @Inject(forwardRef(() => CommunityChatService)) 
-    private readonly chatService: CommunityChatService
-  ) {}
+  constructor(private readonly chatService: CommunityChatService) {}
 
   @WebSocketServer() io: Server;
 
@@ -64,11 +61,6 @@ export class CommunityChatGateway
     }
   }
 
-  broadcastNewMessage(communityId: number, message: any) {
-    this.io.to(`community:${communityId}`).emit('newCommunityMessage', message);
-  }
-
-  // EventsGateway kimi - @UseGuards handler-də
   @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('joinCommunity')
   async joinCommunity(
@@ -77,9 +69,16 @@ export class CommunityChatGateway
   ) {
     try {
       this.logger.log(`joinCommunity called for community ${payload.communityId}`);
+      this.logger.log(`Client ID: ${client.id}`);
+      this.logger.log(`Payload received: ${JSON.stringify(payload)}`);
       
       // EventsGateway kimi - user məlumatını oxuyuruq
-      const userId = client.data.user.sub;
+      const userId = client.data.user?.sub;
+      if (!userId) {
+        this.logger.error('User data not found in client.data.user');
+        throw new WsException('Пользователь не авторизован');
+      }
+      
       this.logger.log(`User ${userId} joining community ${payload.communityId}`);
       
       // İlk olaraq access yoxla
@@ -91,7 +90,18 @@ export class CommunityChatGateway
       this.logger.log(`User ${userId} successfully joined community ${payload.communityId}`);
       this.logger.log(`Current rooms for client ${client.id}: ${Array.from(client.rooms)}`);
       
-      return { status: 'joined', communityId: payload.communityId };
+      const response = { 
+        status: 'joined', 
+        communityId: payload.communityId,
+        userId,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Həm return edirik (callback üçün), həm də emit edirik (event üçün)
+      client.emit('joinedCommunity', response);
+      this.logger.log(`Sent joinedCommunity event with response: ${JSON.stringify(response)}`);
+      
+      return response;
     } catch (err) {
       this.logger.error(`joinCommunity error: ${err.message}`, err.stack);
       throw new WsException(err.message || 'Ошибка при подключении к чату');
