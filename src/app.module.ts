@@ -22,6 +22,7 @@ import { FirebaseModule } from './firebase/firebase.module'; // ← BU SATIRI EK
 import { PrivateChatModule } from './modules/private-chat/private-chat.module';
 import { CommunityChatModule } from './modules/community-chat/community-chat.module';
 import { ChatAdminModule } from './modules/chat-admin/chat-admin.module';
+import { MessagesModule } from './modules/messages/messages.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { ChatAdminModule } from './modules/chat-admin/chat-admin.module';
     PrivateChatModule,
     CommunityChatModule,
     ChatAdminModule,
+    MessagesModule,
   ],
   controllers: [],
   providers: [JwtService],

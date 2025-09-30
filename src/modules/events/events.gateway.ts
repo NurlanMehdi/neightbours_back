@@ -8,6 +8,7 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  WsException,
 } from '@nestjs/websockets';
 
 import { Server, Socket } from 'socket.io';
@@ -15,6 +16,7 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { EventsService } from './events.service';
 import { WsJwtAuthGuard } from '../../common/guards/ws-jwt-auth.guard';
 import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
+import { AutoReadEventDto } from './dto/auto-read-event.dto';
 
 @WebSocketGateway({
   cors: {
@@ -51,6 +53,15 @@ export class EventsGateway
   handleConnection(client: Socket, ...args: any[]) {
     try {
       this.logger.log(`Client id: ${client.id} connected`);
+
+      // Инициализируем структуру авточтения
+      if (!client.data.autoRead) {
+        client.data.autoRead = {
+          events: new Set<number>(),
+          communities: new Set<number>(),
+          private: new Set<number>(),
+        };
+      }
 
       // Отправляем подтверждение подключения
       client.emit('connected', {
@@ -196,6 +207,33 @@ export class EventsGateway
       );
       this.logger.log(`Message content: ${message.text}`);
 
+      // Автоматически отмечаем как прочитанное для пользователей с включенным авточтением
+      const roomSockets = await this.io
+        .in(`event:${parsedData.eventId}`)
+        .fetchSockets();
+      for (const socket of roomSockets) {
+        const socketUserId = this.socketUser.get(socket.id);
+        if (
+          socketUserId &&
+          socketUserId !== userId &&
+          socket.data.autoRead?.events?.has(parsedData.eventId)
+        ) {
+          try {
+            await this.eventsService.markEventAsReadForUser(
+              socketUserId,
+              parsedData.eventId,
+            );
+            this.logger.log(
+              `Пользователь ${socketUserId} авточтение события ${parsedData.eventId} на ${new Date().toISOString()}`,
+            );
+          } catch (error) {
+            this.logger.error(
+              `Ошибка авточтения для пользователя ${socketUserId}: ${error.message}`,
+            );
+          }
+        }
+      }
+
       return message;
     } catch (error) {
       const eventId =
@@ -205,6 +243,78 @@ export class EventsGateway
       );
       this.logger.error(`Error stack: ${error.stack}`);
       throw error;
+    }
+  }
+
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('event:autoReadOn')
+  async handleAutoReadOn(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: AutoReadEventDto | number,
+  ): Promise<{ status: string; eventId: number }> {
+    try {
+      const userId = client.data.user?.sub;
+      if (!userId) {
+        throw new WsException('Пользователь не аутентифицирован');
+      }
+
+      const eventId =
+        typeof payload === 'number' ? payload : payload.eventId;
+
+      if (!client.data.autoRead) {
+        client.data.autoRead = {
+          events: new Set<number>(),
+          communities: new Set<number>(),
+          private: new Set<number>(),
+        };
+      }
+
+      client.data.autoRead.events.add(eventId);
+
+      await this.eventsService.markEventAsReadForUser(userId, eventId);
+
+      this.logger.log(
+        `Пользователь ${userId} включил авточтение для события ${eventId}`,
+      );
+
+      return { status: 'enabled', eventId };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при включении авточтения: ${error.message}`,
+      );
+      throw new WsException('Не удалось включить авточтение');
+    }
+  }
+
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('event:autoReadOff')
+  async handleAutoReadOff(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: AutoReadEventDto | number,
+  ): Promise<{ status: string; eventId: number }> {
+    try {
+      const userId = client.data.user?.sub;
+      if (!userId) {
+        throw new WsException('Пользователь не аутентифицирован');
+      }
+
+      const eventId =
+        typeof payload === 'number' ? payload : payload.eventId;
+
+      if (client.data.autoRead?.events) {
+        client.data.autoRead.events.delete(eventId);
+      }
+
+      this.logger.log(
+        `Пользователь ${userId} выключил авточтение для события ${eventId}`,
+      );
+
+      return { status: 'disabled', eventId };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при выключении авточтения: ${error.message}`,
+      );
+      throw new WsException('Не удалось выключить авточтение');
     }
   }
 }

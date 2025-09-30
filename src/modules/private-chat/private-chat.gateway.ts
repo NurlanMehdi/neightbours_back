@@ -17,6 +17,7 @@ import { PrivateChatService } from './private-chat.service';
 import { JoinPrivateChatDto } from './dto/join-private-chat.dto';
 import { LeavePrivateChatDto } from './dto/leave-private-chat.dto';
 import { SendPrivateMessageDto } from './dto/send-private-message.dto';
+import { AutoReadPrivateDto } from './dto/auto-read-private.dto';
 
 @WebSocketGateway({
   cors: {
@@ -52,6 +53,16 @@ export class PrivateChatGateway
   handleConnection(client: Socket): void {
     try {
       this.logger.log(`Клиент id: ${client.id} подключен`);
+
+      // Инициализируем структуру авточтения
+      if (!client.data.autoRead) {
+        client.data.autoRead = {
+          events: new Set<number>(),
+          communities: new Set<number>(),
+          private: new Set<number>(),
+        };
+      }
+
       client.emit('private:connected', {
         status: 'ok',
         clientId: client.id,
@@ -245,6 +256,31 @@ export class PrivateChatGateway
       // Отправляем сообщение всем участникам диалога
       this.io.to(roomName).emit('private:message', message);
       this.logger.log(`Сообщение отправлено в комнату ${roomName}`);
+
+      // Автоматически отмечаем как прочитанное для пользователей с включенным авточтением
+      const roomSockets = await this.io.in(roomName).fetchSockets();
+      for (const socket of roomSockets) {
+        const socketUserId = this.socketUser.get(socket.id);
+        if (
+          socketUserId &&
+          socketUserId !== userId &&
+          socket.data.autoRead?.private?.has(message.conversationId)
+        ) {
+          try {
+            await this.chatService.markPrivateAsReadForUser(
+              socketUserId,
+              message.conversationId,
+            );
+            this.logger.log(
+              `Пользователь ${socketUserId} авточтение приватного чата ${message.conversationId} на ${new Date().toISOString()}`,
+            );
+          } catch (error) {
+            this.logger.error(
+              `Ошибка авточтения для пользователя ${socketUserId}: ${error.message}`,
+            );
+          }
+        }
+      }
       
       return {
         status: 'sent',
@@ -257,6 +293,78 @@ export class PrivateChatGateway
       );
       this.logger.error(`Stack: ${error.stack}`);
       throw new WsException('Не удалось отправить сообщение');
+    }
+  }
+
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('private:autoReadOn')
+  async handleAutoReadOn(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: AutoReadPrivateDto | number,
+  ): Promise<{ status: string; conversationId: number }> {
+    try {
+      const userId = client.data.user?.sub;
+      if (!userId) {
+        throw new WsException('Пользователь не аутентифицирован');
+      }
+
+      const conversationId =
+        typeof payload === 'number' ? payload : payload.conversationId;
+
+      if (!client.data.autoRead) {
+        client.data.autoRead = {
+          events: new Set<number>(),
+          communities: new Set<number>(),
+          private: new Set<number>(),
+        };
+      }
+
+      client.data.autoRead.private.add(conversationId);
+
+      await this.chatService.markPrivateAsReadForUser(userId, conversationId);
+
+      this.logger.log(
+        `Пользователь ${userId} включил авточтение для приватного чата ${conversationId}`,
+      );
+
+      return { status: 'enabled', conversationId };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при включении авточтения: ${error.message}`,
+      );
+      throw new WsException('Не удалось включить авточтение');
+    }
+  }
+
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('private:autoReadOff')
+  async handleAutoReadOff(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: AutoReadPrivateDto | number,
+  ): Promise<{ status: string; conversationId: number }> {
+    try {
+      const userId = client.data.user?.sub;
+      if (!userId) {
+        throw new WsException('Пользователь не аутентифицирован');
+      }
+
+      const conversationId =
+        typeof payload === 'number' ? payload : payload.conversationId;
+
+      if (client.data.autoRead?.private) {
+        client.data.autoRead.private.delete(conversationId);
+      }
+
+      this.logger.log(
+        `Пользователь ${userId} выключил авточтение для приватного чата ${conversationId}`,
+      );
+
+      return { status: 'disabled', conversationId };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при выключении авточтения: ${error.message}`,
+      );
+      throw new WsException('Не удалось выключить авточтение');
     }
   }
 }
