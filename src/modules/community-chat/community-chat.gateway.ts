@@ -18,6 +18,7 @@ import { CommunityChatRepository } from './repositories/community-chat.repositor
 import { JoinCommunityDto } from './dto/join-community.dto';
 import { LeaveCommunityDto } from './dto/leave-community.dto';
 import { SendCommunityMessageDto } from './dto/send-community-message.dto';
+import { AutoReadCommunityDto } from './dto/auto-read-community.dto';
 
 @WebSocketGateway({
   cors: {
@@ -56,6 +57,16 @@ export class CommunityChatGateway
   handleConnection(client: Socket): void {
     try {
       this.logger.log(`Клиент id: ${client.id} подключен`);
+
+      // Инициализируем структуру авточтения
+      if (!client.data.autoRead) {
+        client.data.autoRead = {
+          events: new Set<number>(),
+          communities: new Set<number>(),
+          private: new Set<number>(),
+        };
+      }
+
       client.emit('community:connected', {
         status: 'ok',
         clientId: client.id,
@@ -200,6 +211,31 @@ export class CommunityChatGateway
       this.io.to(roomName).emit('community:message', message);
       this.logger.log(`Сообщение отправлено в комнату ${roomName}`);
 
+      // Автоматически отмечаем как прочитанное для пользователей с включенным авточтением
+      const roomSockets = await this.io.in(roomName).fetchSockets();
+      for (const socket of roomSockets) {
+        const socketUserId = this.socketUser.get(socket.id);
+        if (
+          socketUserId &&
+          socketUserId !== userId &&
+          socket.data.autoRead?.communities?.has(payload.communityId)
+        ) {
+          try {
+            await this.chatService.markCommunityAsReadForUser(
+              socketUserId,
+              payload.communityId,
+            );
+            this.logger.log(
+              `Пользователь ${socketUserId} авточтение сообщества ${payload.communityId} на ${new Date().toISOString()}`,
+            );
+          } catch (error) {
+            this.logger.error(
+              `Ошибка авточтения для пользователя ${socketUserId}: ${error.message}`,
+            );
+          }
+        }
+      }
+
       // Broadcast unread counts to all members of this community
       try {
         const memberIds = await this.chatRepository.getMemberIds(
@@ -259,6 +295,78 @@ export class CommunityChatGateway
       );
       this.logger.error(`Stack: ${error.stack}`);
       throw new WsException('Не удалось получить счётчики непрочитанных');
+    }
+  }
+
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('community:autoReadOn')
+  async handleAutoReadOn(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: AutoReadCommunityDto | number,
+  ): Promise<{ status: string; communityId: number }> {
+    try {
+      const userId = client.data.user?.sub;
+      if (!userId) {
+        throw new WsException('Пользователь не аутентифицирован');
+      }
+
+      const communityId =
+        typeof payload === 'number' ? payload : payload.communityId;
+
+      if (!client.data.autoRead) {
+        client.data.autoRead = {
+          events: new Set<number>(),
+          communities: new Set<number>(),
+          private: new Set<number>(),
+        };
+      }
+
+      client.data.autoRead.communities.add(communityId);
+
+      await this.chatService.markCommunityAsReadForUser(userId, communityId);
+
+      this.logger.log(
+        `Пользователь ${userId} включил авточтение для сообщества ${communityId}`,
+      );
+
+      return { status: 'enabled', communityId };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при включении авточтения: ${error.message}`,
+      );
+      throw new WsException('Не удалось включить авточтение');
+    }
+  }
+
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('community:autoReadOff')
+  async handleAutoReadOff(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: AutoReadCommunityDto | number,
+  ): Promise<{ status: string; communityId: number }> {
+    try {
+      const userId = client.data.user?.sub;
+      if (!userId) {
+        throw new WsException('Пользователь не аутентифицирован');
+      }
+
+      const communityId =
+        typeof payload === 'number' ? payload : payload.communityId;
+
+      if (client.data.autoRead?.communities) {
+        client.data.autoRead.communities.delete(communityId);
+      }
+
+      this.logger.log(
+        `Пользователь ${userId} выключил авточтение для сообщества ${communityId}`,
+      );
+
+      return { status: 'disabled', communityId };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при выключении авточтения: ${error.message}`,
+      );
+      throw new WsException('Не удалось выключить авточтение');
     }
   }
 }

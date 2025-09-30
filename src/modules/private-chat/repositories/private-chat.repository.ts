@@ -570,4 +570,27 @@ export class PrivateChatRepository {
       throw new ForbiddenException('Нет доступа к удалению сообщения');
     await this.prisma.privateMessage.delete({ where: { id: messageId } });
   }
+
+  /**
+   * Отмечает все сообщения приватного чата как прочитанные для пользователя с использованием DTO
+   */
+  async markPrivateAsReadByDto(
+    userId: number,
+    chatId: number,
+  ): Promise<void> {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: chatId },
+      select: { id: true },
+    });
+    if (!conversation) {
+      throw new NotFoundException('Чат не найден');
+    }
+    const participant = await this.prisma.conversationParticipant.findUnique({
+      where: { conversationId_userId: { conversationId: chatId, userId } },
+    });
+    if (!participant) {
+      throw new ForbiddenException('Пользователь не является частью этого чата');
+    }
+    await this.markAsRead(chatId, userId);
+  }
 }

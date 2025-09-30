@@ -199,4 +199,25 @@ export class PrivateChatService {
   async deleteMessage(currentUserId: number, messageId: number): Promise<void> {
     await this.repo.deleteMessage(messageId, currentUserId);
   }
+
+  /**
+   * Отметить все сообщения приватного чата как прочитанные
+   */
+  async markPrivateMessagesAsRead(
+    chatId: number,
+    userId: number,
+  ): Promise<void> {
+    await this.repo.markPrivateAsReadByDto(userId, chatId);
+  }
+
+  /**
+   * Отметить приватный чат как прочитанное для конкретного пользователя (для авточтения)
+   */
+  async markPrivateAsReadForUser(
+    userId: number,
+    conversationId: number,
+  ): Promise<void> {
+    await this.repo.ensureParticipant(conversationId, userId);
+    await this.repo.markAsRead(conversationId, userId);
+  }
 }

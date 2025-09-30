@@ -1174,4 +1174,25 @@ export class EventsService {
   async getUnreadMessages(userId: number): Promise<UnreadMessagesResponseDto> {
     return this.eventMessagesRepository.getUnreadMessagesGroupedByEvent(userId);
   }
+
+  /**
+   * Отмечает событие как прочитанное для конкретного пользователя (для авточтения)
+   */
+  async markEventAsReadForUser(userId: number, eventId: number): Promise<void> {
+    const event = await this.eventsRepository.findById(eventId);
+    if (!event) {
+      throw new EventNotFoundException();
+    }
+    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
+      userId,
+      event.communityId,
+    );
+    if (!isUserInCommunity) {
+      throw new UserNotInCommunityException();
+    }
+    await this.eventMessagesRepository.markEventAsRead(userId, eventId);
+    this.logger.log(
+      `Пользователь ${userId} авточтение события ${eventId} на ${new Date().toISOString()}`,
+    );
+  }
 }

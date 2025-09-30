@@ -122,4 +122,38 @@ export class CommunityChatService {
   async getUnreadCounts(userId: number) {
     return this.repo.getUnreadCounts(userId);
   }
+
+  /**
+   * Отметить все сообщения сообщества как прочитанные
+   */
+  async markCommunityMessagesAsRead(
+    communityId: number,
+    userId: number,
+  ): Promise<void> {
+    await this.repo.markCommunityAsReadByDto(userId, communityId);
+  }
+
+  /**
+   * Отметить сообщество как прочитанное для конкретного пользователя (для авточтения)
+   */
+  async markCommunityAsReadForUser(
+    userId: number,
+    communityId: number,
+  ): Promise<void> {
+    const isMember = await this.repo.isMember(userId, communityId);
+    if (!isMember) {
+      throw new ForbiddenException('Нет доступа');
+    }
+    await this.repo.markAsRead(userId, communityId);
+  }
+
+  /**
+   * Получает непрочитанные сообщения для пользователя, группированные по сообществам
+   */
+  async getUnreadCountsForUser(userId: number): Promise<{
+    count: Record<number, number>;
+    COMMUNITY: number;
+  }> {
+    return this.repo.getUnreadMessagesGroupedByCommunity(userId);
+  }
 }

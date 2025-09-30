@@ -346,4 +346,138 @@ export class CommunityChatRepository {
     );
     return results;
   }
+
+  /**
+   * Отмечает все сообщения сообщества как прочитанные для пользователя с использованием DTO
+   */
+  async markCommunityAsReadByDto(
+    userId: number,
+    communityId: number,
+  ): Promise<void> {
+    const community = await this.prisma.community.findUnique({
+      where: { id: communityId },
+      select: { id: true, isActive: true },
+    });
+    if (!community) {
+      throw new NotFoundException('Сообщество не найдено');
+    }
+    const isMember = await this.isMember(userId, communityId);
+    if (!isMember) {
+      throw new ForbiddenException(
+        'Пользователь не является членом сообщества',
+      );
+    }
+    await (this.prisma as any).communityRead.upsert({
+      where: {
+        userId_communityId: {
+          userId,
+          communityId,
+        },
+      },
+      update: {
+        readAt: new Date(),
+      },
+      create: {
+        userId,
+        communityId,
+        readAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Получает непрочитанные сообщения для пользователя, группированные по сообществам
+   */
+  async getUnreadMessagesGroupedByCommunity(userId: number): Promise<{
+    count: Record<string, number>;
+    COMMUNITY: number;
+  }> {
+    // Получаем сообщества с timestamp когда пользователь их прочитал
+    const readCommunities = await (this.prisma as any).communityRead.findMany({
+      where: { userId },
+      select: { communityId: true, readAt: true },
+    });
+
+    // Получаем сообщества, в которых пользователь является членом
+    const memberships = await (this.prisma as any).usersOnCommunities.findMany({
+      where: { userId },
+      select: { communityId: true },
+    });
+    const communityIds = memberships.map((m) => m.communityId);
+
+    // Если пользователь не является членом ни одного сообщества, возвращаем пустой результат
+    if (communityIds.length === 0) {
+      return {
+        count: {},
+        COMMUNITY: 0,
+      };
+    }
+
+    // Создаем map для быстрого поиска timestamps по communityId
+    const readAtMap = new Map(
+      readCommunities.map((read) => [read.communityId, read.readAt]),
+    );
+
+    // Получаем все сообщения из сообществ, в которых пользователь является членом
+    const messages = await (this.prisma as any).communityMessage.findMany({
+      where: {
+        // Исключаем сообщения самого пользователя
+        userId: { not: userId },
+        // Только из сообществ, в которых пользователь является членом
+        communityId: { in: communityIds },
+        // Только активные (не удаленные и модерированные) сообщения
+        isDeleted: false,
+        isModerated: true,
+      },
+      select: {
+        id: true,
+        communityId: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Фильтруем сообщения: показываем только те, что созданы ПОСЛЕ readAt timestamp
+    const unreadMessages = messages.filter((message) => {
+      const readAt = readAtMap.get(message.communityId);
+
+      // Если сообщество никогда не было прочитано - все сообщения непрочитанные
+      if (!readAt) {
+        return true;
+      }
+
+      // Сообщение непрочитанное если оно создано ПОСЛЕ последнего времени прочтения
+      return message.createdAt > readAt;
+    });
+
+    // Группируем и считаем непрочитанные сообщения по сообществам
+    const count: Record<string, number> = {};
+    let totalCommunityMessages = 0;
+
+    // Группируем ТОЛЬКО непрочитанные сообщения по communityId
+    const groupedByCommunity = unreadMessages.reduce(
+      (acc, message) => {
+        const communityId = message.communityId;
+        if (!acc[communityId]) {
+          acc[communityId] = 0;
+        }
+        acc[communityId]++;
+        return acc;
+      },
+      {} as Record<number, number>,
+    );
+
+    // Преобразуем в нужный формат и считаем общее количество
+    Object.entries(groupedByCommunity).forEach(
+      ([communityIdStr, messageCount]: [string, number]) => {
+        count[communityIdStr] = messageCount;
+        totalCommunityMessages += messageCount;
+      },
+    );
+
+    return {
+      count,
+      COMMUNITY: totalCommunityMessages,
+    };
+  }
 }

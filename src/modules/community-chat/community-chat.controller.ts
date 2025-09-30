@@ -29,6 +29,8 @@ import { SearchMessagesDto } from './dto/search.dto';
 import { CreateCommunityConversationDto } from './dto/create-conversation.dto';
 import { UpdateCommunityChatSettingsDto } from './dto/update-settings.dto';
 import { MarkCommunityReadDto } from './dto/mark-read.dto';
+import { MarkCommunityMessagesReadDto } from './dto/mark-community-messages-read.dto';
+import { UnreadCommunityMessagesResponseDto } from './dto/unread-community-messages.dto';
 
 @ApiTags('Community Chat')
 @ApiBearerAuth()
@@ -126,21 +128,66 @@ export class CommunityChatController {
     return this.service.updateSettings(adminId, communityId, dto);
   }
 
-  @Get('unread')
-  @ApiOperation({
-    summary: 'Получить количество непрочитанных сообщений по всем сообществам',
-  })
+  @Post('messages/read')
+  @ApiOperation({ summary: 'Отметить все сообщения сообщества как прочитанные' })
   @ApiResponse({
     status: 200,
-    description: 'Список непрочитанных сообщений по сообществам',
+    description: 'Сообщения успешно отмечены как прочитанные',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Сообщество не найдено',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Пользователь не является членом сообщества',
+  })
+  @HttpCode(200)
+  async markCommunityMessagesAsRead(
+    @Body() dto: MarkCommunityMessagesReadDto,
+  ): Promise<{ success: boolean }> {
+    await this.service.markCommunityMessagesAsRead(dto.communityId, dto.userId);
+    return { success: true };
+  }
+
+  @Get('messages/unread')
+  @ApiOperation({ summary: 'Получить непрочитанные сообщения по сообществам' })
+  @ApiResponse({
+    status: 200,
+    description: 'Группированные непрочитанные сообщения по сообществам',
+    type: UnreadCommunityMessagesResponseDto,
     schema: {
-      example: [
-        { communityId: 2, unreadCount: 5 },
-        { communityId: 3, unreadCount: 12 },
-      ],
+      type: 'object',
+      properties: {
+        count: {
+          type: 'object',
+          description:
+            'Объект с количеством непрочитанных сообщений по сообществам',
+          additionalProperties: {
+            type: 'number',
+            description: 'Количество непрочитанных сообщений для сообщества',
+          },
+          example: { '1': 12, '5': 7 },
+        },
+        COMMUNITY: {
+          type: 'number',
+          description:
+            'Общее количество непрочитанных сообщений во всех сообществах',
+          example: 19,
+        },
+      },
+      example: {
+        count: {
+          '1': 12,
+          '5': 7,
+        },
+        COMMUNITY: 19,
+      },
     },
   })
-  async getUnreadCounts(@UserId() userId: number) {
-    return this.service.getUnreadCounts(userId);
+  async getUnreadMessages(
+    @UserId() userId: number,
+  ): Promise<UnreadCommunityMessagesResponseDto> {
+    return this.service.getUnreadCountsForUser(userId);
   }
 }
