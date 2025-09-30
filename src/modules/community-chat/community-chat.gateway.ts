@@ -14,6 +14,7 @@ import { Server, Socket } from 'socket.io';
 import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
 import { WsJwtAuthGuard } from '../../common/guards/ws-jwt-auth.guard';
 import { CommunityChatService } from './community-chat.service';
+import { CommunityChatRepository } from './repositories/community-chat.repository';
 import { JoinCommunityDto } from './dto/join-community.dto';
 import { LeaveCommunityDto } from './dto/leave-community.dto';
 import { SendCommunityMessageDto } from './dto/send-community-message.dto';
@@ -36,7 +37,10 @@ export class CommunityChatGateway
   private userSockets: Map<number, Set<string>> = new Map();
   private socketUser: Map<string, number> = new Map();
 
-  constructor(private readonly chatService: CommunityChatService) {
+  constructor(
+    private readonly chatService: CommunityChatService,
+    private readonly chatRepository: CommunityChatRepository,
+  ) {
     this.logger.log('CommunityChatGateway конструктор вызван');
   }
 
@@ -95,26 +99,43 @@ export class CommunityChatGateway
       if (!userId) {
         throw new WsException('Пользователь не аутентифицирован');
       }
+
+      // Extract and validate communityId from payload
+      const rawCommunityId: any = payload?.communityId;
+      const communityId =
+        typeof rawCommunityId === 'string'
+          ? Number(rawCommunityId)
+          : rawCommunityId;
+      if (!Number.isFinite(communityId)) {
+        throw new WsException('communityId is required');
+      }
+
+      // Debug log before querying repository
+      this.logger.debug(
+        `handleJoinCommunity -> userId=${userId}, communityId=${communityId}`,
+      );
+
       this.logger.log(
-        `Пользователь ${userId} присоединяется к сообществу ${payload.communityId}`,
+        `Пользователь ${userId} присоединяется к сообществу ${communityId}`,
       );
       this.socketUser.set(client.id, userId);
       if (!this.userSockets.has(userId)) {
         this.userSockets.set(userId, new Set());
       }
       this.userSockets.get(userId).add(client.id);
-      await this.chatService.getMessages(userId, payload.communityId, 1, 1);
-      const roomName = `community:${payload.communityId}`;
+      // Ensure membership check explicitly passes both IDs to repository
+      await this.chatRepository.isMember(userId, communityId);
+      // Also trigger initial fetch to ensure chat exists
+      await this.chatService.getMessages(userId, communityId, 1, 1);
+      const roomName = `community:${communityId}`;
       client.join(roomName);
       this.logger.log(
         `Пользователь ${userId} успешно присоединился к комнате ${roomName}`,
       );
-      client.emit('community:joined', { communityId: payload.communityId });
-      return { status: 'joined', communityId: payload.communityId };
+      client.emit('community:joined', { communityId });
+      return { status: 'joined', communityId };
     } catch (error) {
-      this.logger.error(
-        `Ошибка при присоединении к сообществу ${payload.communityId}: ${error.message}`,
-      );
+      this.logger.error(`Ошибка при присоединении к сообществу: ${error.message}`);
       this.logger.error(`Stack: ${error.stack}`);
       throw new WsException('Не удалось присоединиться к сообществу');
     }
