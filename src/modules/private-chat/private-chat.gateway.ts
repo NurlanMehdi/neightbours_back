@@ -173,29 +173,87 @@ export class PrivateChatGateway
   async handleSendMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: SendPrivateMessageDto,
-  ): Promise<{ status: string; messageId: number }> {
+  ): Promise<{ status: string; messageId: number; conversationId: number }> {
     try {
       const userId = client.data.user?.sub;
       if (!userId) {
         throw new WsException('Пользователь не аутентифицирован');
       }
+      
+      // Валидация: должен быть указан либо conversationId, либо receiverId
+      if (!payload.conversationId && !payload.receiverId) {
+        throw new WsException(
+          'Требуется указать conversationId или receiverId',
+        );
+      }
+      
       this.logger.log(
-        `Пользователь ${userId} отправляет сообщение в приватный чат ${payload.conversationId}`,
+        `Пользователь ${userId} отправляет сообщение. conversationId=${payload.conversationId}, receiverId=${payload.receiverId}`,
       );
       this.logger.log(`Текст сообщения: ${payload.text}`);
+      
+      // Запоминаем, использовался ли receiverId для авто-создания
+      const isAutoConversation = !payload.conversationId && !!payload.receiverId;
+      
+      // Отправляем сообщение через сервис (автоматически создаст диалог если нужно)
       const message = await this.chatService.sendMessage(userId, {
         text: payload.text,
         conversationId: payload.conversationId,
+        receiverId: payload.receiverId,
         replyToId: payload.replyToMessageId,
       });
-      this.logger.log(`Сообщение создано с ID: ${message.id}`);
-      const roomName = `private:${payload.conversationId}`;
+      
+      this.logger.log(
+        `Сообщение создано с ID: ${message.id} в диалоге ${message.conversationId}`,
+      );
+      
+      const roomName = `private:${message.conversationId}`;
+      
+      // Автоматически присоединяем отправителя к комнате диалога, если он еще не в ней
+      if (!client.rooms.has(roomName)) {
+        client.join(roomName);
+        this.logger.log(
+          `Пользователь ${userId} автоматически присоединен к комнате ${roomName}`,
+        );
+        
+        // Отправляем подтверждение присоединения к комнате
+        client.emit('private:joined', { conversationId: message.conversationId });
+        this.logger.log(
+          `Отправлено подтверждение private:joined для conversationId=${message.conversationId}`,
+        );
+      }
+      
+      // Если получатель онлайн, автоматически присоединяем его к комнате
+      if (isAutoConversation && payload.receiverId) {
+        const receiverSockets = this.userSockets.get(payload.receiverId);
+        if (receiverSockets) {
+          receiverSockets.forEach((socketId) => {
+            const receiverSocket = this.io.sockets.sockets.get(socketId);
+            if (receiverSocket && !receiverSocket.rooms.has(roomName)) {
+              receiverSocket.join(roomName);
+              receiverSocket.emit('private:joined', {
+                conversationId: message.conversationId,
+              });
+              this.logger.log(
+                `Получатель ${payload.receiverId} автоматически присоединен к комнате ${roomName}`,
+              );
+            }
+          });
+        }
+      }
+      
+      // Отправляем сообщение всем участникам диалога
       this.io.to(roomName).emit('private:message', message);
       this.logger.log(`Сообщение отправлено в комнату ${roomName}`);
-      return { status: 'sent', messageId: message.id };
+      
+      return {
+        status: 'sent',
+        messageId: message.id,
+        conversationId: message.conversationId,
+      };
     } catch (error) {
       this.logger.error(
-        `Ошибка при отправке сообщения в приватный чат ${payload.conversationId}: ${error.message}`,
+        `Ошибка при отправке сообщения: ${error.message}`,
       );
       this.logger.error(`Stack: ${error.stack}`);
       throw new WsException('Не удалось отправить сообщение');
