@@ -38,39 +38,43 @@ export class PrivateChatService {
       throw new BadRequestException('Нужно указать conversationId или receiverId');
     }
 
-    let conversationId = params.conversationId;
-    let receiverId: number | null = null;
+    let message: any;
+    let conversationId: number;
 
-    if (!conversationId && params.receiverId) {
-      const conversation = await this.repo.getOrCreateConversation(currentUserId, params.receiverId);
-      conversationId = conversation.id;
-      receiverId = conversation.participants.find((p) => p.userId !== currentUserId)!.userId;
-    }
+    if (params.receiverId) {
+      message = await this.repo.createMessageWithAutoConversation({
+        senderId: currentUserId,
+        receiverId: params.receiverId,
+        text: params.text,
+        replyToMessageId: params.replyToId,
+      });
+      conversationId = message.conversationId;
+    } else if (params.conversationId) {
+      conversationId = params.conversationId;
+      await this.repo.ensureParticipant(conversationId, currentUserId);
 
-    if (!conversationId) throw new BadRequestException('conversationId не определен');
-
-    // access check
-    await this.repo.ensureParticipant(conversationId, currentUserId);
-
-    // validate replyTo belongs to same conversation
-    if (params.replyToId) {
-      const replied = await this.repo.findMessageById(params.replyToId);
-      if (replied.conversationId !== conversationId) {
-        throw new ForbiddenException('Нельзя отвечать на сообщение из другого диалога');
+      if (params.replyToId) {
+        const replied = await this.repo.findMessageById(params.replyToId);
+        if (replied.conversationId !== conversationId) {
+          throw new ForbiddenException('Нельзя отвечать на сообщение из другого диалога');
+        }
       }
-    }
 
-    const message = await this.repo.createMessage({
-      conversationId,
-      senderId: currentUserId,
-      text: params.text,
-      replyToId: params.replyToId,
-    });
+      message = await this.repo.createMessage({
+        conversationId,
+        senderId: currentUserId,
+        text: params.text,
+        replyToId: params.replyToId,
+      });
+    } else {
+      throw new BadRequestException('conversationId не определен');
+    }
 
     const conv = await this.repo.findConversationById(conversationId);
     const toUserIds = conv.participants
       .map((p) => p.userId)
       .filter((id) => id !== currentUserId);
+    
     if (toUserIds.length > 0) {
       const senderName = [message.sender?.firstName, message.sender?.lastName]
         .filter(Boolean)
