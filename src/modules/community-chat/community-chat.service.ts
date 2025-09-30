@@ -1,14 +1,12 @@
-import { Injectable, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { CommunityChatRepository } from './repositories/community-chat.repository';
 import { NotificationService } from '../notifications/services/notification.service';
-import { CommunityChatGateway } from './community-chat.gateway';
 
 @Injectable()
 export class CommunityChatService {
   constructor(
     private readonly repo: CommunityChatRepository,
     private readonly notifications: NotificationService,
-    @Inject(forwardRef(() => CommunityChatGateway)) private readonly gateway: CommunityChatGateway,
   ) {}
 
   async sendMessage(userId: number, communityId: number, params: { text: string; replyToMessageId?: number }) {
@@ -36,7 +34,6 @@ export class CommunityChatService {
       });
     }
 
-    this.gateway.broadcastNewMessage(communityId, message);
     return message;
   }
 
