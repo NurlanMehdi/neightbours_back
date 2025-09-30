@@ -24,7 +24,7 @@ import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
   transports: ['websocket'],
   pingTimeout: 60000,
   pingInterval: 25000,
-  namespace: '/events',
+  namespace: '/',
 })
 @UseFilters(WsExceptionFilter)
 export class EventsGateway
