@@ -20,7 +20,7 @@ import { PrivateChatService } from './private-chat.service';
   transports: ['websocket'],
   pingTimeout: 60000,
   pingInterval: 25000,
-  namespace: '/private-chat',
+  namespace: '/',
 })
 @UseFilters(WsExceptionFilter)
 export class PrivateChatGateway
