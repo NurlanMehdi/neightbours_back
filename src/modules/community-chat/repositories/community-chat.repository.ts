@@ -10,11 +10,13 @@ export class CommunityChatRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async isMember(userId: number, communityId: number): Promise<boolean> {
-    const rec = await (this.prisma as any).usersOnCommunities.findUnique({
-      where: { userId_communityId: { userId, communityId } },
+    const membership = await this.prisma.usersOnCommunities.findUnique({
+      where: {
+        userId_communityId: { userId, communityId },
+      },
       select: { userId: true },
     });
-    return !!rec;
+    return !!membership;
   }
 
   async isAdmin(userId: number): Promise<boolean> {
