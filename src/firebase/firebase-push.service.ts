@@ -35,7 +35,6 @@ export class FirebasePushService {
     data: IPushNotificationData,
   ): Promise<boolean> {
     try {
-
       if (!user.fcmToken) {
         this.logger.log(`FCM токен не найден для пользователя ${user.userId}`);
         return false;
@@ -88,9 +87,7 @@ export class FirebasePushService {
   ): Promise<{ successCount: number; failureCount: number }> {
     this.logger.log(`Отправка push-уведомлений ${users.length} пользователям`);
 
-    const enabledUsers = users.filter(
-      (user) => user.fcmToken,
-    );
+    const enabledUsers = users.filter((user) => user.fcmToken);
 
     if (enabledUsers.length === 0) {
       this.logger.log(

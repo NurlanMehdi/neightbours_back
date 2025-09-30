@@ -90,9 +90,7 @@ export class UserRepository {
    * Используется для легковесных ответов и проверок существования
    */
   async findBasicById(id: number): Promise<any | null> {
-    this.logger.log(
-      `Репозиторий: базовый поиск пользователя с id: ${id}.`,
-    );
+    this.logger.log(`Репозиторий: базовый поиск пользователя с id: ${id}.`);
     return this.prisma.users.findUnique({
       where: { id },
       select: {

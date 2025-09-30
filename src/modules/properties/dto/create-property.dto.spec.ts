@@ -56,8 +56,8 @@ describe('CreatePropertyDto', () => {
     expect(errors).toHaveLength(0);
     expect(dto.latitude).toBe(55.7558);
     expect(dto.longitude).toBe(37.6176);
-    expect(dto.userLatitude).toBe(55.7560);
-    expect(dto.userLongitude).toBe(37.6180);
+    expect(dto.userLatitude).toBe(55.756);
+    expect(dto.userLongitude).toBe(37.618);
   });
 
   it('should reject invalid latitude format', async () => {

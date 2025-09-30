@@ -1,4 +1,10 @@
-import { Injectable, ForbiddenException, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PropertyRepository } from '../repositories/property.repository';
 import { NotificationService } from '../../notifications/services/notification.service';
@@ -19,20 +25,28 @@ export class PropertyConfirmationService {
 
   // Note: Code generation on creation is handled in PropertyService
 
-  async confirmProperty(propertyId: number, userId: number, code: string): Promise<PropertyDto> {
+  async confirmProperty(
+    propertyId: number,
+    userId: number,
+    code: string,
+  ): Promise<PropertyDto> {
     const property = await this.propertyRepository.findById(propertyId);
     if (!property || !property.isActive) {
       throw new NotFoundException(`Объект с ID ${propertyId} не найден`);
     }
-    const currentStatus = ((property as any).verificationStatus || '') as string;
+    const currentStatus = ((property as any).verificationStatus ||
+      '') as string;
     if (currentStatus === 'VERIFIED') {
       // idempotent: already verified - return current property data
-      const updatedProperty = await this.propertyRepository.findByIdWithVerifications(propertyId);
+      const updatedProperty =
+        await this.propertyRepository.findByIdWithVerifications(propertyId);
       return this.transformToUserDto(updatedProperty, userId);
     }
 
     const storedCode = (property as any).confirmationCode as string | undefined;
-    const expiresAt = (property as any).confirmationCodeExpiresAt as Date | undefined;
+    const expiresAt = (property as any).confirmationCodeExpiresAt as
+      | Date
+      | undefined;
     if (!storedCode || !expiresAt) {
       throw new BadRequestException('Код подтверждения не найден');
     }
@@ -87,7 +101,8 @@ export class PropertyConfirmationService {
     }
 
     // Return updated property data
-    const updatedProperty = await this.propertyRepository.findByIdWithVerifications(propertyId);
+    const updatedProperty =
+      await this.propertyRepository.findByIdWithVerifications(propertyId);
     return this.transformToUserDto(updatedProperty, userId);
   }
 
@@ -112,7 +127,10 @@ export class PropertyConfirmationService {
   /**
    * Трансформирует данные объекта в DTO для пользователей
    */
-  private transformToUserDto(property: any, requestingUserId?: number): PropertyDto {
+  private transformToUserDto(
+    property: any,
+    requestingUserId?: number,
+  ): PropertyDto {
     const createdBy = property.user
       ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
       : '';
@@ -124,7 +142,8 @@ export class PropertyConfirmationService {
     const verificationCount = property.verifications?.length || 0;
 
     // Определяем статус проверки на основе количества подтверждений (как в /properties/my)
-    const verificationStatus = verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
+    const verificationStatus =
+      verificationCount >= 2 ? 'VERIFIED' : 'UNVERIFIED';
 
     // Определяем статус кодового подтверждения
     let confirmationStatus = 'PENDING';

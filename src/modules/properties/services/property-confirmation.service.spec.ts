@@ -18,10 +18,12 @@ describe('PropertyConfirmationService', () => {
         upsert: jest.fn(),
         count: jest.fn(),
       },
-      $transaction: jest.fn((callback) => callback({
-        property: prisma.property,
-        propertyVerification: prisma.propertyVerification,
-      })),
+      $transaction: jest.fn((callback) =>
+        callback({
+          property: prisma.property,
+          propertyVerification: prisma.propertyVerification,
+        }),
+      ),
     } as any;
 
     repo = {
@@ -29,17 +31,21 @@ describe('PropertyConfirmationService', () => {
       findByIdWithVerifications: jest.fn(),
     } as any;
 
-    service = new PropertyConfirmationService(prisma as any, repo as any, notificationService as any);
+    service = new PropertyConfirmationService(
+      prisma as any,
+      repo as any,
+      notificationService as any,
+    );
   });
 
   it('confirms property with valid code -> VERIFIED', async () => {
     const expiresAt = new Date(Date.now() + 60_000);
-    const mockProperty = { 
-      id: 1, 
-      isActive: true, 
-      verificationStatus: 'UNVERIFIED', 
-      userId: 10, 
-      confirmationCode: '123456', 
+    const mockProperty = {
+      id: 1,
+      isActive: true,
+      verificationStatus: 'UNVERIFIED',
+      userId: 10,
+      confirmationCode: '123456',
       confirmationCodeExpiresAt: expiresAt,
       name: 'Test Property',
       category: 'PRIVATE_HOUSE',
@@ -49,9 +55,9 @@ describe('PropertyConfirmationService', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       user: { firstName: 'John', lastName: 'Doe' },
-      verifications: []
+      verifications: [],
     } as any;
-    
+
     (repo.findById as any).mockResolvedValue(mockProperty);
     (repo.findByIdWithVerifications as any).mockResolvedValue(mockProperty);
     (prisma.property.update as any).mockResolvedValue({});
@@ -88,7 +94,14 @@ describe('PropertyConfirmationService', () => {
 
   it('throws error on wrong code', async () => {
     const expiresAt = new Date(Date.now() + 60_000);
-    (repo.findById as any).mockResolvedValue({ id: 1, isActive: true, verificationStatus: 'UNVERIFIED', userId: 10, confirmationCode: '999999', confirmationCodeExpiresAt: expiresAt } as any);
+    (repo.findById as any).mockResolvedValue({
+      id: 1,
+      isActive: true,
+      verificationStatus: 'UNVERIFIED',
+      userId: 10,
+      confirmationCode: '999999',
+      confirmationCodeExpiresAt: expiresAt,
+    } as any);
     await expect(service.confirmProperty(1, 10, '000000')).rejects.toBeTruthy();
   });
 

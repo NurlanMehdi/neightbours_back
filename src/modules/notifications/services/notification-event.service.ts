@@ -163,7 +163,7 @@ export class NotificationEventService {
     senderName: string;
   }): Promise<void> {
     const eventData: ISystemEventData = {
-      eventType: SystemEventType.USER_MENTIONED,  
+      eventType: SystemEventType.USER_MENTIONED,
       relatedEntityId: data.eventId,
       relatedEntityType: 'event',
       additionalData: {
@@ -301,9 +301,10 @@ export class NotificationEventService {
       return;
     }
 
-    const title = data.eventType === 'NOTIFICATION' 
-      ? `Оповещение "${data.eventTitle}"`
-      : `Мероприятие "${data.eventTitle}"`;
+    const title =
+      data.eventType === 'NOTIFICATION'
+        ? `Оповещение "${data.eventTitle}"`
+        : `Мероприятие "${data.eventTitle}"`;
 
     const message = `${data.authorName}: ${data.messageText}`;
 

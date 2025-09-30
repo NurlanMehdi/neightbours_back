@@ -12,7 +12,12 @@ import { GeoModerationModule } from '../geo-moderation/geo-moderation.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, MulterConfigModule, GeoModerationModule, NotificationsModule],
+  imports: [
+    PrismaModule,
+    MulterConfigModule,
+    GeoModerationModule,
+    NotificationsModule,
+  ],
   controllers: [PropertiesAdminController, PropertiesController],
   providers: [
     PropertyService,

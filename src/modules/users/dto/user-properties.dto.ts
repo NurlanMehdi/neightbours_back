@@ -8,7 +8,10 @@ export class UserPropertyResponseDto {
   id: number;
 
   @Expose()
-  @ApiProperty({ description: 'Название объекта недвижимости', example: 'Дом у озера' })
+  @ApiProperty({
+    description: 'Название объекта недвижимости',
+    example: 'Дом у озера',
+  })
   name: string;
 
   @Expose()

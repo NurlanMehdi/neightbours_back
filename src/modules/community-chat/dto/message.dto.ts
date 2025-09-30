@@ -14,7 +14,7 @@ export class CommunityMessageDto {
   @ApiProperty() text: string;
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
-  @ApiPropertyOptional({ description: 'Родительское сообщение' }) replyTo?: Partial<CommunityMessageDto> | null;
+  @ApiPropertyOptional({ description: 'Родительское сообщение' })
+  replyTo?: Partial<CommunityMessageDto> | null;
   @ApiProperty({ type: MessageUserDto }) user: MessageUserDto;
 }
-

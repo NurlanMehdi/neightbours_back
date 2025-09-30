@@ -14,4 +14,3 @@ export class CommunityShortDto {
   })
   name: string;
 }
-

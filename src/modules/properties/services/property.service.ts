@@ -63,8 +63,12 @@ export class PropertyService {
     };
     console.log('Property data to create:', propertyData);
     // Generate confirmation code and expiry
-    const confirmationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const confirmationCodeExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const confirmationCode = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
+    const confirmationCodeExpiresAt = new Date(
+      Date.now() + 24 * 60 * 60 * 1000,
+    );
     const property = await this.propertyRepository.create({
       ...propertyData,
       confirmationCode,
@@ -445,8 +449,12 @@ export class PropertyService {
       userId,
     };
     // Автоматически генерируем код подтверждения и срок истечения
-    propertyData.confirmationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    propertyData.confirmationCodeExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    propertyData.confirmationCode = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
+    propertyData.confirmationCodeExpiresAt = new Date(
+      Date.now() + 24 * 60 * 60 * 1000,
+    );
 
     const property = await this.propertyRepository.create(propertyData);
     return this.transformToUserDto(property);
@@ -492,7 +500,10 @@ export class PropertyService {
   /**
    * Трансформирует данные объекта в DTO для пользователей
    */
-  public transformToUserDto(property: any, requestingUserId?: number): PropertyDto {
+  public transformToUserDto(
+    property: any,
+    requestingUserId?: number,
+  ): PropertyDto {
     const createdBy = property.user
       ? `${property.user.firstName || ''} ${property.user.lastName || ''}`.trim()
       : '';
@@ -631,7 +642,10 @@ export class PropertyService {
         },
       });
     } catch (error) {
-      console.error('Ошибка создания уведомления о подтверждении объекта:', error);
+      console.error(
+        'Ошибка создания уведомления о подтверждении объекта:',
+        error,
+      );
     }
 
     // Возвращаем обновленный объект

@@ -223,7 +223,10 @@ export class UserService {
     }
 
     const requestedCommunitiesMap = new Map<number, string>(
-      (requested.Communities || []).map((c: any) => [c.community.id, c.community.name]),
+      (requested.Communities || []).map((c: any) => [
+        c.community.id,
+        c.community.name,
+      ]),
     );
     const currentCommunityIds = new Set<number>(
       (current.Communities || []).map((c: any) => c.community.id),
@@ -825,10 +828,16 @@ export class UserService {
     });
 
     // Получаем созданный объект с полной информацией о подтверждениях
-    const propertyWithVerifications = await this.propertyRepository.findByIdWithVerifications(createdProperty.id);
-    
+    const propertyWithVerifications =
+      await this.propertyRepository.findByIdWithVerifications(
+        createdProperty.id,
+      );
+
     // Используем тот же метод трансформации, что и в /properties/my
-    return this.propertyService.transformToUserDto(propertyWithVerifications, userId);
+    return this.propertyService.transformToUserDto(
+      propertyWithVerifications,
+      userId,
+    );
   }
 
   /**
@@ -1097,7 +1106,8 @@ export class UserService {
             latitude: property.latitude,
             longitude: property.longitude,
             photo: property.photo,
-            verificationStatus: property.verifications?.length >= 2 ? 'VERIFIED' : 'UNVERIFIED',
+            verificationStatus:
+              property.verifications?.length >= 2 ? 'VERIFIED' : 'UNVERIFIED',
             verificationCount: property.verifications?.length || 0,
             verifiedUserIds:
               property.verifications?.map(

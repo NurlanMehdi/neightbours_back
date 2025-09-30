@@ -11,4 +11,3 @@ export class UpdateCommunityChatSettingsDto {
   @IsOptional()
   settings?: Record<string, any>;
 }
-

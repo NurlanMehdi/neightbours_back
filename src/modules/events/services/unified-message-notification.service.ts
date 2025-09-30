@@ -33,11 +33,14 @@ interface INotificationDeduplicationEntry {
 @Injectable()
 export class UnifiedMessageNotificationService {
   private readonly logger = new Logger(UnifiedMessageNotificationService.name);
-  
+
   // In-memory deduplication cache - очищается через 1 час
-  private readonly notificationCache = new Map<string, INotificationDeduplicationEntry>();
+  private readonly notificationCache = new Map<
+    string,
+    INotificationDeduplicationEntry
+  >();
   private readonly CACHE_TTL_MS = 60 * 60 * 1000; // 1 час
-  
+
   constructor(
     private readonly notificationEventService: NotificationEventService,
     private readonly userService: UserService,
@@ -56,15 +59,17 @@ export class UnifiedMessageNotificationService {
     data: IMessageNotificationData,
   ): Promise<void> {
     const requestId = data.requestId || this.generateRequestId();
-    
+
     this.logger.log(
       `[${requestId}] Обработка уведомления о сообщении ${data.messageId} от пользователя ${data.authorId} в событии ${data.eventId} (источник: ${data.source})`,
     );
 
     try {
       // Получаем список участников, исключая автора сообщения
-      const recipientIds = data.participantIds.filter(id => id !== data.authorId);
-      
+      const recipientIds = data.participantIds.filter(
+        (id) => id !== data.authorId,
+      );
+
       if (recipientIds.length === 0) {
         this.logger.log(`[${requestId}] Нет получателей для уведомления`);
         return;
@@ -111,7 +116,6 @@ export class UnifiedMessageNotificationService {
       this.logger.log(
         `[${requestId}] Успешно отправлены уведомления о сообщении ${data.messageId} для ${uniqueRecipientIds.length} получателей`,
       );
-
     } catch (error) {
       this.logger.error(
         `[${requestId}] Ошибка обработки уведомления о сообщении ${data.messageId}: ${error.message}`,
@@ -139,13 +143,15 @@ export class UnifiedMessageNotificationService {
 
       if (existingEntry) {
         // Проверяем, не истек ли TTL
-        const isExpired = (currentTime.getTime() - existingEntry.timestamp.getTime()) > this.CACHE_TTL_MS;
-        
+        const isExpired =
+          currentTime.getTime() - existingEntry.timestamp.getTime() >
+          this.CACHE_TTL_MS;
+
         if (isExpired) {
           // Запись истекла, удаляем из кеша и добавляем пользователя
           this.notificationCache.delete(cacheKey);
           uniqueRecipients.push(userId);
-          
+
           this.logger.log(
             `[${requestId}] Кеш истек для пользователя ${userId}, сообщение ${messageId}`,
           );
@@ -153,7 +159,7 @@ export class UnifiedMessageNotificationService {
           // Уведомление уже было отправлено
           this.logger.log(
             `[${requestId}] Дубликат заблокирован для пользователя ${userId}, сообщение ${messageId}. ` +
-            `Предыдущая отправка: ${existingEntry.timestamp.toISOString()} (источник: ${existingEntry.source})`,
+              `Предыдущая отправка: ${existingEntry.timestamp.toISOString()} (источник: ${existingEntry.source})`,
           );
         }
       } else {
@@ -182,7 +188,7 @@ export class UnifiedMessageNotificationService {
 
     for (const userId of userIds) {
       const cacheKey = this.getCacheKey(messageId, userId);
-      
+
       // FCM токен получим позже при необходимости
       let deviceToken: string | undefined;
 
@@ -196,7 +202,7 @@ export class UnifiedMessageNotificationService {
       };
 
       this.notificationCache.set(cacheKey, entry);
-      
+
       this.logger.log(
         `[${requestId}] Записано в кеш: пользователь ${userId}, сообщение ${messageId}, устройство ${deviceToken || 'нет токена'}`,
       );
@@ -225,8 +231,9 @@ export class UnifiedMessageNotificationService {
     let cleanedCount = 0;
 
     for (const [key, entry] of this.notificationCache.entries()) {
-      const isExpired = (currentTime.getTime() - entry.timestamp.getTime()) > this.CACHE_TTL_MS;
-      
+      const isExpired =
+        currentTime.getTime() - entry.timestamp.getTime() > this.CACHE_TTL_MS;
+
       if (isExpired) {
         this.notificationCache.delete(key);
         cleanedCount++;
@@ -234,7 +241,9 @@ export class UnifiedMessageNotificationService {
     }
 
     if (cleanedCount > 0) {
-      this.logger.log(`Очищено ${cleanedCount} истекших записей из кеша дедупликации`);
+      this.logger.log(
+        `Очищено ${cleanedCount} истекших записей из кеша дедупликации`,
+      );
     }
   }
 
@@ -254,8 +263,9 @@ export class UnifiedMessageNotificationService {
     let newestTime: Date | undefined;
 
     for (const entry of this.notificationCache.values()) {
-      const isExpired = (currentTime.getTime() - entry.timestamp.getTime()) > this.CACHE_TTL_MS;
-      
+      const isExpired =
+        currentTime.getTime() - entry.timestamp.getTime() > this.CACHE_TTL_MS;
+
       if (isExpired) {
         expiredCount++;
       }
@@ -263,7 +273,7 @@ export class UnifiedMessageNotificationService {
       if (!oldestTime || entry.timestamp < oldestTime) {
         oldestTime = entry.timestamp;
       }
-      
+
       if (!newestTime || entry.timestamp > newestTime) {
         newestTime = entry.timestamp;
       }

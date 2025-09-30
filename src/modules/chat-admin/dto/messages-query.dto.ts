@@ -27,7 +27,9 @@ export class MessagesQueryDto {
   @IsEnum(AdminChatType)
   chatType!: AdminChatType;
 
-  @ApiProperty({ description: 'ID чата (communityId или eventId) (обязательный)' })
+  @ApiProperty({
+    description: 'ID чата (communityId или eventId) (обязательный)',
+  })
   @Transform(({ value }) => Number(value))
   @IsInt()
   @Min(1)
@@ -45,4 +47,3 @@ export class MessagesQueryDto {
   @IsString()
   q?: string;
 }
-

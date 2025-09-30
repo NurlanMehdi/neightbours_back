@@ -6,4 +6,3 @@ export class CreateCommunityConversationDto {
   @IsInt()
   communityId: number;
 }
-

@@ -12,4 +12,3 @@ import { ChatCleanupService } from './services/chat-cleanup.service';
   exports: [ChatAdminService, GlobalChatSettingsService, ChatCleanupService],
 })
 export class ChatAdminModule {}
-

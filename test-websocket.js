@@ -1,6 +1,6 @@
 const { io } = require('socket.io-client');
 
-const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcsInJvbGUiOiJVU0VSIiwicGhvbmUiOiI3OTgwMDA4MDk1NSIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NTkxNjkwMzgsImV4cCI6MTc1OTIxMjIzOH0.JF1UXDM9yQy_lJdEybCR6QlLQclGulgSBiBo8EgDevA';
+const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjM4LCJyb2xlIjoiVVNFUiIsInBob25lIjoiNzExMTExMTExMTEiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzU5MjE2OTc1LCJleHAiOjE3NTkyNjAxNzV9.XeFJAgFim5T2vFKWose9V9gsk8rR52p-m75LKxvwZ2M';
 
 console.log('🚀 Connecting to WebSocket server...');
 
@@ -16,20 +16,32 @@ socket.on('connect', () => {
   
   setTimeout(() => {
     console.log('📡 Emitting joinCommunity...');
-    socket.emit('joinCommunity', { communityId: 2 });
+    socket.emit('joinCommunity', { communityId: 2 }, (ack) => {
+      console.log('✅ Join community ack:', ack);
+    });
   }, 1000);
   
   setTimeout(() => {
-    console.log('📤 Emitting sendCommunityMessage...');
-    socket.emit('sendCommunityMessage', { 
+    console.log('📤 Emitting sendMessage...');
+    socket.emit('sendMessage', { 
       communityId: 2, 
       text: 'Test from socket.io-client' 
+    }, (ack) => {
+      console.log('✅ Send message ack:', ack);
     });
   }, 2000);
 });
 
-socket.on('newCommunityMessage', (message) => {
-  console.log('📨 New message received:');
+socket.on('connected', (data) => {
+  console.log('📡 Server connected event:', data);
+});
+
+socket.on('joinedCommunity', (data) => {
+  console.log('✅ Joined community event:', data);
+});
+
+socket.on('communityMessage', (message) => {
+  console.log('📨 New community message received:');
   console.log(JSON.stringify(message, null, 2));
 });
 

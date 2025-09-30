@@ -100,7 +100,9 @@ export class PrivateChatGateway
       // Присоединяем к комнате пользователя
       client.join(`user:${userId}`);
 
-      this.logger.log(`User ${userId} successfully identified on socket ${client.id}`);
+      this.logger.log(
+        `User ${userId} successfully identified on socket ${client.id}`,
+      );
       this.logger.log(
         `Current rooms for client ${client.id}: ${Array.from(client.rooms)}`,
       );
@@ -238,14 +240,18 @@ export class PrivateChatGateway
       this.logger.log(
         `Successfully marked conversation ${payload.conversationId} as read for user ${userId}`,
       );
-      this.logger.log(`Broadcasting to conversation: ${payload.conversationId}`);
+      this.logger.log(
+        `Broadcasting to conversation: ${payload.conversationId}`,
+      );
 
       // Уведомляем комнату о прочтении
-      this.io.to(`conversation:${payload.conversationId}`).emit('messagesRead', {
-        conversationId: payload.conversationId,
-        userId,
-        readAt: result.readAt,
-      });
+      this.io
+        .to(`conversation:${payload.conversationId}`)
+        .emit('messagesRead', {
+          conversationId: payload.conversationId,
+          userId,
+          readAt: result.readAt,
+        });
 
       this.logger.log(
         `Read receipt successfully broadcasted for conversation ${payload.conversationId}`,

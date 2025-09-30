@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrivateChatRepository } from './private-chat.repository';
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -83,7 +87,9 @@ describe('PrivateChatRepository', () => {
 
       expect(result).toBeDefined();
       expect(result.id).toBe(10);
-      expect(prisma.users.findUnique).toHaveBeenCalledWith({ where: { id: 2 } });
+      expect(prisma.users.findUnique).toHaveBeenCalledWith({
+        where: { id: 2 },
+      });
       expect(prisma.$transaction).toHaveBeenCalled();
     });
 
@@ -107,10 +113,9 @@ describe('PrivateChatRepository', () => {
             update: jest.fn().mockResolvedValue(mockConversation),
           },
           conversationParticipant: {
-            findMany: jest.fn().mockResolvedValue([
-              { userId: 1 },
-              { userId: 2 },
-            ]),
+            findMany: jest
+              .fn()
+              .mockResolvedValue([{ userId: 1 }, { userId: 2 }]),
           },
           privateMessage: {
             create: jest.fn().mockResolvedValue(mockMessage),
@@ -145,10 +150,9 @@ describe('PrivateChatRepository', () => {
             update: jest.fn(),
           },
           conversationParticipant: {
-            findMany: jest.fn().mockResolvedValue([
-              { userId: 1 },
-              { userId: 2 },
-            ]),
+            findMany: jest
+              .fn()
+              .mockResolvedValue([{ userId: 1 }, { userId: 2 }]),
           },
           privateMessage: {
             findUnique: jest.fn().mockResolvedValue(mockRepliedMessage),
@@ -181,10 +185,9 @@ describe('PrivateChatRepository', () => {
             update: jest.fn(),
           },
           conversationParticipant: {
-            findMany: jest.fn().mockResolvedValue([
-              { userId: 1 },
-              { userId: 2 },
-            ]),
+            findMany: jest
+              .fn()
+              .mockResolvedValue([{ userId: 1 }, { userId: 2 }]),
           },
           privateMessage: {
             findUnique: jest.fn().mockResolvedValue(null),
@@ -272,10 +275,9 @@ describe('PrivateChatRepository', () => {
             update: jest.fn().mockResolvedValue(mockConversation),
           },
           conversationParticipant: {
-            findMany: jest.fn().mockResolvedValue([
-              { userId: 1 },
-              { userId: 2 },
-            ]),
+            findMany: jest
+              .fn()
+              .mockResolvedValue([{ userId: 1 }, { userId: 2 }]),
           },
           privateMessage: {
             findUnique: jest.fn().mockResolvedValue(mockRepliedMessage),

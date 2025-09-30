@@ -4,4 +4,3 @@ export class SuccessResponseDto {
   @ApiProperty({ example: true })
   success: boolean;
 }
-

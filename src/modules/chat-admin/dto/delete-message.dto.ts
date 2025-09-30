@@ -10,11 +10,11 @@ export class DeleteMessageDto {
   @Min(1)
   id: number;
 
-  @ApiProperty({ 
-    description: 'Тип чата (COMMUNITY или EVENT)', 
-    enum: AdminChatType, 
+  @ApiProperty({
+    description: 'Тип чата (COMMUNITY или EVENT)',
+    enum: AdminChatType,
     example: AdminChatType.COMMUNITY,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsEnum(AdminChatType)
