@@ -170,28 +170,6 @@ export class EventMessagesRepository {
   }
 
   /**
-   * Отмечает событие как прочитанное для пользователя с использованием DTO
-   */
-  async markEventAsReadWithDto(userId: number, eventId: number): Promise<void> {
-    await this.prisma.eventRead.upsert({
-      where: {
-        userId_eventId: {
-          userId,
-          eventId,
-        },
-      },
-      update: {
-        readAt: new Date(),
-      },
-      create: {
-        userId,
-        eventId,
-        readAt: new Date(),
-      },
-    });
-  }
-
-  /**
    * Получает непрочитанные сообщения для пользователя
    */
   async getUnreadMessages(

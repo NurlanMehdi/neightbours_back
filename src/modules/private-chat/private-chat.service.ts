@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrivateChatRepository } from './repositories/private-chat.repository';
 import { NotificationService } from '../notifications/services/notification.service';
@@ -201,13 +202,24 @@ export class PrivateChatService {
   }
 
   /**
-   * Отметить все сообщения приватного чата как прочитанные
+   * Отметить диалог как прочитанный для пользователя
    */
-  async markPrivateMessagesAsRead(
-    chatId: number,
+  async markConversationAsRead(
     userId: number,
+    conversationId: number,
   ): Promise<void> {
-    await this.repo.markPrivateAsReadByDto(userId, chatId);
+    const conversation = await this.repo.findConversationById(conversationId);
+    if (!conversation) {
+      throw new NotFoundException('Диалог не найден');
+    }
+
+    try {
+      await this.repo.ensureParticipant(conversationId, userId);
+    } catch (error) {
+      throw new ForbiddenException('Пользователь не является участником диалога');
+    }
+
+    await this.repo.markAsRead(conversationId, userId);
   }
 
   /**

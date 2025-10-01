@@ -28,7 +28,6 @@ import {
   ReplyMessageDto,
   SuccessResponseDto,
 } from './dto';
-import { MarkPrivateMessagesReadDto } from './dto/mark-private-messages-read.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Private Chat')
@@ -197,25 +196,25 @@ export class PrivateChatController {
     return { success: true };
   }
 
-  @Post('messages/read')
-  @ApiOperation({ summary: 'Отметить все сообщения приватного чата как прочитанные' })
+  @Post(':conversationId/read')
+  @ApiOperation({ summary: 'Отметить диалог как прочитанный' })
   @ApiResponse({
     status: 200,
-    description: 'Сообщения успешно отмечены как прочитанные',
+    description: 'Диалог успешно отмечен как прочитанный',
   })
   @ApiResponse({
     status: 404,
-    description: 'Чат не найден',
+    description: 'Диалог не найден',
   })
   @ApiResponse({
     status: 403,
-    description: 'Пользователь не является частью этого чата',
+    description: 'Пользователь не является участником диалога',
   })
-  @HttpCode(200)
-  async markPrivateMessagesAsRead(
-    @Body() dto: MarkPrivateMessagesReadDto,
+  async markConversationAsRead(
+    @UserId() userId: number,
+    @Param('conversationId', ParseIntPipe) conversationId: number,
   ): Promise<{ success: boolean }> {
-    await this.service.markPrivateMessagesAsRead(dto.chatId, dto.userId);
+    await this.service.markConversationAsRead(userId, conversationId);
     return { success: true };
   }
 }
