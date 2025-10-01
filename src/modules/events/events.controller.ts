@@ -32,7 +32,6 @@ import { VoteDto, VoteResponseDto } from './dto/vote.dto';
 import { VotingResultsDto } from './dto/voting-results.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { AddMessageDto } from './dto/add-message.dto';
-import { MarkEventReadDto } from './dto/mark-event-read.dto';
 import { IEvent, IEventsList } from './interfaces/event.interface';
 import { UnreadMessagesResponseDto } from './dto/unread-messages.dto';
 import { EventMessageDto } from './dto/message.dto';
@@ -440,27 +439,6 @@ export class EventsController {
   })
   async addMessage(@Body() addMessageDto: AddMessageDto) {
     return this.eventsService.addMessage(addMessageDto);
-  }
-
-  @Post('messages/read')
-  @ApiOperation({ summary: 'Отметить событие как прочитанное' })
-  @ApiResponse({
-    status: 200,
-    description: 'Событие успешно отмечено как прочитанное',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Событие не найдено',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Пользователь не является членом сообщества',
-  })
-  async markEventAsReadByMessage(
-    @Body() markEventReadDto: MarkEventReadDto,
-  ): Promise<{ success: boolean }> {
-    await this.eventsService.markEventAsReadByDto(markEventReadDto);
-    return { success: true };
   }
 
   @Post(':id/read')

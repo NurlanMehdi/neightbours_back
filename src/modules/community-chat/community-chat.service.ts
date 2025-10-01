@@ -1,12 +1,14 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CommunityChatRepository } from './repositories/community-chat.repository';
 import { NotificationService } from '../notifications/services/notification.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class CommunityChatService {
   constructor(
     private readonly repo: CommunityChatRepository,
     private readonly notifications: NotificationService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async sendMessage(
@@ -124,13 +126,26 @@ export class CommunityChatService {
   }
 
   /**
-   * Отметить все сообщения сообщества как прочитанные
+   * Отметить чат сообщества как прочитанный для пользователя
    */
-  async markCommunityMessagesAsRead(
-    communityId: number,
+  async markCommunityAsRead(
     userId: number,
+    communityId: number,
   ): Promise<void> {
-    await this.repo.markCommunityAsReadByDto(userId, communityId);
+    const community = await this.prisma.community.findUnique({
+      where: { id: communityId },
+      select: { id: true },
+    });
+    if (!community) {
+      throw new NotFoundException('Сообщество не найдено');
+    }
+
+    const isMember = await this.repo.isMember(userId, communityId);
+    if (!isMember) {
+      throw new ForbiddenException('Пользователь не является членом сообщества');
+    }
+
+    await this.repo.markAsRead(userId, communityId);
   }
 
   /**

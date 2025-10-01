@@ -29,7 +29,6 @@ import { SearchMessagesDto } from './dto/search.dto';
 import { CreateCommunityConversationDto } from './dto/create-conversation.dto';
 import { UpdateCommunityChatSettingsDto } from './dto/update-settings.dto';
 import { MarkCommunityReadDto } from './dto/mark-read.dto';
-import { MarkCommunityMessagesReadDto } from './dto/mark-community-messages-read.dto';
 import { UnreadCommunityMessagesResponseDto } from './dto/unread-community-messages.dto';
 
 @ApiTags('Community Chat')
@@ -128,11 +127,11 @@ export class CommunityChatController {
     return this.service.updateSettings(adminId, communityId, dto);
   }
 
-  @Post('messages/read')
-  @ApiOperation({ summary: 'Отметить все сообщения сообщества как прочитанные' })
+  @Post(':conversationId/read')
+  @ApiOperation({ summary: 'Отметить чат сообщества как прочитанный' })
   @ApiResponse({
     status: 200,
-    description: 'Сообщения успешно отмечены как прочитанные',
+    description: 'Чат сообщества успешно отмечен как прочитанный',
   })
   @ApiResponse({
     status: 404,
@@ -142,11 +141,11 @@ export class CommunityChatController {
     status: 403,
     description: 'Пользователь не является членом сообщества',
   })
-  @HttpCode(200)
-  async markCommunityMessagesAsRead(
-    @Body() dto: MarkCommunityMessagesReadDto,
+  async markCommunityAsRead(
+    @UserId() userId: number,
+    @Param('conversationId', ParseIntPipe) conversationId: number,
   ): Promise<{ success: boolean }> {
-    await this.service.markCommunityMessagesAsRead(dto.communityId, dto.userId);
+    await this.service.markCommunityAsRead(userId, conversationId);
     return { success: true };
   }
 

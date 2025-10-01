@@ -27,7 +27,6 @@ import { BadRequestException } from '@nestjs/common';
 import { EventMessagesRepository } from './repositories/event-messages.repository';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { AddMessageDto } from './dto/add-message.dto';
-import { MarkEventReadDto } from './dto/mark-event-read.dto';
 import { EventDto, EventsListDto } from './dto/event.dto';
 import { VoteDto, VoteResponseDto } from './dto/vote.dto';
 import { VotingResultsDto } from './dto/voting-results.dto';
@@ -695,26 +694,6 @@ export class EventsService {
     }
 
     return message;
-  }
-
-  async markEventAsReadByDto(dto: MarkEventReadDto): Promise<void> {
-    const event = await this.eventsRepository.findById(dto.eventId);
-    if (!event) {
-      throw new EventNotFoundException();
-    }
-
-    const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
-      dto.userId,
-      event.communityId,
-    );
-    if (!isUserInCommunity) {
-      throw new UserNotInCommunityException();
-    }
-
-    await this.eventMessagesRepository.markEventAsReadWithDto(
-      dto.userId,
-      dto.eventId,
-    );
   }
 
   async getEventMessages(
