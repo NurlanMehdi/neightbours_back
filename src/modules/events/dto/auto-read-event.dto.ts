@@ -1,5 +1,6 @@
 import { IsInt, Min } from 'class-validator';
 
+
 /**
  * DTO для включения/выключения авточтения события
  */
@@ -8,4 +9,5 @@ export class AutoReadEventDto {
   @Min(1)
   eventId: number;
 }
+
 
