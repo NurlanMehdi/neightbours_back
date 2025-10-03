@@ -36,12 +36,16 @@ export class CommunityRepository {
       sortBy = CommunitySortBy.CREATED_AT,
       sortOrder = SortOrder.DESC,
     } = filters;
-    const skip = (page - 1) * limit;
 
     // Строим условия фильтрации
-    const where: any = {
-      isActive: true, // Фильтруем только активные сообщества
-    };
+    const where: any = {};
+    
+    // Фильтр по статусу (если не указан, показываем все сообщества)
+    if ((filters as any).status) {
+      where.status = (filters as any).status;
+    } else {
+      where.isActive = true; // По умолчанию показываем только активные
+    }
 
     // Поиск по названию
     if (filters.search) {
@@ -61,10 +65,6 @@ export class CommunityRepository {
         where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
       }
     }
-
-    // Примечание: Фильтрация по количеству участников и размеру сообщества
-    // будет обрабатываться на уровне приложения после получения данных
-    // так как Prisma не поддерживает агрегированные условия в where
 
     // Определяем поле для сортрации
     const orderBy: any = {};
@@ -91,10 +91,9 @@ export class CommunityRepository {
       `Репозиторий: получение сообществ с фильтрами: ${JSON.stringify(filters)}`,
     );
 
+    // Возвращаем ВСЕ записи без пагинации для дальнейшей обработки на уровне сервиса
     return this.prisma.community.findMany({
       where,
-      skip,
-      take: limit,
       orderBy,
       include: {
         creator: true,
@@ -105,6 +104,91 @@ export class CommunityRepository {
         },
       },
     });
+  }
+
+  async findAllWithFiltersAndPagination(filters: GetCommunitiesAdminDto) {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = CommunitySortBy.CREATED_AT,
+      sortOrder = SortOrder.DESC,
+    } = filters;
+    const skip = (page - 1) * limit;
+
+    // Строим условия фильтрации
+    const where: any = {};
+    
+    // Фильтр по статусу (если не указан, показываем все сообщества)
+    if ((filters as any).status) {
+      where.status = (filters as any).status;
+    } else {
+      where.isActive = true; // По умолчанию показываем только активные
+    }
+
+    // Поиск по названию
+    if (filters.search) {
+      where.name = {
+        contains: filters.search,
+        mode: 'insensitive',
+      };
+    }
+
+    // Фильтр по датам
+    if (filters.dateFrom || filters.dateTo) {
+      where.createdAt = {};
+      if (filters.dateFrom) {
+        where.createdAt.gte = new Date(filters.dateFrom);
+      }
+      if (filters.dateTo) {
+        where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+      }
+    }
+
+    // Определяем поле для сортрации
+    const orderBy: any = {};
+    switch (sortBy) {
+      case CommunitySortBy.ID:
+        orderBy.id = sortOrder.toLowerCase();
+        break;
+      case CommunitySortBy.NAME:
+        orderBy.name = sortOrder.toLowerCase();
+        break;
+      case CommunitySortBy.CREATED_AT:
+        orderBy.createdAt = sortOrder.toLowerCase();
+        break;
+      case CommunitySortBy.NUMBER_OF_USERS:
+        // Prisma не поддерживает сортировку по агрегированным полям
+        // Используем сортировку по дате создания как fallback
+        orderBy.createdAt = sortOrder.toLowerCase();
+        break;
+      default:
+        orderBy.createdAt = sortOrder.toLowerCase();
+    }
+
+    this.logger.log(
+      `Репозиторий: получение сообществ с фильтрами и пагинацией: ${JSON.stringify(filters)}`,
+    );
+
+    // Используем транзакцию для получения данных и общего количества
+    const [entities, total] = await this.prisma.$transaction([
+      this.prisma.community.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        include: {
+          creator: true,
+          users: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      }),
+      this.prisma.community.count({ where }),
+    ]);
+
+    return { entities, total };
   }
 
   async count() {
@@ -313,7 +397,11 @@ export class CommunityRepository {
    * @param communityId ID сообщества
    * @param userId ID пользователя
    */
-  async addUser(communityId: number, userId: number): Promise<void> {
+  async addUser(
+    communityId: number,
+    userId: number,
+    joinedViaCode: boolean = false,
+  ): Promise<void> {
     this.logger.log(
       `Репозиторий: добавление пользователя ${userId} в сообщество ${communityId}.`,
     );
@@ -338,7 +426,8 @@ export class CommunityRepository {
       data: {
         communityId,
         userId,
-      },
+        joinedViaCode,
+      } as any,
     });
   }
 
@@ -397,6 +486,84 @@ export class CommunityRepository {
       },
       data: {
         isActive: false,
+      },
+    });
+  }
+
+  async hardDelete(id: number): Promise<void> {
+    this.logger.log(`Репозиторий: физическое удаление сообщества ${id}.`);
+    await this.prisma.community.delete({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async countMembersJoinedViaCode(communityId: number, excludeUserId?: number): Promise<number> {
+    this.logger.log(
+      `Репозиторий: подсчет участников, присоединившихся по коду в сообществе ${communityId}.`,
+    );
+    return this.prisma.usersOnCommunities.count({
+      where: {
+        communityId,
+        joinedViaCode: true,
+        ...(excludeUserId && { userId: { not: excludeUserId } }),
+      } as any,
+    });
+  }
+
+  async findInactiveCommunitiesPastDeadline(): Promise<Community[]> {
+    this.logger.log(
+      'Репозиторий: получение неактивных сообществ с истекшим сроком подтверждения.',
+    );
+    return this.prisma.community.findMany({
+      where: {
+        status: 'INACTIVE' as any,
+        confirmationDeadline: {
+          lte: new Date(),
+        },
+      } as any,
+      include: {
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        users: {
+          where: {
+            joinedViaCode: true,
+          } as any,
+        },
+      },
+    });
+  }
+
+  async activateCommunity(communityId: number): Promise<Community> {
+    this.logger.log(`Репозиторий: активация сообщества ${communityId}.`);
+    return this.prisma.community.update({
+      where: {
+        id: communityId,
+      },
+      data: { 
+        status: 'ACTIVE' as any,
+        isActive: true,
+        confirmedAt: new Date(),
+        confirmationDeadline: null,
+      } as any,
+    });
+  }
+
+  async updateCoordinates(communityId: number, latitude: number, longitude: number): Promise<Community> {
+    this.logger.log(`Репозиторий: обновление координат сообщества ${communityId}.`);
+    return this.prisma.community.update({
+      where: {
+        id: communityId,
+      },
+      data: {
+        latitude,
+        longitude,
       },
     });
   }

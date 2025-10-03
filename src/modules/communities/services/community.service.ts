@@ -22,6 +22,8 @@ import { CommunityFullDto } from '../dto/community-full.dto';
 import { CommunityInfoDto } from '../dto/community-info.dto';
 import { NotificationEventService } from '../../notifications/services/notification-event.service';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CommunityConfirmationService } from './community-confirmation.service';
+import { CommunityConfirmationConfig } from '../config/community-confirmation.config';
 
 @Injectable()
 export class CommunityService {
@@ -32,6 +34,7 @@ export class CommunityService {
     private readonly geoModerationService: GeoModerationService,
     private readonly notificationEventService: NotificationEventService,
     private readonly prisma: PrismaService,
+    private readonly confirmationService: CommunityConfirmationService,
   ) {}
 
   async findAll(
@@ -80,87 +83,108 @@ export class CommunityService {
       `Сервис: получение сообществ для администратора с фильтрами: ${JSON.stringify(filters)}`,
     );
 
-    // Получаем все сообщества без фильтрации по количеству участников
-    const allEntities =
-      await this.communityRepository.findAllWithFilters(filters);
-
-    // Применяем фильтрацию по количеству участников на уровне приложения
-    let filteredEntities = allEntities;
-
-    if (
+    // Проверяем, нужны ли фильтры на уровне приложения
+    const needsApplicationFiltering = 
       filters.minParticipants !== undefined ||
       filters.maxParticipants !== undefined ||
-      filters.size
-    ) {
-      filteredEntities = allEntities.filter((community) => {
-        const userCount = community.users?.length || 0;
+      filters.size ||
+      (filters.latitude !== undefined && filters.longitude !== undefined && filters.radius !== undefined);
 
-        // Фильтр по минимальному количеству участников
-        if (
-          filters.minParticipants !== undefined &&
-          userCount < filters.minParticipants
-        ) {
-          return false;
-        }
+    let entities: any[];
+    let total: number;
 
-        // Фильтр по максимальному количеству участников
-        if (
-          filters.maxParticipants !== undefined &&
-          userCount > filters.maxParticipants
-        ) {
-          return false;
-        }
+    if (needsApplicationFiltering) {
+      // Если нужны фильтры на уровне приложения, получаем ВСЕ записи
+      entities = await this.communityRepository.findAllWithFilters(filters);
+      
+      // Применяем фильтрацию по количеству участников на уровне приложения
+      let filteredEntities = entities;
 
-        // Фильтр по размеру сообщества
-        if (filters.size) {
-          switch (filters.size) {
-            case 'small':
-              if (userCount >= 20) return false;
-              break;
-            case 'medium':
-              if (userCount < 20 || userCount > 100) return false;
-              break;
-            case 'large':
-              if (userCount <= 100) return false;
-              break;
+      if (
+        filters.minParticipants !== undefined ||
+        filters.maxParticipants !== undefined ||
+        filters.size
+      ) {
+        filteredEntities = entities.filter((community) => {
+          const userCount = community.users?.length || 0;
+
+          // Фильтр по минимальному количеству участников
+          if (
+            filters.minParticipants !== undefined &&
+            userCount < filters.minParticipants
+          ) {
+            return false;
           }
-        }
 
-        return true;
-      });
-    }
+          // Фильтр по максимальному количеству участников
+          if (
+            filters.maxParticipants !== undefined &&
+            userCount > filters.maxParticipants
+          ) {
+            return false;
+          }
 
-    // Применяем фильтрацию по радиусу
-    if (
-      filters.latitude !== undefined &&
-      filters.longitude !== undefined &&
-      filters.radius !== undefined
-    ) {
-      filteredEntities = filteredEntities.filter((community) => {
-        return isWithinRadius(
-          filters.latitude!,
-          filters.longitude!,
-          community.latitude,
-          community.longitude,
-          filters.radius!,
-        );
-      });
+          // Фильтр по размеру сообщества
+          if (filters.size) {
+            switch (filters.size) {
+              case 'small':
+                if (userCount >= 20) return false;
+                break;
+              case 'medium':
+                if (userCount < 20 || userCount > 100) return false;
+                break;
+              case 'large':
+                if (userCount <= 100) return false;
+                break;
+            }
+          }
+
+          return true;
+        });
+      }
+
+      // Применяем фильтрацию по радиусу
+      if (
+        filters.latitude !== undefined &&
+        filters.longitude !== undefined &&
+        filters.radius !== undefined
+      ) {
+        filteredEntities = filteredEntities.filter((community) => {
+          return isWithinRadius(
+            filters.latitude!,
+            filters.longitude!,
+            community.latitude,
+            community.longitude,
+            filters.radius!,
+          );
+        });
+      }
+
+      entities = filteredEntities;
+      total = filteredEntities.length;
+    } else {
+      // Если фильтры только на уровне БД, используем эффективную пагинацию
+      const result = await this.communityRepository.findAllWithFiltersAndPagination(filters);
+      entities = result.entities;
+      total = result.total;
     }
 
     // Если запрос без пагинации, возвращаем все отфильтрованные записи
     if (filters.withoutPagination) {
-      return filteredEntities.map((entity) => this.buildCommunityDto(entity));
+      return entities.map((entity) => this.buildCommunityDto(entity));
     }
 
-    // Применяем пагинацию
-    const startIndex = (filters.page - 1) * filters.limit;
-    const endIndex = startIndex + filters.limit;
-    const paginatedEntities = filteredEntities.slice(startIndex, endIndex);
+    // Применяем пагинацию только если нужны фильтры на уровне приложения
+    let paginatedEntities = entities;
+    if (needsApplicationFiltering) {
+      const startIndex = (filters.page - 1) * filters.limit;
+      const endIndex = startIndex + filters.limit;
+      paginatedEntities = entities.slice(startIndex, endIndex);
+    }
 
     const data = paginatedEntities.map((entity) =>
       this.buildCommunityDto(entity),
     );
-    const total = filteredEntities.length;
     const totalPages = Math.ceil(total / filters.limit);
 
     return {
@@ -183,28 +207,33 @@ export class CommunityService {
   async createCommunity(
     userId: number,
     name: string,
-    latitude: number,
-    longitude: number,
+    latitude?: number,
+    longitude?: number,
   ) {
     this.logger.log(
       `Сервис: создание сообщества пользователем с id: ${userId}.`,
     );
 
-    // Создаем сообщество с координатами пользователя
-    const community = await this.communityRepository.create({
-      name,
-      createdBy: userId,
-      latitude,
-      longitude,
-      status: 'ACTIVE',
+    const confirmationDeadline = this.confirmationService.calculateConfirmationDeadline();
+
+    const community = await this.prisma.community.create({
+      data: {
+        name,
+        createdBy: userId,
+        latitude,
+        longitude,
+        status: 'INACTIVE' as any,
+        isActive: false,
+        joinCode: Math.floor(100000 + Math.random() * 900000).toString(),
+        confirmationDeadline,
+      } as any,
     });
 
-    // Добавляем пользователя в сообщество
-    await this.communityRepository.addUser(community.id, userId);
+    await this.communityRepository.addUser(community.id, userId, false);
 
     return {
       ...community,
-      joinCode: community.joinCode, // Возвращаем код для присоединения
+      joinCode: community.joinCode,
     };
   }
 
@@ -226,38 +255,49 @@ export class CommunityService {
       `Сервис: вступление в сообщество пользователем с id: ${userId}.`,
     );
 
-    // Находим сообщество по коду
     const community = await this.communityRepository.findByJoinCode(code);
     if (!community) {
       throw new BadRequestException('Неверный код сообщества');
     }
 
-    // Проверяем, не является ли пользователь создателем сообщества
     if (community.createdBy === userId) {
       throw new CommunityCreatorException();
     }
 
-    // Проверяем расстояние с помощью гео-модерации, если переданы координаты пользователя
-    if (userLatitude !== undefined && userLongitude !== undefined) {
-      const geoCheck = await this.geoModerationService.checkCommunityJoin(
-        userId,
-        userLatitude,
-        userLongitude,
-        community.latitude,
-        community.longitude,
-      );
+    if (community.latitude !== null && community.longitude !== null) {
+      if (userLatitude !== undefined && userLongitude !== undefined) {
+        const geoCheck = await this.geoModerationService.checkCommunityJoin(
+          userId,
+          userLatitude,
+          userLongitude,
+          community.latitude,
+          community.longitude,
+        );
 
-      if (!geoCheck.allowed) {
-        this.geoModerationService.throwGeoModerationError(geoCheck);
+        if (!geoCheck.allowed) {
+          this.geoModerationService.throwGeoModerationError(geoCheck);
+        }
       }
     }
 
-    // Добавляем пользователя в сообщество
-    await this.communityRepository.addUser(community.id, userId);
+    await this.communityRepository.addUser(community.id, userId, true);
 
-    // Отправляем уведомление другим участникам сообщества о новом участнике
+    const joinedCount = await this.communityRepository.countMembersJoinedViaCode(
+      community.id,
+      community.createdBy,
+    );
+
+    if (
+      community.status === 'INACTIVE' &&
+      joinedCount >= CommunityConfirmationConfig.requiredMembersCount
+    ) {
+      await this.confirmationService.activateCommunity(
+        community.id,
+        community.createdBy,
+      );
+    }
+
     try {
-      // Получаем информацию о пользователе для уведомления
       const newUser = await this.prisma.users.findUnique({
         where: { id: userId },
         select: { firstName: true, lastName: true },
@@ -284,7 +324,11 @@ export class CommunityService {
       );
     }
 
-    return community;
+    return {
+      ...community,
+      joinedCount,
+      requiredCount: CommunityConfirmationConfig.requiredMembersCount,
+    };
   }
 
   /**
@@ -407,6 +451,8 @@ export class CommunityService {
         longitude: community.longitude ?? 0.0,
         isPrivate: community.isPrivate,
         joinCode: community.joinCode,
+        confirmationDeadline: (community as any).confirmationDeadline,
+        confirmedAt: (community as any).confirmedAt,
       },
       {
         excludeExtraneousValues: true,
@@ -469,6 +515,8 @@ export class CommunityService {
         longitude: community.longitude ?? 0.0,
         isPrivate: community.isPrivate,
         joinCode: community.joinCode,
+        confirmationDeadline: (community as any).confirmationDeadline,
+        confirmedAt: (community as any).confirmedAt,
       },
       {
         excludeExtraneousValues: true,
@@ -576,6 +624,52 @@ export class CommunityService {
     }
 
     return this.buildCommunityInfoDto(community);
+  }
+
+  async getConfirmationStatus(communityId: number) {
+    this.logger.log(
+      `Сервис: получение статуса подтверждения сообщества ${communityId}`,
+    );
+
+    const community = await this.communityRepository.findById(communityId);
+    if (!community) {
+      throw new BadRequestException('Сообщество не найдено');
+    }
+
+    const joinedCount = await this.communityRepository.countMembersJoinedViaCode(
+      communityId,
+      community.createdBy,
+    );
+
+    return {
+      status: community.status,
+      deadline: (community as any).confirmationDeadline,
+      joinedCount,
+      requiredCount: CommunityConfirmationConfig.requiredMembersCount,
+      confirmedAt: (community as any).confirmedAt,
+    };
+  }
+
+  async updateCommunityCoordinatesFromProperty(
+    communityId: number,
+    latitude: number,
+    longitude: number,
+  ): Promise<void> {
+    this.logger.log(
+      `Сервис: обновление координат сообщества ${communityId} из объекта недвижимости`,
+    );
+
+    const community = await this.communityRepository.findById(communityId);
+    if (!community) {
+      return;
+    }
+
+    if (community.latitude === null && community.longitude === null) {
+      await this.communityRepository.updateCoordinates(communityId, latitude, longitude);
+      this.logger.log(
+        `Координаты сообщества ${communityId} обновлены: ${latitude}, ${longitude}`,
+      );
+    }
   }
 
   private buildCommunityInfoDto(community: any): CommunityInfoDto {

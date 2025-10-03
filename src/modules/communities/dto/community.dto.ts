@@ -75,4 +75,24 @@ export class CommunityDto {
   })
   @Expose()
   isNewCommunity?: boolean;
+
+  @ApiProperty({
+    description: 'Крайний срок подтверждения сообщества',
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    required: false,
+  })
+  @Expose()
+  confirmationDeadline?: Date | null;
+
+  @ApiProperty({
+    description: 'Дата и время подтверждения сообщества',
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    required: false,
+  })
+  @Expose()
+  confirmedAt?: Date | null;
 }

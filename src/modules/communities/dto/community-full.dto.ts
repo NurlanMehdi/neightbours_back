@@ -165,4 +165,22 @@ export class CommunityFullDto {
   @ApiProperty({ description: 'Код для присоединения' })
   @Expose()
   joinCode: string | null;
+
+  @ApiProperty({
+    description: 'Крайний срок подтверждения сообщества',
+    type: String,
+    format: 'date-time',
+    nullable: true,
+  })
+  @Expose()
+  confirmationDeadline: Date | null;
+
+  @ApiProperty({
+    description: 'Дата и время подтверждения сообщества',
+    type: String,
+    format: 'date-time',
+    nullable: true,
+  })
+  @Expose()
+  confirmedAt: Date | null;
 }

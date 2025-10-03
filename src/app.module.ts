@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
 import configuration from './config/configuration';
 import { validationSchema } from './config/env.validation';
@@ -18,7 +19,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { FamilyTypesModule } from './modules/family-types/family-types.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { FirebaseModule } from './firebase/firebase.module'; // ← BU SATIRI EKLEYİN
+import { FirebaseModule } from './firebase/firebase.module';
 import { PrivateChatModule } from './modules/private-chat/private-chat.module';
 import { CommunityChatModule } from './modules/community-chat/community-chat.module';
 import { ChatAdminModule } from './modules/chat-admin/chat-admin.module';
@@ -35,6 +36,7 @@ import { MessagesModule } from './modules/messages/messages.module';
         abortEarly: true,
       },
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     UsersModule,
