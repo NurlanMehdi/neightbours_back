@@ -9,6 +9,7 @@ import {
   Patch,
   Query,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -26,10 +27,11 @@ import { CommunityService } from '../services/community.service';
 import { CommunityDto } from '../dto/community.dto';
 import { CreateCommunityAdminDto } from '../dto/create-community-admin.dto';
 import { UpdateCommunityAdminDto } from '../dto/update-community-admin.dto';
-import { GetCommunitiesAdminDto } from '../dto/get-communities-admin.dto';
+import { GetCommunitiesAdminDto, CommunitySortBy } from '../dto/get-communities-admin.dto';
 import { CommunityMinimalDto } from '../dto/community-minimal.dto';
 import { CommunityFullDto } from '../dto/community-full.dto';
 import { ApiStandardResponses } from '../../../common/decorators/api-responses.decorator';
+import { CommunityConfirmationService } from '../services/community-confirmation.service';
 
 @ApiTags('Управление сообществами')
 @Controller('admin/communities')
@@ -37,7 +39,12 @@ import { ApiStandardResponses } from '../../../common/decorators/api-responses.d
 @ApiBearerAuth()
 @Roles(UserRole.ADMIN)
 export class CommunitiesAdminController {
-  constructor(private readonly communityService: CommunityService) {}
+  private readonly logger = new Logger(CommunitiesAdminController.name);
+
+  constructor(
+    private readonly communityService: CommunityService,
+    private readonly confirmationService: CommunityConfirmationService,
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -153,6 +160,43 @@ export class CommunitiesAdminController {
     return this.communityService.findAllForAdmin(filters);
   }
 
+  @Get('pending')
+  @ApiOperation({
+    summary: 'Получить список ожидающих подтверждения сообществ',
+    description:
+      'Возвращает список сообществ со статусом INACTIVE, ожидающих подтверждения',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Номер страницы (по умолчанию: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Количество записей на странице (по умолчанию: 10)',
+  })
+  @ApiStandardResponses()
+  async getPendingCommunities(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    // Safely parse parameters with defaults
+    const processedFilters = {
+      page: parseInt(page || '1') || 1,
+      limit: parseInt(limit || '10') || 10,
+      withoutPagination: false,
+      sortBy: CommunitySortBy.CREATED_AT,
+      sortOrder: 'DESC' as any,
+      status: 'INACTIVE',
+    } as any;
+    
+    this.logger.log(`Обработка pending communities с параметрами: ${JSON.stringify(processedFilters)}`);
+    return this.communityService.findAllForAdmin(processedFilters);
+  }
+
   @Get('all')
   @ApiOperation({
     summary: 'Получить все сообщества с минимальной информацией',
@@ -232,5 +276,37 @@ export class CommunitiesAdminController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<void> {
     return this.communityService.softDeleteCommunityByAdmin(id);
+  }
+
+  @Patch(':id/confirm')
+  @ApiOperation({
+    summary: 'Ручное подтверждение сообщества администратором',
+    description:
+      'Немедленно активирует сообщество независимо от количества участников и отправляет уведомление создателю',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID сообщества',
+    type: 'number',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Сообщество успешно подтверждено',
+    type: CommunityFullDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Сообщество уже активно или некорректные параметры',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Сообщество не найдено',
+  })
+  @ApiStandardResponses()
+  async confirmCommunity(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<CommunityFullDto> {
+    await this.confirmationService.manuallyConfirmCommunity(id);
+    return this.communityService.getCommunityForAdmin(id);
   }
 }

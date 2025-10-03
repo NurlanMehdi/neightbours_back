@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { PropertyRepository } from '../repositories/property.repository';
 import { UserRepository } from '../../users/repositories/user.repository';
@@ -25,10 +27,8 @@ import { GeoModerationService } from '../../geo-moderation/services/geo-moderati
 import { NotificationService } from '../../notifications/services/notification.service';
 import { NotificationType } from '../../notifications/interfaces/notification.interface';
 import { PropertyConfirmationService } from './property-confirmation.service';
+import { CommunityService } from '../../communities/services/community.service';
 
-/**
- * Параметры фильтрации чужих неподтвержденных объектов
- */
 export type GetUnverifiedOthersParams = {
   userId: number;
   latitude?: number;
@@ -44,6 +44,8 @@ export class PropertyService {
     private readonly geoModerationService: GeoModerationService,
     private readonly notificationService: NotificationService,
     private readonly propertyConfirmationService: PropertyConfirmationService,
+    @Inject(forwardRef(() => CommunityService))
+    private readonly communityService: CommunityService,
   ) {}
 
   /**
@@ -421,13 +423,11 @@ export class PropertyService {
     createPropertyDto: CreatePropertyDto,
     photo?: Express.Multer.File,
   ): Promise<PropertyDto> {
-    // Проверяем существование пользователя
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new UserNotFoundException();
     }
 
-    // Проверяем расстояние с помощью гео-модерации
     const geoCheck = await this.geoModerationService.checkPropertyCreation(
       userId,
       createPropertyDto.userLatitude,
@@ -448,7 +448,6 @@ export class PropertyService {
       photo: photo?.filename || null,
       userId,
     };
-    // Автоматически генерируем код подтверждения и срок истечения
     propertyData.confirmationCode = Math.floor(
       100000 + Math.random() * 900000,
     ).toString();
@@ -457,7 +456,39 @@ export class PropertyService {
     );
 
     const property = await this.propertyRepository.create(propertyData);
+
+    await this.updateCommunityCoordinatesForUser(
+      userId,
+      createPropertyDto.latitude,
+      createPropertyDto.longitude,
+    );
+
     return this.transformToUserDto(property);
+  }
+
+  private async updateCommunityCoordinatesForUser(
+    userId: number,
+    latitude: number,
+    longitude: number,
+  ): Promise<void> {
+    try {
+      const user = await this.userRepository.findById(userId);
+      if (!user) return;
+
+      const userCommunities = (user as any).Communities || [];
+      
+      for (const uc of userCommunities) {
+        const communityId = uc.community?.id || uc.communityId;
+        if (communityId) {
+          await this.communityService.updateCommunityCoordinatesFromProperty(
+            communityId,
+            latitude,
+            longitude,
+          );
+        }
+      }
+    } catch (error) {
+    }
   }
 
   /**

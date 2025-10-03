@@ -131,34 +131,37 @@ enum CommunityStatus {
 }
 
 model Community {
-  id          Int                  @id @default(autoincrement())
-  name        String
-  description String?
-  status      CommunityStatus      @default(ACTIVE)
-  latitude    Float
-  longitude   Float
-  isPrivate   Boolean              @default(false)
-  isActive    Boolean              @default(true)
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  createdBy   Int
-  creator     Users                @relation("CommunityCreator", fields: [createdBy], references: [id])
-  users       UsersOnCommunities[]
-  joinCode    String?              @unique
-  events      Event[]
-  chat        CommunityChat?
-  messages    CommunityMessage[]
-  reads       CommunityRead[]
+  id                   Int                  @id @default(autoincrement())
+  name                 String
+  description          String?
+  status               CommunityStatus      @default(INACTIVE)
+  latitude             Float?
+  longitude            Float?
+  isPrivate            Boolean              @default(false)
+  isActive             Boolean              @default(false)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  createdBy            Int
+  creator              Users                @relation("CommunityCreator", fields: [createdBy], references: [id])
+  users                UsersOnCommunities[]
+  joinCode             String?              @unique
+  events               Event[]
+  chat                 CommunityChat?
+  messages             CommunityMessage[]
+  reads                CommunityRead[]
+  confirmationDeadline DateTime?
+  confirmedAt          DateTime?
 
   @@map("communities")
 }
 
 model UsersOnCommunities {
-  userId Int
-  user   Users @relation(fields: [userId], references: [id])
-
-  communityId Int
-  community   Community @relation(fields: [communityId], references: [id])
+  userId        Int
+  user          Users     @relation(fields: [userId], references: [id])
+  communityId   Int
+  community     Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  joinedViaCode Boolean   @default(false)
+  joinedAt      DateTime  @default(now())
 
   @@id([userId, communityId])
   @@map("users_on_communities")

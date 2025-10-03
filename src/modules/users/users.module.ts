@@ -6,8 +6,7 @@ import { UsersController } from './controllers/users.controller';
 import { UsersAdminController } from './controllers/users-admin.controller';
 import { ProfileDeletionController } from './controllers/profile-deletion.controller';
 import { FilesModule } from '../files/files.module';
-import { CommunityService } from '../communities/services/community.service';
-import { CommunityRepository } from '../communities/repositories/community.repository';
+import { CommunityModule } from '../communities/community.module';
 import { UserService } from './services/user.service';
 import { ProfileDeletionService } from './services/profile-deletion.service';
 import { ProfileDeletionCronService } from './services/profile-deletion-cron.service';
@@ -27,6 +26,7 @@ import { PropertiesModule } from '../properties/properties.module';
 @Module({
   imports: [
     FilesModule,
+    CommunityModule,
     GeoModerationModule,
     QualificationsModule,
     ProductsModule,
@@ -50,8 +50,6 @@ import { PropertiesModule } from '../properties/properties.module';
     ProfileDeletionNotificationService,
     ProfileDeletionGateway,
     SmsService,
-    CommunityRepository,
-    CommunityService,
     PropertyRepository,
     EventsRepository,
   ],
