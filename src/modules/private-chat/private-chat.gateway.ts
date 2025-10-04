@@ -18,7 +18,6 @@ import { JoinPrivateChatDto } from './dto/join-private-chat.dto';
 import { LeavePrivateChatDto } from './dto/leave-private-chat.dto';
 import { SendPrivateMessageDto } from './dto/send-private-message.dto';
 import { AutoReadPrivateDto } from './dto/auto-read-private.dto';
-import { toPrivateMessageDto } from './mappers/private-message.mapper';
 
 @WebSocketGateway({
   cors: {

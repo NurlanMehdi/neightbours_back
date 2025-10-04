@@ -6,4 +6,3 @@ export * from './mark-messages-read.dto';
 export * from './search-messages.dto';
 export * from './reply-message.dto';
 export * from './success-response.dto';
-export * from './private-message.dto';
