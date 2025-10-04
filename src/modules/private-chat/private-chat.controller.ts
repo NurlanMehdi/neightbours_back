@@ -27,7 +27,6 @@ import {
   SendPrivateMessageDto,
   ReplyMessageDto,
   SuccessResponseDto,
-  PrivateMessageDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -51,11 +50,7 @@ export class PrivateChatController {
 
   @Get('conversations/:id/messages')
   @ApiOperation({ summary: 'Сообщения диалога (с пагинацией)' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Сообщения успешно получены',
-    type: [PrivateMessageDto]
-  })
+  @ApiResponse({ status: 200, description: 'Сообщения успешно получены' })
   @ApiResponse({ status: 403, description: 'Нет доступа к диалогу' })
   @ApiResponse({ status: 404, description: 'Диалог не найден' })
   async getMessages(
@@ -63,7 +58,7 @@ export class PrivateChatController {
     @Param('id', ParseIntPipe) id: number,
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 50,
-  ): Promise<PrivateMessageDto[]> {
+  ) {
     return this.service.getMessages(userId, id, page, limit);
   }
 
