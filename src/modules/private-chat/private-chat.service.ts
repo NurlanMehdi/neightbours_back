@@ -8,6 +8,7 @@ import { PrivateChatRepository } from './repositories/private-chat.repository';
 import { NotificationService } from '../notifications/services/notification.service';
 import { GlobalChatSettingsService } from '../chat-admin/services/global-chat-settings.service';
 import { toPrivateMessageDto } from './mappers/private-message.mapper';
+import { PrivateMessageDto } from './dto/private-message.dto';
 
 @Injectable()
 export class PrivateChatService {
@@ -41,7 +42,7 @@ export class PrivateChatService {
       receiverId?: number;
       replyToId?: number;
     },
-  ) {
+  ): Promise<PrivateMessageDto> {
     const isPrivateChatAllowed =
       await this.globalChatSettings.isPrivateChatAllowed();
     if (!isPrivateChatAllowed) {
@@ -130,7 +131,7 @@ export class PrivateChatService {
     conversationId: number,
     page = 1,
     limit = 50,
-  ) {
+  ): Promise<PrivateMessageDto[]> {
     await this.repo.ensureParticipant(conversationId, currentUserId);
     const messages = await this.repo.getMessages(conversationId, page, limit);
     
@@ -176,7 +177,7 @@ export class PrivateChatService {
     return this.repo.searchMessages(currentUserId, q, page, limit);
   }
 
-  async replyToMessage(currentUserId: number, messageId: number, text: string) {
+  async replyToMessage(currentUserId: number, messageId: number, text: string): Promise<PrivateMessageDto> {
     const replied = await this.repo.findMessageById(messageId);
     return this.sendMessage(currentUserId, {
       text,
