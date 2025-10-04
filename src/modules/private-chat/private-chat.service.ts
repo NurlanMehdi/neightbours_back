@@ -7,6 +7,7 @@ import {
 import { PrivateChatRepository } from './repositories/private-chat.repository';
 import { NotificationService } from '../notifications/services/notification.service';
 import { GlobalChatSettingsService } from '../chat-admin/services/global-chat-settings.service';
+import { toPrivateMessageDto } from './mappers/private-message.mapper';
 
 @Injectable()
 export class PrivateChatService {
@@ -121,7 +122,7 @@ export class PrivateChatService {
       });
     }
 
-    return message;
+    return toPrivateMessageDto(message);
   }
 
   async getMessages(
@@ -131,7 +132,10 @@ export class PrivateChatService {
     limit = 50,
   ) {
     await this.repo.ensureParticipant(conversationId, currentUserId);
-    return this.repo.getMessages(conversationId, page, limit);
+    const messages = await this.repo.getMessages(conversationId, page, limit);
+    
+    // Transform the response to match the expected format using mapper
+    return messages.map(toPrivateMessageDto);
   }
 
   async getConversationList(currentUserId: number) {
