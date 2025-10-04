@@ -147,7 +147,7 @@ describe('PrivateChatService', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.replyToId).toBe(5);
+      expect(result.replyToMessageId).toBe(5);
       expect(repo.createMessageWithAutoConversation).toHaveBeenCalledWith({
         senderId: 1,
         receiverId: 2,
