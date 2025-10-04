@@ -63,7 +63,7 @@ export class PrivateChatController {
     @Param('id', ParseIntPipe) id: number,
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 50,
-  ) {
+  ): Promise<PrivateMessageDto[]> {
     return this.service.getMessages(userId, id, page, limit);
   }
 
