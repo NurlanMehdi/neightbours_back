@@ -175,7 +175,20 @@ export class PrivateChatRepository {
           select: { id: true, firstName: true, lastName: true, avatar: true },
         },
         replyTo: {
-          select: { id: true, text: true, senderId: true, createdAt: true },
+          select: {
+            id: true,
+            text: true,
+            senderId: true,
+            createdAt: true,
+            sender: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
+          },
         },
       },
     });
@@ -201,7 +214,20 @@ export class PrivateChatRepository {
           select: { id: true, firstName: true, lastName: true, avatar: true },
         },
         replyTo: {
-          select: { id: true, text: true, senderId: true, createdAt: true },
+          select: {
+            id: true,
+            text: true,
+            senderId: true,
+            createdAt: true,
+            sender: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -539,7 +565,20 @@ export class PrivateChatRepository {
             select: { id: true, firstName: true, lastName: true, avatar: true },
           },
           replyTo: {
-            select: { id: true, text: true, senderId: true, createdAt: true },
+            select: {
+              id: true,
+              text: true,
+              senderId: true,
+              createdAt: true,
+              sender: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  avatar: true,
+                },
+              },
+            },
           },
         },
       });
