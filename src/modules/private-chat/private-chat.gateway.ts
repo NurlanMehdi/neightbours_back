@@ -207,6 +207,7 @@ export class PrivateChatGateway
       const isAutoConversation = !payload.conversationId && !!payload.receiverId;
       
       // Отправляем сообщение через сервис (автоматически создаст диалог если нужно)
+      // Сообщение уже форматировано в сервисе
       const message = await this.chatService.sendMessage(userId, {
         text: payload.text,
         conversationId: payload.conversationId,
@@ -253,7 +254,7 @@ export class PrivateChatGateway
         }
       }
       
-      // Отправляем сообщение всем участникам диалога
+      // Отправляем сообщение всем участникам диалога (уже отформатировано)
       this.io.to(roomName).emit('private:message', message);
       this.logger.log(`Сообщение отправлено в комнату ${roomName}`);
 

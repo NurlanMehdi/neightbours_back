@@ -16,6 +16,43 @@ export class PrivateChatService {
     private readonly globalChatSettings: GlobalChatSettingsService,
   ) {}
 
+  /**
+   * Форматирует сообщение приватного чата для единообразного ответа
+   */
+  private formatPrivateMessage(msg: any) {
+    return {
+      id: msg.id,
+      conversationId: msg.conversationId,
+      senderId: msg.senderId,
+      text: msg.text,
+      replyToMessageId: msg.replyToId ?? null,
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt,
+      user: msg.sender
+        ? {
+            id: msg.sender.id,
+            firstName: msg.sender.firstName,
+            lastName: msg.sender.lastName,
+            avatar: msg.sender.avatar,
+          }
+        : null,
+      replyTo: msg.replyTo
+        ? {
+            id: msg.replyTo.id,
+            text: msg.replyTo.text,
+            user: msg.replyTo.sender
+              ? {
+                  id: msg.replyTo.sender.id,
+                  firstName: msg.replyTo.sender.firstName,
+                  lastName: msg.replyTo.sender.lastName,
+                  avatar: msg.replyTo.sender.avatar,
+                }
+              : null,
+          }
+        : null,
+    };
+  }
+
   async createConversation(currentUserId: number, otherUserId: number) {
     const isPrivateChatAllowed =
       await this.globalChatSettings.isPrivateChatAllowed();
@@ -121,7 +158,7 @@ export class PrivateChatService {
       });
     }
 
-    return message;
+    return this.formatPrivateMessage(message);
   }
 
   async getMessages(
@@ -131,7 +168,8 @@ export class PrivateChatService {
     limit = 50,
   ) {
     await this.repo.ensureParticipant(conversationId, currentUserId);
-    return this.repo.getMessages(conversationId, page, limit);
+    const messages = await this.repo.getMessages(conversationId, page, limit);
+    return messages.map((msg) => this.formatPrivateMessage(msg));
   }
 
   async getConversationList(currentUserId: number) {
