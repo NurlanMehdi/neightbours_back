@@ -264,10 +264,13 @@ export class EventsController {
   }
 
   @Get(':id/messages')
-  @ApiOperation({ summary: 'Получить сообщения мероприятия' })
+  @ApiOperation({ 
+    summary: 'Получить сообщения мероприятия',
+    description: 'Возвращает сообщения мероприятия с информацией о том, кто видел каждое сообщение'
+  })
   @ApiResponse({
     status: 200,
-    description: 'Список сообщений мероприятия',
+    description: 'Список сообщений мероприятия с информацией о просмотрах',
     type: EventMessageDto,
     isArray: true,
   })

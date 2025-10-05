@@ -50,8 +50,11 @@ export class CommunityChatController {
   }
 
   @Get(':id/messages')
-  @ApiOperation({ summary: 'Получить сообщения чата сообщества' })
-  @ApiResponse({ status: 200, description: 'Список сообщений' })
+  @ApiOperation({ 
+    summary: 'Получить сообщения чата сообщества',
+    description: 'Возвращает сообщения чата сообщества с информацией о том, кто видел каждое сообщение'
+  })
+  @ApiResponse({ status: 200, description: 'Список сообщений с информацией о просмотрах' })
   async list(
     @UserId() userId: number,
     @Param('id', ParseIntPipe) communityId: number,

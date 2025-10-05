@@ -195,7 +195,7 @@ export class CommunityChatRepository {
   }
 
   async getMessages(communityId: number, page = 1, limit = 50) {
-    return (this.prisma as any).communityMessage.findMany({
+    const messages = await (this.prisma as any).communityMessage.findMany({
       where: {
         communityId,
         isModerated: true,
@@ -226,6 +226,41 @@ export class CommunityChatRepository {
       skip: (page - 1) * limit,
       take: limit,
     });
+
+    // Get seen users for each message
+    const messageIds = messages.map(msg => msg.id);
+    const seenRecords = await this.prisma.communityRead.findMany({
+      where: {
+        communityId: communityId,
+      },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, avatar: true },
+        },
+      },
+    });
+
+    // Group seen records by messageId (all messages in community are considered "seen" by users who have read the community)
+    const seenByMessage = seenRecords.reduce((acc, record) => {
+      // For each message, add all users who have read the community
+      messageIds.forEach(messageId => {
+        if (!acc[messageId]) {
+          acc[messageId] = [];
+        }
+        acc[messageId].push({
+          userId: record.userId,
+          seenAt: record.readAt,
+          user: record.user,
+        });
+      });
+      return acc;
+    }, {});
+
+    // Add seen users to each message
+    return messages.map(msg => ({
+      ...msg,
+      seenUsers: seenByMessage[msg.id] || [],
+    }));
   }
 
   async deleteMessage(messageId: number, userId: number) {
