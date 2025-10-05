@@ -97,7 +97,7 @@ export class EventMessagesRepository {
     page: number = 1,
     limit: number = 50,
   ): Promise<EventMessage[]> {
-    return (this.prisma as any).eventMessage.findMany({
+    const messages = await (this.prisma as any).eventMessage.findMany({
       where: {
         eventId,
         isModerated: true,
@@ -135,6 +135,41 @@ export class EventMessagesRepository {
       skip: (page - 1) * limit,
       take: limit,
     });
+
+    // Get seen users for each message
+    const messageIds = messages.map(msg => msg.id);
+    const seenRecords = await this.prisma.eventRead.findMany({
+      where: {
+        eventId: eventId,
+      },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, avatar: true },
+        },
+      },
+    });
+
+    // Group seen records by messageId (all messages in event are considered "seen" by users who have read the event)
+    const seenByMessage = seenRecords.reduce((acc, record) => {
+      // For each message, add all users who have read the event
+      messageIds.forEach(messageId => {
+        if (!acc[messageId]) {
+          acc[messageId] = [];
+        }
+        acc[messageId].push({
+          userId: record.userId,
+          seenAt: record.readAt,
+          user: record.user,
+        });
+      });
+      return acc;
+    }, {});
+
+    // Add seen users to each message
+    return messages.map(msg => ({
+      ...msg,
+      seenUsers: seenByMessage[msg.id] || [],
+    }));
   }
 
   async isUserParticipant(userId: number, eventId: number): Promise<boolean> {
