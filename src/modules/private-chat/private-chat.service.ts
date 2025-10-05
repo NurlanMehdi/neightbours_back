@@ -160,22 +160,26 @@ export class PrivateChatService {
 
     return this.formatPrivateMessage(message);
   }
-
+/**
+   * Получить сообщения диалога с конкретным пользователем
+   * Использует pairKey для поиска диалога
+   */
   async getMessages(
     currentUserId: number,
-    conversationId: number,
+    receiverId: number,
     page = 1,
     limit = 50,
   ) {
-    try {
-      await this.repo.ensureParticipant(conversationId, currentUserId);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        return [];
-      }
-      throw error;
+    if (currentUserId === receiverId) {
+      throw new BadRequestException(
+        'Нельзя получить сообщения диалога с самим собой',
+      );
     }
-    const messages = await this.repo.getMessages(conversationId, page, limit);
+    const conversation = await this.repo.getOrCreateConversation(
+      currentUserId,
+      receiverId,
+    );
+    const messages = await this.repo.getMessages(conversation.id, page, limit);
     return messages.map((msg) => this.formatPrivateMessage(msg));
   }
 

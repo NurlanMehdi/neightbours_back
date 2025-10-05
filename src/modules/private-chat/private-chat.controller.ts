@@ -48,18 +48,26 @@ export class PrivateChatController {
     return this.service.getConversationList(userId);
   }
 
-  @Get('conversations/:id/messages')
-  @ApiOperation({ summary: 'Сообщения диалога (с пагинацией)' })
+  @Get('conversations/:receiverId/messages')
+  @ApiOperation({
+    summary: 'Получить сообщения диалога с конкретным пользователем',
+    description:
+      'Возвращает сообщения приватного диалога между текущим пользователем и указанным получателем. Использует pairKey для поиска диалога.',
+  })
   @ApiResponse({ status: 200, description: 'Сообщения успешно получены' })
+  @ApiResponse({
+    status: 400,
+    description: 'Некорректный receiverId или попытка получить сообщения с самим собой',
+  })
   @ApiResponse({ status: 403, description: 'Нет доступа к диалогу' })
-  @ApiResponse({ status: 404, description: 'Диалог не найден' })
+  @ApiResponse({ status: 404, description: 'Получатель не найден' })
   async getMessages(
     @UserId() userId: number,
-    @Param('id', ParseIntPipe) id: number,
+    @Param('receiverId', ParseIntPipe) receiverId: number,
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 50,
   ) {
-    return this.service.getMessages(userId, id, page, limit);
+    return this.service.getMessages(userId, receiverId, page, limit);
   }
 
   @Get('search')
