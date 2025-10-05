@@ -47,7 +47,19 @@ export class PrivateChatService {
       return {
         id: conv.id,
         user: other,
-        lastMessage,
+        lastMessage: lastMessage
+          ? {
+              id: lastMessage.id,
+              conversationId: lastMessage.conversationId,
+              senderId: lastMessage.senderId,
+              text: lastMessage.text,
+              replyToId: lastMessage.replyToId,
+              createdAt: lastMessage.createdAt,
+              updatedAt: lastMessage.updatedAt,
+              user: lastMessage.sender,
+              replyTo: lastMessage.replyTo,
+            }
+          : null,
         unreadCount: conv.unreadCount,
         updatedAt: conv.updatedAt,
       };
