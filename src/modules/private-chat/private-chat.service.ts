@@ -23,7 +23,7 @@ export class PrivateChatService {
     return {
       id: msg.id,
       conversationId: msg.conversationId,
-      senderId: msg.senderId,
+      userId: msg.senderId,
       text: msg.text,
       replyToMessageId: msg.replyToId ?? null,
       createdAt: msg.createdAt,
@@ -167,7 +167,14 @@ export class PrivateChatService {
     page = 1,
     limit = 50,
   ) {
-    await this.repo.ensureParticipant(conversationId, currentUserId);
+    try {
+      await this.repo.ensureParticipant(conversationId, currentUserId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return [];
+      }
+      throw error;
+    }
     const messages = await this.repo.getMessages(conversationId, page, limit);
     return messages.map((msg) => this.formatPrivateMessage(msg));
   }
