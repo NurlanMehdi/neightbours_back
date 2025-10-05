@@ -1,12 +1,13 @@
-import { IsInt, Min } from 'class-validator';
+import { IsInt, IsPositive } from 'class-validator';
 
 /**
- * DTO для включения/выключения авточтения приватного чата
+ * DTO для включения/выключения авточтения приватного чата с конкретным пользователем.
+ * Использует receivedId для авточтения диалога с конкретным пользователем.
  */
 export class AutoReadPrivateDto {
   @IsInt()
-  @Min(1)
-  conversationId: number;
+  @IsPositive()
+  receivedId: number;
 }
 
 
