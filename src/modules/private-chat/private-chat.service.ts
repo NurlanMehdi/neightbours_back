@@ -28,6 +28,8 @@ export class PrivateChatService {
       replyToMessageId: msg.replyToId ?? null,
       createdAt: msg.createdAt,
       updatedAt: msg.updatedAt,
+      isRead: msg.isRead ?? false,
+      readAt: msg.readAt ?? null,
       user: msg.sender
         ? {
             id: msg.sender.id,
@@ -179,7 +181,12 @@ export class PrivateChatService {
       currentUserId,
       receiverId,
     );
-    const messages = await this.repo.getMessages(conversation.id, page, limit);
+    const messages = await this.repo.getMessages(
+      conversation.id,
+      page,
+      limit,
+      currentUserId,
+    );
     return messages.map((msg) => this.formatPrivateMessage(msg));
   }
 

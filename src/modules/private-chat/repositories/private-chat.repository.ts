@@ -201,8 +201,9 @@ export class PrivateChatRepository {
     conversationId: number,
     page: number = 1,
     limit: number = 50,
+    currentUserId?: number,
   ) {
-    return this.prisma.privateMessage.findMany({
+    const messages = await this.prisma.privateMessage.findMany({
       where: { conversationId },
       include: {
         sender: {
@@ -219,11 +220,26 @@ export class PrivateChatRepository {
             },
           },
         },
+        seens: currentUserId ? {
+          where: { userId: currentUserId },
+          select: { userId: true, seenAt: true },
+        } : false,
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     });
+
+    // Add read status to each message
+    if (currentUserId) {
+      return messages.map(msg => ({
+        ...msg,
+        isRead: msg.seens && msg.seens.length > 0,
+        readAt: msg.seens && msg.seens.length > 0 ? msg.seens[0].seenAt : null,
+      }));
+    }
+
+    return messages;
   }
 
   async getConversationList(userId: number) {
