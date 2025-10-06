@@ -429,6 +429,49 @@ export class CommunityRepository {
         joinedViaCode,
       } as any,
     });
+
+    // Автоматически отмечаем все предыдущие сообщения как прочитанные
+    await this.markPreviousMessagesAsRead(userId, communityId);
+  }
+
+  /**
+   * Отмечает все существующие сообщения в сообществе как прочитанные для нового участника
+   * @param userId ID пользователя
+   * @param communityId ID сообщества
+   */
+  private async markPreviousMessagesAsRead(
+    userId: number,
+    communityId: number,
+  ): Promise<void> {
+    try {
+      // Находим последнее сообщение в сообществе
+      const lastMessage = await this.prisma.communityMessage.findFirst({
+        where: { communityId },
+        orderBy: { id: 'desc' },
+        select: { id: true, createdAt: true },
+      });
+
+      // Устанавливаем readAt на время последнего сообщения или текущее время
+      const readAt = lastMessage ? lastMessage.createdAt : new Date();
+
+      // Создаем запись о прочтении
+      await this.prisma.communityRead.upsert({
+        where: { userId_communityId: { userId, communityId } },
+        update: { readAt },
+        create: { userId, communityId, readAt },
+      });
+
+      this.logger.log(
+        `Новый участник ${userId} добавлен в сообщество ${communityId}, ` +
+        `предыдущие сообщения (до ${readAt.toISOString()}) отмечены как прочитанные.`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при отметке предыдущих сообщений как прочитанных для пользователя ${userId} ` +
+        `в сообществе ${communityId}: ${error.message}`,
+      );
+      // Не прерываем процесс добавления пользователя из-за ошибки с прочтением
+    }
   }
 
   /**
