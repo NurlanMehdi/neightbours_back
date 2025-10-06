@@ -275,8 +275,8 @@ export class PrivateChatService {
 
     await this.notificationService.createGlobalNotification({
       type: 'MESSAGE_RECEIVED',
-      title: 'New message',
-      message: `You received a new message from ${senderName}`,
+      title: 'Новое сообщение',
+      message: `Вы получили новое сообщение от ${senderName}`,
       userId: toUserIds,
       payload: {
         conversationId,
@@ -289,10 +289,10 @@ export class PrivateChatService {
   }
 
   private formatSenderName(sender: any): string {
-    if (!sender) return 'User';
+    if (!sender) return 'Пользователь';
     return (
       [sender.firstName, sender.lastName].filter(Boolean).join(' ').trim() ||
-      'User'
+      'Пользователь'
     );
   }
 
