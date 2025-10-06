@@ -53,7 +53,7 @@ export class PrivateChatGateway
     });
   }
 
-  handleConnection(client: Socket): void {
+  async handleConnection(client: Socket): Promise<void> {
     try {
       this.logger.log(`Клиент id: ${client.id} подключен`);
       
@@ -80,11 +80,12 @@ export class PrivateChatGateway
       }
 
       const personalRoom = `user:${userId}`;
-      client.join(personalRoom);
+      await client.join(personalRoom);
       this.registerUserSocket(userId, client.id);
       this.initializeAutoReadStructure(client);
       
       this.logger.log(`Пользователь ${userId} присоединился к личной комнате ${personalRoom}`);
+      this.logger.debug(`Комнаты клиента ${client.id}: ${Array.from(client.rooms).join(', ')}`);
       
       client.emit('private:connected', {
         status: 'ok',
@@ -141,8 +142,21 @@ export class PrivateChatGateway
         `Сообщение ${message.id} создано от ${userId} → ${payload.receiverId}`,
       );
 
-      this.io.to(`user:${userId}`).emit('private:message', message);
-      this.io.to(`user:${payload.receiverId}`).emit('private:message', message);
+      const senderRoom = `user:${userId}`;
+      const receiverRoom = `user:${payload.receiverId}`;
+
+      const senderSockets = await this.io.in(senderRoom).fetchSockets();
+      const receiverSockets = await this.io.in(receiverRoom).fetchSockets();
+
+      this.logger.debug(
+        `Эмит сообщения в комнату ${senderRoom} (${senderSockets.length} сокетов)`,
+      );
+      this.logger.debug(
+        `Эмит сообщения в комнату ${receiverRoom} (${receiverSockets.length} сокетов)`,
+      );
+
+      this.io.to(senderRoom).emit('private:message', message);
+      this.io.to(receiverRoom).emit('private:message', message);
 
       this.processAutoRead(userId, payload.receiverId, message.conversationId);
 
