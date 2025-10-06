@@ -228,6 +228,10 @@ export class CommunityChatGateway
             this.logger.log(
               `Пользователь ${socketUserId} авточтение сообщества ${payload.communityId} на ${new Date().toISOString()}`,
             );
+            // Уведомляем отправителя, что сообщение прочитано
+            this.io.to(`user:${userId}`).emit('community:read', {
+              readerId: socketUserId,
+            });
           } catch (error) {
             this.logger.error(
               `Ошибка авточтения для пользователя ${socketUserId}: ${error.message}`,
@@ -324,6 +328,11 @@ export class CommunityChatGateway
       client.data.autoRead.communities.add(communityId);
 
       await this.chatService.markCommunityAsReadForUser(userId, communityId);
+
+      // Уведомляем комнату сообщества, что пользователь прочитал сообщения
+      this.io.to(`community:${communityId}`).emit('community:read', {
+        readerId: userId,
+      });
 
       this.logger.log(
         `Пользователь ${userId} включил авточтение для сообщества ${communityId}`,

@@ -226,6 +226,10 @@ export class EventsGateway
             this.logger.log(
               `Пользователь ${socketUserId} авточтение события ${parsedData.eventId} на ${new Date().toISOString()}`,
             );
+            // Уведомляем отправителя, что сообщение прочитано
+            this.io.to(`user:${userId}`).emit('event:read', {
+              readerId: socketUserId,
+            });
           } catch (error) {
             this.logger.error(
               `Ошибка авточтения для пользователя ${socketUserId}: ${error.message}`,
@@ -272,6 +276,11 @@ export class EventsGateway
       client.data.autoRead.events.add(eventId);
 
       await this.eventsService.markEventAsReadForUser(userId, eventId);
+
+      // Уведомляем комнату события, что пользователь прочитал сообщения
+      this.io.to(`event:${eventId}`).emit('event:read', {
+        readerId: userId,
+      });
 
       this.logger.log(
         `Пользователь ${userId} включил авточтение для события ${eventId}`,
