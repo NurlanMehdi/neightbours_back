@@ -283,7 +283,6 @@ export class PrivateChatService {
         messageId: message.id,
         senderId: currentUserId,
         senderName,
-        text: message.text.substring(0, 100),
       },
     });
   }
