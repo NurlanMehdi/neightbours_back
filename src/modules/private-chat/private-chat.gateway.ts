@@ -15,8 +15,6 @@ import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
 import { WsJwtAuthGuard } from '../../common/guards/ws-jwt-auth.guard';
 import { PrivateChatService } from './private-chat.service';
 import { AutoReadPrivateDto } from './dto/auto-read-private.dto';
-import { JoinPrivateChatDto } from './dto/join-private-chat.dto';
-import { LeavePrivateChatDto } from './dto/leave-private-chat.dto';
 import { SendPrivateMessageDto } from './dto/send-private-message.dto';
 
 @WebSocketGateway({
@@ -52,7 +50,21 @@ export class PrivateChatGateway
   handleConnection(client: Socket): void {
     try {
       this.logger.log(`Клиент id: ${client.id} подключен`);
+      
+      const userId = client.data.user?.sub;
+      if (!userId) {
+        this.logger.warn(`Клиент ${client.id} не аутентифицирован, отключение`);
+        client.disconnect();
+        return;
+      }
+
+      const personalRoom = `user:${userId}`;
+      client.join(personalRoom);
+      this.registerUserSocket(userId, client.id);
       this.initializeAutoReadStructure(client);
+      
+      this.logger.log(`Пользователь ${userId} присоединился к личной комнате ${personalRoom}`);
+      
       client.emit('private:connected', {
         status: 'ok',
         clientId: client.id,
@@ -79,81 +91,6 @@ export class PrivateChatGateway
     }
   }
 
-  @UseGuards(WsJwtAuthGuard)
-  @SubscribeMessage('private:join')
-  async handleJoinPrivateChat(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: JoinPrivateChatDto,
-  ): Promise<{ status: string; conversationId: number }> {
-    try {
-      const userId = this.extractUserId(client);
-      if (!payload.receivedId) {
-        throw new WsException('receivedId is required');
-      }
-
-      const conversation = await this.chatService.createConversation(
-        userId,
-        payload.receivedId,
-      );
-      const conversationId = conversation.id;
-
-      this.logger.debug(
-        `handleJoinPrivateChat -> userId=${userId}, receivedId=${payload.receivedId}, conversationId=${conversationId}`,
-      );
-
-      this.registerUserSocket(userId, client.id);
-
-      const roomName = `private:${conversationId}`;
-      client.join(roomName);
-
-      this.logger.log(
-        `Пользователь ${userId} присоединился к приватному чату с пользователем ${payload.receivedId} (комната: ${roomName})`,
-      );
-
-      client.emit('private:joined', { conversationId });
-      return { status: 'joined', conversationId };
-    } catch (error) {
-      this.logger.error(
-        `Ошибка при присоединении к приватному чату: ${error.message}`,
-        error.stack,
-      );
-      throw new WsException('Не удалось присоединиться к приватному чату');
-    }
-  }
-
-  @UseGuards(WsJwtAuthGuard)
-  @SubscribeMessage('private:leave')
-  async handleLeavePrivateChat(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: LeavePrivateChatDto,
-  ): Promise<{ status: string; conversationId: number }> {
-    try {
-      const userId = this.extractUserId(client);
-      if (!payload.receivedId) {
-        throw new WsException('receivedId is required');
-      }
-
-      const conversation = await this.chatService.findConversationByUsers(
-        userId,
-        payload.receivedId,
-      );
-      const conversationId = conversation.id;
-      const roomName = `private:${conversationId}`;
-
-      client.leave(roomName);
-      this.logger.log(
-        `Пользователь ${userId} покинул приватный чат с пользователем ${payload.receivedId} (комната: ${roomName})`,
-      );
-
-      return { status: 'left', conversationId };
-    } catch (error) {
-      this.logger.error(
-        `Ошибка при выходе из приватного чата: ${error.message}`,
-        error.stack,
-      );
-      throw new WsException('Не удалось покинуть приватный чат');
-    }
-  }
 
   @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('private:sendMessage')
@@ -164,14 +101,12 @@ export class PrivateChatGateway
     try {
       const userId = this.extractUserId(client);
 
-      if (!payload.conversationId && !payload.receiverId) {
-        throw new WsException(
-          'Требуется указать conversationId или receiverId',
-        );
+      if (!payload.receiverId) {
+        throw new WsException('receiverId is required');
       }
 
       this.logger.log(
-        `Пользователь ${userId} отправляет сообщение. conversationId=${payload.conversationId}, receiverId=${payload.receiverId}`,
+        `Пользователь ${userId} отправляет сообщение получателю ${payload.receiverId}`,
       );
 
       const message = await this.chatService.sendMessage(userId, {
@@ -182,28 +117,13 @@ export class PrivateChatGateway
       });
 
       this.logger.log(
-        `Сообщение создано с ID: ${message.id} в диалоге ${message.conversationId}`,
+        `Сообщение ${message.id} создано от ${userId} → ${payload.receiverId}`,
       );
 
-      const roomName = `private:${message.conversationId}`;
-
-      this.autoJoinRoom(client, roomName, message.conversationId, userId);
-
-      if (payload.receiverId) {
-        this.autoJoinReceiver(
-          payload.receiverId,
-          roomName,
-          message.conversationId,
-        );
-      }
-
       this.io.to(`user:${userId}`).emit('private:message', message);
-      if (payload.receiverId) {
-        this.io.to(`user:${payload.receiverId}`).emit('private:message', message);
-      }
-      this.logger.log(`Сообщение отправлено пользователям: ${userId} → ${payload.receiverId}`);
+      this.io.to(`user:${payload.receiverId}`).emit('private:message', message);
 
-      this.processAutoRead(roomName, userId, message.conversationId);
+      this.processAutoRead(userId, payload.receiverId, message.conversationId);
 
       return {
         status: 'sent',
@@ -344,44 +264,10 @@ export class PrivateChatGateway
     }
   }
 
-  private autoJoinRoom(
-    client: Socket,
-    roomName: string,
-    conversationId: number,
-    userId: number,
-  ): void {
-    if (!client.rooms.has(roomName)) {
-      client.join(roomName);
-      this.logger.log(
-        `Пользователь ${userId} автоматически присоединен к комнате ${roomName}`,
-      );
-      client.emit('private:joined', { conversationId });
-    }
-  }
-
-  private autoJoinReceiver(
-    receiverId: number,
-    roomName: string,
-    conversationId: number,
-  ): void {
-    const receiverSockets = this.userSockets.get(receiverId);
-    if (!receiverSockets) return;
-
-    receiverSockets.forEach((socketId) => {
-      const receiverSocket = this.io.sockets.sockets.get(socketId);
-      if (receiverSocket && !receiverSocket.rooms.has(roomName)) {
-        receiverSocket.join(roomName);
-        receiverSocket.emit('private:joined', { conversationId });
-        this.logger.log(
-          `Получатель ${receiverId} автоматически присоединен к комнате ${roomName}`,
-        );
-      }
-    });
-  }
 
   private processAutoRead(
-    roomName: string,
     senderId: number,
+    receiverId: number,
     conversationId: number,
   ): void {
     setImmediate(async () => {
@@ -391,27 +277,22 @@ export class PrivateChatGateway
           return;
         }
 
-        const roomSockets = await this.io.in(roomName).fetchSockets();
         const autoReadPromises: Promise<void>[] = [];
 
-        for (const socket of roomSockets) {
-          const socketUserId = this.socketUser.get(socket.id);
-          if (
-            socketUserId &&
-            socketUserId !== senderId &&
-            autoReadUserIds.has(socketUserId)
-          ) {
+        if (autoReadUserIds.has(receiverId) && receiverId !== senderId) {
+          const receiverSockets = this.userSockets.get(receiverId);
+          if (receiverSockets && receiverSockets.size > 0) {
             autoReadPromises.push(
               this.chatService
-                .markPrivateAsReadForUser(socketUserId, conversationId)
+                .markPrivateAsReadForUser(receiverId, conversationId)
                 .then(() => {
                   this.logger.log(
-                    `Пользователь ${socketUserId} авточтение приватного чата ${conversationId}`,
+                    `Пользователь ${receiverId} авточтение приватного чата ${conversationId}`,
                   );
                 })
                 .catch((error) => {
                   this.logger.error(
-                    `Ошибка авточтения для пользователя ${socketUserId}: ${error.message}`,
+                    `Ошибка авточтения для пользователя ${receiverId}: ${error.message}`,
                     error.stack,
                   );
                 }),
