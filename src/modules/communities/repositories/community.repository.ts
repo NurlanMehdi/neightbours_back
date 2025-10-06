@@ -115,17 +115,14 @@ export class CommunityRepository {
     } = filters;
     const skip = (page - 1) * limit;
 
-    // Строим условия фильтрации
     const where: any = {};
     
-    // Фильтр по статусу (если не указан, показываем все сообщества)
     if ((filters as any).status) {
       where.status = (filters as any).status;
     } else {
-      where.isActive = true; // По умолчанию показываем только активные
+      where.isActive = true;  
     }
 
-    // Поиск по названию
     if (filters.search) {
       where.name = {
         contains: filters.search,
@@ -133,7 +130,6 @@ export class CommunityRepository {
       };
     }
 
-    // Фильтр по датам
     if (filters.dateFrom || filters.dateTo) {
       where.createdAt = {};
       if (filters.dateFrom) {
@@ -144,7 +140,6 @@ export class CommunityRepository {
       }
     }
 
-    // Определяем поле для сортрации
     const orderBy: any = {};
     switch (sortBy) {
       case CommunitySortBy.ID:
@@ -157,8 +152,6 @@ export class CommunityRepository {
         orderBy.createdAt = sortOrder.toLowerCase();
         break;
       case CommunitySortBy.NUMBER_OF_USERS:
-        // Prisma не поддерживает сортировку по агрегированным полям
-        // Используем сортировку по дате создания как fallback
         orderBy.createdAt = sortOrder.toLowerCase();
         break;
       default:
@@ -169,7 +162,6 @@ export class CommunityRepository {
       `Репозиторий: получение сообществ с фильтрами и пагинацией: ${JSON.stringify(filters)}`,
     );
 
-    // Используем транзакцию для получения данных и общего количества
     const [entities, total] = await this.prisma.$transaction([
       this.prisma.community.findMany({
         where,
@@ -430,51 +422,30 @@ export class CommunityRepository {
       } as any,
     });
 
-    // Автоматически отмечаем все предыдущие сообщения как прочитанные
     await this.markPreviousMessagesAsRead(userId, communityId);
   }
 
-  /**
-   * Отмечает все существующие сообщения в сообществе как прочитанные для нового участника
-   * @param userId ID пользователя
-   * @param communityId ID сообщества
-   */
   private async markPreviousMessagesAsRead(
     userId: number,
     communityId: number,
   ): Promise<void> {
     try {
-      // Находим последнее сообщение в сообществе
-      const lastMessage = await this.prisma.communityMessage.findFirst({
-        where: { 
-          communityId,
-          isDeleted: false,
-          isModerated: true,
-        },
-        orderBy: { id: 'desc' },
-        select: { id: true, createdAt: true },
-      });
-
-      // Устанавливаем readAt на время последнего сообщения или текущее время
-      const readAt = lastMessage ? lastMessage.createdAt : new Date();
-
-      // Создаем или обновляем запись о прочтении
+      const readAt = new Date();
       await this.prisma.communityRead.upsert({
         where: { userId_communityId: { userId, communityId } },
         update: { readAt },
         create: { userId, communityId, readAt },
       });
-
       this.logger.log(
         `Новый участник ${userId} добавлен в сообщество ${communityId}, ` +
-        `предыдущие сообщения (до ${readAt.toISOString()}) отмечены как прочитанные.`,
+        `все предыдущие сообщения отмечены как прочитанные (readAt: ${readAt.toISOString()}).`,
       );
     } catch (error) {
       this.logger.error(
         `Ошибка при отметке предыдущих сообщений как прочитанных для пользователя ${userId} ` +
         `в сообществе ${communityId}: ${error.message}`,
       );
-      // Не прерываем процесс добавления пользователя из-за ошибки с прочтением
+      throw error;
     }
   }
 
