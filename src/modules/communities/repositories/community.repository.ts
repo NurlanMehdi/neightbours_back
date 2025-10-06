@@ -446,7 +446,11 @@ export class CommunityRepository {
     try {
       // Находим последнее сообщение в сообществе
       const lastMessage = await this.prisma.communityMessage.findFirst({
-        where: { communityId },
+        where: { 
+          communityId,
+          isDeleted: false,
+          isModerated: true,
+        },
         orderBy: { id: 'desc' },
         select: { id: true, createdAt: true },
       });
@@ -454,7 +458,7 @@ export class CommunityRepository {
       // Устанавливаем readAt на время последнего сообщения или текущее время
       const readAt = lastMessage ? lastMessage.createdAt : new Date();
 
-      // Создаем запись о прочтении
+      // Создаем или обновляем запись о прочтении
       await this.prisma.communityRead.upsert({
         where: { userId_communityId: { userId, communityId } },
         update: { readAt },
