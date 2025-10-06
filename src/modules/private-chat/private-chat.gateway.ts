@@ -11,6 +11,8 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
 import { WsJwtAuthGuard } from '../../common/guards/ws-jwt-auth.guard';
 import { PrivateChatService } from './private-chat.service';
@@ -38,7 +40,11 @@ export class PrivateChatGateway
 
   @WebSocketServer() io: Server;
 
-  constructor(private readonly chatService: PrivateChatService) {}
+  constructor(
+    private readonly chatService: PrivateChatService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
   afterInit(server: Server): void {
     this.logger.log('WebSocket Gateway инициализирован');
@@ -51,9 +57,24 @@ export class PrivateChatGateway
     try {
       this.logger.log(`Клиент id: ${client.id} подключен`);
       
-      const userId = client.data.user?.sub;
+      let token = client.handshake.auth.token;
+      if (!token) {
+        token = client.handshake.query.token as string;
+      }
+
+      if (!token) {
+        this.logger.warn(`Клиент ${client.id} не предоставил токен, отключение`);
+        client.disconnect();
+        return;
+      }
+
+      const secret = this.configService.get<string>('JWT_SECRET');
+      const payload = this.jwtService.verify(token, { secret });
+      client.data.user = payload;
+      
+      const userId = payload.sub;
       if (!userId) {
-        this.logger.warn(`Клиент ${client.id} не аутентифицирован, отключение`);
+        this.logger.warn(`Клиент ${client.id} не содержит userId в токене, отключение`);
         client.disconnect();
         return;
       }
