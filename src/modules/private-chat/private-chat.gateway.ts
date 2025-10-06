@@ -90,6 +90,7 @@ export class PrivateChatGateway
       client.emit('private:connected', {
         status: 'ok',
         clientId: client.id,
+        userId: userId,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
