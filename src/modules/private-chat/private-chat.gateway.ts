@@ -197,8 +197,11 @@ export class PrivateChatGateway
         );
       }
 
-      this.io.to(roomName).emit('private:message', message);
-      this.logger.log(`Сообщение отправлено в комнату ${roomName}`);
+      this.io.to(`user:${userId}`).emit('private:message', message);
+      if (payload.receiverId) {
+        this.io.to(`user:${payload.receiverId}`).emit('private:message', message);
+      }
+      this.logger.log(`Сообщение отправлено пользователям: ${userId} → ${payload.receiverId}`);
 
       this.processAutoRead(roomName, userId, message.conversationId);
 

@@ -51,7 +51,7 @@ export class PrivateChatService {
           ? {
               id: lastMessage.id,
               conversationId: lastMessage.conversationId,
-              senderId: lastMessage.senderId,
+              userId: lastMessage.senderId,
               text: lastMessage.text,
               replyToId: lastMessage.replyToId,
               createdAt: lastMessage.createdAt,
