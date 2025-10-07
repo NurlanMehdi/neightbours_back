@@ -201,11 +201,13 @@ export class PrivateChatGateway
       }
       this.autoReadUsers.get(conversationId).add(userId);
 
-      await this.chatService.markPrivateAsReadForUser(userId, conversationId);
+      const readData = await this.chatService.markPrivateAsReadForUser(userId, conversationId);
 
       // Уведомляем всех участников чата, что пользователь прочитал сообщения
       this.io.to(`user:${payload.receivedId}`).emit('private:read', {
-        readerId: userId,
+        seenAt: readData.seenAt,
+        user: readData.user,
+        message: readData.message,
       });
 
       this.logger.log(
@@ -326,13 +328,15 @@ export class PrivateChatGateway
             autoReadPromises.push(
               this.chatService
                 .markPrivateAsReadForUser(receiverId, conversationId)
-                .then(() => {
+                .then((readData) => {
                   this.logger.log(
                     `Пользователь ${receiverId} авточтение приватного чата ${conversationId}`,
                   );
                   
                   this.io.to(`user:${senderId}`).emit('private:read', {
-                    readerId: receiverId,
+                    seenAt: readData.seenAt,
+                    user: readData.user,
+                    message: readData.message,
                   });
                 })
                 .catch((error) => {

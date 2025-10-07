@@ -219,8 +219,15 @@ export class PrivateChatService {
   async markPrivateAsReadForUser(
     userId: number,
     conversationId: number,
-  ): Promise<void> {
-    await this.repo.markAsRead(conversationId, userId);
+  ): Promise<{ seenAt: Date; user: any; message: any }> {
+    const result = await this.repo.markAsRead(conversationId, userId);
+    const readerData = await this.repo.getUserAndLastMessage(userId, conversationId);
+    
+    return {
+      seenAt: result.readAt,
+      user: readerData.user,
+      message: readerData.lastMessage,
+    };
   }
 
   private buildPairKey(userAId: number, userBId: number): string {

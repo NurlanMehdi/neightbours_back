@@ -154,12 +154,19 @@ export class CommunityChatService {
   async markCommunityAsReadForUser(
     userId: number,
     communityId: number,
-  ): Promise<void> {
+  ): Promise<{ seenAt: Date; user: any; message: any }> {
     const isMember = await this.repo.isMember(userId, communityId);
     if (!isMember) {
       throw new ForbiddenException('Нет доступа');
     }
-    await this.repo.markAsRead(userId, communityId);
+    const result = await this.repo.markAsRead(userId, communityId);
+    const readerData = await this.repo.getUserAndLastMessage(userId, communityId);
+    
+    return {
+      seenAt: result.readAt,
+      user: readerData.user,
+      message: readerData.lastMessage,
+    };
   }
 
   /**

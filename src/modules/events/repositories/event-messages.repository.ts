@@ -185,7 +185,8 @@ export class EventMessagesRepository {
   /**
    * Отмечает событие как прочитанное для пользователя (upsert)
    */
-  async markEventAsRead(userId: number, eventId: number): Promise<void> {
+  async markEventAsRead(userId: number, eventId: number): Promise<{ readAt: Date }> {
+    const readAt = new Date();
     await this.prisma.eventRead.upsert({
       where: {
         userId_eventId: {
@@ -194,14 +195,15 @@ export class EventMessagesRepository {
         },
       },
       update: {
-        readAt: new Date(),
+        readAt,
       },
       create: {
         userId,
         eventId,
-        readAt: new Date(),
+        readAt,
       },
     });
+    return { readAt };
   }
 
   /**
@@ -412,6 +414,45 @@ export class EventMessagesRepository {
       count,
       EVENT: totalEventMessages,
       NOTIFICATION: totalNotificationMessages,
+    };
+  }
+
+  async getUserAndLastMessage(userId: number, eventId: number) {
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        avatar: true,
+      },
+    });
+
+    const lastMessage = await this.prisma.eventMessage.findFirst({
+      where: { eventId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return {
+      user,
+      lastMessage: lastMessage ? {
+        id: lastMessage.id,
+        eventId: lastMessage.eventId,
+        userId: lastMessage.userId,
+        text: lastMessage.text,
+        createdAt: lastMessage.createdAt,
+        user: lastMessage.user,
+      } : null,
     };
   }
 }

@@ -515,4 +515,43 @@ export class CommunityChatRepository {
       COMMUNITY: totalCommunityMessages,
     };
   }
+
+  async getUserAndLastMessage(userId: number, communityId: number) {
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        avatar: true,
+      },
+    });
+
+    const lastMessage = await (this.prisma as any).communityMessage.findFirst({
+      where: { communityId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return {
+      user,
+      lastMessage: lastMessage ? {
+        id: lastMessage.id,
+        communityId: lastMessage.communityId,
+        userId: lastMessage.senderId,
+        text: lastMessage.text,
+        createdAt: lastMessage.createdAt,
+        user: lastMessage.sender,
+      } : null,
+    };
+  }
 }

@@ -221,7 +221,7 @@ export class CommunityChatGateway
           socket.data.autoRead?.communities?.has(payload.communityId)
         ) {
           try {
-            await this.chatService.markCommunityAsReadForUser(
+            const readData = await this.chatService.markCommunityAsReadForUser(
               socketUserId,
               payload.communityId,
             );
@@ -230,7 +230,9 @@ export class CommunityChatGateway
             );
             // Уведомляем отправителя, что сообщение прочитано
             this.io.to(`user:${userId}`).emit('community:read', {
-              readerId: socketUserId,
+              seenAt: readData.seenAt,
+              user: readData.user,
+              message: readData.message,
             });
           } catch (error) {
             this.logger.error(
@@ -327,11 +329,13 @@ export class CommunityChatGateway
 
       client.data.autoRead.communities.add(communityId);
 
-      await this.chatService.markCommunityAsReadForUser(userId, communityId);
+      const readData = await this.chatService.markCommunityAsReadForUser(userId, communityId);
 
       // Уведомляем комнату сообщества, что пользователь прочитал сообщения
       this.io.to(`community:${communityId}`).emit('community:read', {
-        readerId: userId,
+        seenAt: readData.seenAt,
+        user: readData.user,
+        message: readData.message,
       });
 
       this.logger.log(

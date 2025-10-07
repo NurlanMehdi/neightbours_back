@@ -734,6 +734,47 @@ export class PrivateChatRepository {
     }
   }
 
+  async getUserAndLastMessage(userId: number, conversationId: number) {
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        avatar: true,
+      },
+    });
+
+    const lastMessage = await this.prisma.privateMessage.findFirst({
+      where: { conversationId },
+      orderBy: { createdAt: 'desc' },
+      include: this.getMessageInclude(),
+    });
+
+    return {
+      user,
+      lastMessage: lastMessage ? this.formatMessage(lastMessage) : null,
+    };
+  }
+
+  private formatMessage(msg: any) {
+    return {
+      id: msg.id,
+      conversationId: msg.conversationId,
+      userId: msg.senderId,
+      text: msg.text,
+      createdAt: msg.createdAt,
+      user: msg.sender
+        ? {
+            id: msg.sender.id,
+            firstName: msg.sender.firstName,
+            lastName: msg.sender.lastName,
+            avatar: msg.sender.avatar,
+          }
+        : null,
+    };
+  }
+
   private async touchConversation(conversationId: number): Promise<void> {
     await this.prisma.conversation.update({
       where: { id: conversationId },
