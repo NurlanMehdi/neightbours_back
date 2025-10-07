@@ -219,7 +219,7 @@ export class EventsGateway
           socket.data.autoRead?.events?.has(parsedData.eventId)
         ) {
           try {
-            await this.eventsService.markEventAsReadForUser(
+            const readData = await this.eventsService.markEventAsReadForUser(
               socketUserId,
               parsedData.eventId,
             );
@@ -228,7 +228,9 @@ export class EventsGateway
             );
             // Уведомляем отправителя, что сообщение прочитано
             this.io.to(`user:${userId}`).emit('event:read', {
-              readerId: socketUserId,
+              seenAt: readData.seenAt,
+              user: readData.user,
+              message: readData.message,
             });
           } catch (error) {
             this.logger.error(
@@ -275,11 +277,13 @@ export class EventsGateway
 
       client.data.autoRead.events.add(eventId);
 
-      await this.eventsService.markEventAsReadForUser(userId, eventId);
+      const readData = await this.eventsService.markEventAsReadForUser(userId, eventId);
 
       // Уведомляем комнату события, что пользователь прочитал сообщения
       this.io.to(`event:${eventId}`).emit('event:read', {
-        readerId: userId,
+        seenAt: readData.seenAt,
+        user: readData.user,
+        message: readData.message,
       });
 
       this.logger.log(

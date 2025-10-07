@@ -1157,7 +1157,7 @@ export class EventsService {
   /**
    * Отмечает событие как прочитанное для конкретного пользователя (для авточтения)
    */
-  async markEventAsReadForUser(userId: number, eventId: number): Promise<void> {
+  async markEventAsReadForUser(userId: number, eventId: number): Promise<{ seenAt: Date; user: any; message: any }> {
     const event = await this.eventsRepository.findById(eventId);
     if (!event) {
       throw new EventNotFoundException();
@@ -1169,9 +1169,17 @@ export class EventsService {
     if (!isUserInCommunity) {
       throw new UserNotInCommunityException();
     }
-    await this.eventMessagesRepository.markEventAsRead(userId, eventId);
+    const result = await this.eventMessagesRepository.markEventAsRead(userId, eventId);
+    const readerData = await this.eventMessagesRepository.getUserAndLastMessage(userId, eventId);
+    
     this.logger.log(
       `Пользователь ${userId} авточтение события ${eventId} на ${new Date().toISOString()}`,
     );
+    
+    return {
+      seenAt: result.readAt,
+      user: readerData.user,
+      message: readerData.lastMessage,
+    };
   }
 }
