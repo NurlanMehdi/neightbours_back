@@ -205,7 +205,10 @@ export class PrivateChatGateway
 
       // Уведомляем всех участников чата, что пользователь прочитал сообщения
       this.io.to(`user:${payload.receivedId}`).emit('private:read', {
+        readerId: userId,
+        conversationId,
         seenAt: readData.seenAt,
+        updatedAt: new Date(),
         user: readData.user,
         message: readData.message,
       });
@@ -334,7 +337,10 @@ export class PrivateChatGateway
                   );
                   
                   this.io.to(`user:${senderId}`).emit('private:read', {
+                    readerId: receiverId,
+                    conversationId,
                     seenAt: readData.seenAt,
+                    updatedAt: new Date(),
                     user: readData.user,
                     message: readData.message,
                   });

@@ -230,7 +230,10 @@ export class CommunityChatGateway
             );
             // Уведомляем отправителя, что сообщение прочитано
             this.io.to(`user:${userId}`).emit('community:read', {
+              readerId: socketUserId,
+              chatId: payload.communityId,
               seenAt: readData.seenAt,
+              updatedAt: new Date(),
               user: readData.user,
               message: readData.message,
             });
@@ -333,7 +336,10 @@ export class CommunityChatGateway
 
       // Уведомляем комнату сообщества, что пользователь прочитал сообщения
       this.io.to(`community:${communityId}`).emit('community:read', {
+        readerId: userId,
+        chatId: communityId,
         seenAt: readData.seenAt,
+        updatedAt: new Date(),
         user: readData.user,
         message: readData.message,
       });

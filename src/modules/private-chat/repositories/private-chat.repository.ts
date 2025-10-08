@@ -221,7 +221,11 @@ export class PrivateChatRepository {
 
     await this.touchConversation(params.conversationId);
 
-    return message;
+    return {
+      ...message,
+      isRead: false,
+      readAt: null,
+    };
   }
 
   async createMessageWithAutoConversation(params: {
@@ -313,6 +317,8 @@ export class PrivateChatRepository {
 
       return {
         ...message,
+        isRead: false,
+        readAt: null,
         conversation: {
           id: conversation.id,
           participants,
@@ -356,7 +362,6 @@ export class PrivateChatRepository {
         },
         seens: currentUserId
           ? {
-              where: { userId: currentUserId },
               select: { userId: true, seenAt: true },
             }
           : false,
@@ -367,12 +372,14 @@ export class PrivateChatRepository {
     });
 
     if (currentUserId) {
-      return messages.map((msg) => ({
-        ...msg,
-        isRead: msg.seens && msg.seens.length > 0,
-        readAt:
-          msg.seens && msg.seens.length > 0 ? msg.seens[0].seenAt : null,
-      }));
+      return messages.map((msg) => {
+        const { isRead, readAt } = this.computeReadStatus(msg, currentUserId);
+        return {
+          ...msg,
+          isRead,
+          readAt,
+        };
+      });
     }
 
     return messages;
@@ -782,6 +789,23 @@ export class PrivateChatRepository {
     });
   }
 
+  /**
+   * Вычисляет статус прочтения сообщения для конкретного пользователя
+   * @param msg - Сообщение с данными о прочтении (seens)
+   * @param currentUserId - ID текущего пользователя
+   * @returns Объект с isRead и readAt
+   */
+  private computeReadStatus(msg: any, currentUserId: number) {
+    const relevantSeens =
+      msg.senderId === currentUserId
+        ? msg.seens?.filter((s) => s.userId !== currentUserId)
+        : msg.seens?.filter((s) => s.userId === currentUserId);
+    const isRead = relevantSeens && relevantSeens.length > 0;
+    const readAt = relevantSeens?.[0]?.seenAt ?? null;
+    
+    return { isRead, readAt };
+  }
+
   private getMessageInclude() {
     return {
       sender: {
@@ -806,6 +830,12 @@ export class PrivateChatRepository {
               avatar: true,
             },
           },
+        },
+      },
+      seens: {
+        select: {
+          userId: true,
+          seenAt: true,
         },
       },
     };
