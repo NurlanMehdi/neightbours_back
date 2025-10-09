@@ -550,6 +550,7 @@ export class CommunityChatRepository {
         userId: lastMessage.senderId,
         text: lastMessage.text,
         createdAt: lastMessage.createdAt,
+        updatedAt: lastMessage.updatedAt,
         user: lastMessage.sender,
       } : null,
     };

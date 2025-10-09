@@ -771,6 +771,7 @@ export class PrivateChatRepository {
       userId: msg.senderId,
       text: msg.text,
       createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt,
       user: msg.sender
         ? {
             id: msg.sender.id,
