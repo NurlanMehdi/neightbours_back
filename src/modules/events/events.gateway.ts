@@ -228,10 +228,7 @@ export class EventsGateway
             );
             // Уведомляем отправителя, что сообщение прочитано
             this.io.to(`user:${userId}`).emit('event:read', {
-              readerId: socketUserId,
-              chatId: parsedData.eventId,
               seenAt: readData.seenAt,
-              updatedAt: new Date(),
               user: readData.user,
               message: readData.message,
             });
@@ -284,10 +281,7 @@ export class EventsGateway
 
       // Уведомляем комнату события, что пользователь прочитал сообщения
       this.io.to(`event:${eventId}`).emit('event:read', {
-        readerId: userId,
-        chatId: eventId,
         seenAt: readData.seenAt,
-        updatedAt: new Date(),
         user: readData.user,
         message: readData.message,
       });

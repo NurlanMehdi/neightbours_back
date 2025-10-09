@@ -451,6 +451,7 @@ export class EventMessagesRepository {
         userId: lastMessage.userId,
         text: lastMessage.text,
         createdAt: lastMessage.createdAt,
+        updatedAt: lastMessage.updatedAt,
         user: lastMessage.user,
       } : null,
     };
