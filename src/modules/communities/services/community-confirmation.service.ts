@@ -1,7 +1,6 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { CommunityRepository } from '../repositories/community.repository';
-import { NotificationService } from '../../notifications/services/notification.service';
-import { NotificationType } from '../../notifications/interfaces/notification.interface';
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { NotificationEventService } from '../../notifications/services/notification-event.service';
 import { CommunityConfirmationConfig } from '../config/community-confirmation.config';
 
 @Injectable()
@@ -9,117 +8,122 @@ export class CommunityConfirmationService {
   private readonly logger = new Logger(CommunityConfirmationService.name);
 
   constructor(
-    private readonly communityRepository: CommunityRepository,
-    private readonly notificationService: NotificationService,
+    private readonly prisma: PrismaService,
+    private readonly notificationEventService: NotificationEventService,
   ) {}
 
-  async processExpiredCommunities(): Promise<{ activated: number; deleted: number }> {
-    this.logger.log('Запуск обработки истекших сообществ');
-
-    const communities = await this.communityRepository.findInactiveCommunitiesPastDeadline();
-    
-    let activated = 0;
-    let deleted = 0;
-
-    for (const community of communities) {
-      const joinedCount = ((community as any).users || []).filter((u: any) => u.joinedViaCode).length;
-      
-      if (joinedCount >= CommunityConfirmationConfig.requiredMembersCount) {
-        await this.activateCommunity(community.id, community.createdBy);
-        activated++;
-      } else {
-        await this.deleteCommunity(community.id, community.createdBy, community.name);
-        deleted++;
-      }
-    }
-
-    this.logger.log(
-      `Обработка завершена: активировано ${activated}, удалено ${deleted}`,
-    );
-
-    return { activated, deleted };
+  calculateConfirmationDeadline(): Date {
+    return CommunityConfirmationConfig.calculateConfirmationDeadline();
   }
 
   async activateCommunity(communityId: number, creatorId: number): Promise<void> {
     this.logger.log(`Активация сообщества ${communityId}`);
-    
-    await this.communityRepository.activateCommunity(communityId);
 
-    try {
-      await this.notificationService.createNotification({
-        type: NotificationType.COMMUNITY_APPROVED,
-        title: 'Сообщество подтверждено',
-        message: 'Ваше сообщество успешно подтверждено и активировано.',
-        userId: creatorId,
-        payload: { communityId },
-      });
-    } catch (error) {
-      this.logger.error(
-        `Ошибка отправки уведомления о подтверждении сообщества ${communityId}`,
-        error,
-      );
-    }
+    await this.prisma.community.update({
+      where: { id: communityId },
+      data: {
+        status: 'ACTIVE',
+        isActive: true,
+        confirmedAt: new Date(),
+        confirmationDeadline: null,
+      },
+    });
+
+    await this.notificationEventService.notifyCommunityStatusChange({
+      userId: creatorId,
+      communityId,
+      status: 'ACTIVE',
+      type: 'COMMUNITY_APPROVED',
+    });
+
+    this.logger.log(`Сообщество ${communityId} активировано`);
   }
 
-  async deleteCommunity(
-    communityId: number,
-    creatorId: number,
-    communityName: string,
-  ): Promise<void> {
-    this.logger.log(`Удаление сообщества ${communityId} из-за истечения срока`);
-    
-    await this.communityRepository.hardDelete(communityId);
+  async rejectCommunity(communityId: number, creatorId: number): Promise<void> {
+    this.logger.log(`Отклонение сообщества ${communityId}`);
 
-    try {
-      await this.notificationService.createNotification({
-        type: NotificationType.COMMUNITY_REJECTED,
-        title: 'Сообщество не подтверждено',
-        message: `Ваше сообщество "${communityName}" было удалено, так как в течение 24 часов к нему не присоединилось минимум ${CommunityConfirmationConfig.requiredMembersCount} участника.`,
-        userId: creatorId,
-        payload: { communityId },
-      });
-    } catch (error) {
-      this.logger.error(
-        `Ошибка отправки уведомления об отклонении сообщества ${communityId}`,
-        error,
-      );
-    }
+    await this.notificationEventService.notifyCommunityStatusChange({
+      userId: creatorId,
+      communityId,
+      status: 'REJECTED',
+      type: 'COMMUNITY_REJECTED',
+    });
+
+    await this.prisma.community.delete({
+      where: { id: communityId },
+    });
+
+    this.logger.log(`Сообщество ${communityId} отклонено и удалено`);
   }
 
-  async manuallyConfirmCommunity(communityId: number): Promise<void> {
-    this.logger.log(`Ручное подтверждение сообщества ${communityId} администратором`);
+  async processExpiredCommunities(): Promise<void> {
+    this.logger.log('Обработка истекших сообществ');
 
-    const community = await this.communityRepository.findByIdForAdmin(communityId);
+    const expiredCommunities = await this.prisma.community.findMany({
+      where: {
+        status: 'INACTIVE',
+        confirmationDeadline: {
+          lte: new Date(),
+        },
+      },
+      include: {
+        users: {
+          where: {
+            joinedViaCode: true,
+          },
+        },
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    for (const community of expiredCommunities) {
+      const joinedCount = community.users.length;
+      
+      if (joinedCount >= CommunityConfirmationConfig.requiredMembersCount) {
+        await this.activateCommunity(community.id, community.createdBy);
+      } else {
+        await this.rejectCommunity(community.id, community.createdBy);
+      }
+    }
+
+    this.logger.log(`Обработано ${expiredCommunities.length} истекших сообществ`);
+  }
+
+  async adminConfirmCommunity(communityId: number, adminId: number): Promise<void> {
+    this.logger.log(`Административное подтверждение сообщества ${communityId} администратором ${adminId}`);
+
+    const community = await this.prisma.community.findUnique({
+      where: { id: communityId },
+      select: { createdBy: true },
+    });
+
     if (!community) {
-      throw new NotFoundException(`Сообщество с ID ${communityId} не найдено`);
+      throw new Error('Сообщество не найдено');
     }
 
-    if (community.status === 'ACTIVE') {
-      throw new BadRequestException(`Сообщество с ID ${communityId} уже активно`);
-    }
+    await this.prisma.community.update({
+      where: { id: communityId },
+      data: {
+        status: 'ACTIVE',
+        isActive: true,
+        confirmedAt: new Date(),
+        confirmationDeadline: null,
+      },
+    });
 
-    await this.communityRepository.activateCommunity(communityId);
+    await this.notificationEventService.notifyCommunityStatusChange({
+      userId: community.createdBy,
+      communityId,
+      status: 'ACTIVE',
+      type: 'COMMUNITY_APPROVED',
+    });
 
-    try {
-      await this.notificationService.createNotification({
-        type: NotificationType.COMMUNITY_APPROVED,
-        title: 'Сообщество подтверждено',
-        message: 'Ваше сообщество было подтверждено администратором и активировано.',
-        userId: community.createdBy,
-        payload: { communityId },
-      });
-    } catch (error) {
-      this.logger.error(
-        `Ошибка отправки уведомления о ручном подтверждении сообщества ${communityId}`,
-        error,
-      );
-    }
-  }
-
-  calculateConfirmationDeadline(): Date {
-    const deadline = new Date();
-    deadline.setHours(deadline.getHours() + CommunityConfirmationConfig.confirmationTimeoutHours);
-    return deadline;
+    this.logger.log(`Сообщество ${communityId} подтверждено администратором`);
   }
 }
-

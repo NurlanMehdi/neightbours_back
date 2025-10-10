@@ -21,6 +21,8 @@ import { CommunityInfoDto } from '../dto/community-info.dto';
 import { ApiStandardResponses } from '../../../common/decorators/api-responses.decorator';
 import { ConfirmationStatusDto } from '../dto/confirmation-status.dto';
 import { JoinByCodeResponseDto } from '../dto/join-by-code-response.dto';
+import { CreateCommunityDto } from '../dto/create-community.dto';
+import { CreateCommunityResponseDto } from '../dto/create-community-response.dto';
 import { UserId } from '../../../common/decorators/user-id.decorator';
 
 class JoinByCodeDto {
@@ -33,6 +35,36 @@ class JoinByCodeDto {
 @ApiBearerAuth()
 export class CommunitiesController {
   constructor(private readonly communityService: CommunityService) {}
+
+  @Post()
+  @ApiOperation({
+    summary: 'Создать новое сообщество',
+    description: 'Создает новое сообщество со статусом INACTIVE и сроком подтверждения 24 часа',
+  })
+  @ApiBody({
+    type: CreateCommunityDto,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Сообщество успешно создано',
+    type: CreateCommunityResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Некорректные данные',
+  })
+  @ApiStandardResponses()
+  async createCommunity(
+    @UserId() userId: number,
+    @Body() dto: CreateCommunityDto,
+  ): Promise<CreateCommunityResponseDto> {
+    return this.communityService.createCommunity(
+      userId,
+      dto.name,
+      dto.latitude,
+      dto.longitude,
+    );
+  }
 
   @Get(':id')
   @ApiOperation({

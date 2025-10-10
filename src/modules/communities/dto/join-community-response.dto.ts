@@ -1,21 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 
-export class ConfirmationStatusDto {
+export class JoinCommunityResponseDto {
   @ApiProperty({
-    description: 'Статус сообщества',
-    example: 'INACTIVE',
+    description: 'ID сообщества',
+    example: 1,
   })
   @Expose()
-  status: string;
+  id: number;
 
   @ApiProperty({
-    description: 'Срок подтверждения',
-    example: '2024-01-01T12:00:00Z',
-    required: false,
+    description: 'Название сообщества',
+    example: 'Мой район',
   })
   @Expose()
-  deadline?: Date;
+  name: string;
 
   @ApiProperty({
     description: 'Количество присоединившихся пользователей',
@@ -32,10 +31,9 @@ export class ConfirmationStatusDto {
   requiredCount: number;
 
   @ApiProperty({
-    description: 'Дата подтверждения',
-    example: '2024-01-01T12:00:00Z',
-    required: false,
+    description: 'Статус сообщества',
+    example: 'INACTIVE',
   })
   @Expose()
-  confirmedAt?: Date;
+  status: string;
 }

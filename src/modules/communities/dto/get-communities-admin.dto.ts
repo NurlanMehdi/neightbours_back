@@ -32,6 +32,11 @@ export enum CommunitySize {
   LARGE = 'large',
 }
 
+export enum CommunityStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}
+
 export class GetCommunitiesAdminDto {
   @ApiProperty({
     description: 'Номер страницы (не используется если withoutPagination=true)',
@@ -99,6 +104,16 @@ export class GetCommunitiesAdminDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiProperty({
+    description: 'Фильтр по статусу сообщества',
+    enum: CommunityStatus,
+    example: CommunityStatus.ACTIVE,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(CommunityStatus)
+  status?: CommunityStatus;
 
   @ApiProperty({
     description:

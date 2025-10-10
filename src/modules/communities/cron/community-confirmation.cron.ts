@@ -11,18 +11,14 @@ export class CommunityConfirmationCron {
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
-  async handleCommunityConfirmation() {
-    this.logger.log('Запуск проверки подтверждения сообществ');
-
+  async processExpiredCommunities(): Promise<void> {
+    this.logger.log('Запуск обработки истекших сообществ');
+    
     try {
-      const result = await this.confirmationService.processExpiredCommunities();
-      
-      this.logger.log(
-        `Проверка завершена: активировано ${result.activated}, удалено ${result.deleted}`,
-      );
+      await this.confirmationService.processExpiredCommunities();
+      this.logger.log('Обработка истекших сообществ завершена');
     } catch (error) {
-      this.logger.error('Ошибка при обработке подтверждения сообществ', error);
+      this.logger.error(`Ошибка при обработке истекших сообществ: ${error.message}`);
     }
   }
 }
-

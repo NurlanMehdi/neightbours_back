@@ -305,9 +305,10 @@ export class CommunitiesAdminController {
   })
   @ApiStandardResponses()
   async confirmCommunity(
+    @UserId() adminId: number,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<CommunityFullDto> {
-    await this.confirmationService.manuallyConfirmCommunity(id);
+    await this.communityService.adminConfirmCommunity(id, adminId);
     return this.communityService.getCommunityForAdmin(id);
   }
 }

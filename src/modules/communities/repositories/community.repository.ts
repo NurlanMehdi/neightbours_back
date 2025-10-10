@@ -41,10 +41,8 @@ export class CommunityRepository {
     const where: any = {};
     
     // Фильтр по статусу (если не указан, показываем все сообщества)
-    if ((filters as any).status) {
-      where.status = (filters as any).status;
-    } else {
-      where.isActive = true; // По умолчанию показываем только активные
+    if (filters.status) {
+      where.status = filters.status;
     }
 
     // Поиск по названию
@@ -117,10 +115,8 @@ export class CommunityRepository {
 
     const where: any = {};
     
-    if ((filters as any).status) {
-      where.status = (filters as any).status;
-    } else {
-      where.isActive = true;  
+    if (filters.status) {
+      where.status = filters.status;
     }
 
     if (filters.search) {
@@ -246,7 +242,6 @@ export class CommunityRepository {
     this.logger.log(`Репозиторий: поиск сообщества по коду: ${code}.`);
     return this.prisma.community.findFirst({
       where: {
-        isActive: true,
         joinCode: code,
       },
       include: {
@@ -265,7 +260,6 @@ export class CommunityRepository {
     return this.prisma.community.findFirst({
       where: {
         id,
-        isActive: true,
       },
       include: {
         creator: true,
@@ -530,17 +524,31 @@ export class CommunityRepository {
     });
   }
 
+
+  async updateCoordinates(communityId: number, latitude: number, longitude: number): Promise<Community> {
+    this.logger.log(`Репозиторий: обновление координат сообщества ${communityId}.`);
+    return this.prisma.community.update({
+      where: {
+        id: communityId,
+      },
+      data: {
+        latitude,
+        longitude,
+      },
+    });
+  }
+
   async findInactiveCommunitiesPastDeadline(): Promise<Community[]> {
     this.logger.log(
       'Репозиторий: получение неактивных сообществ с истекшим сроком подтверждения.',
     );
     return this.prisma.community.findMany({
       where: {
-        status: 'INACTIVE' as any,
+        status: 'INACTIVE',
         confirmationDeadline: {
           lte: new Date(),
         },
-      } as any,
+      },
       include: {
         creator: {
           select: {
@@ -552,7 +560,7 @@ export class CommunityRepository {
         users: {
           where: {
             joinedViaCode: true,
-          } as any,
+          },
         },
       },
     });
@@ -565,23 +573,19 @@ export class CommunityRepository {
         id: communityId,
       },
       data: { 
-        status: 'ACTIVE' as any,
+        status: 'ACTIVE',
         isActive: true,
         confirmedAt: new Date(),
         confirmationDeadline: null,
-      } as any,
+      },
     });
   }
 
-  async updateCoordinates(communityId: number, latitude: number, longitude: number): Promise<Community> {
-    this.logger.log(`Репозиторий: обновление координат сообщества ${communityId}.`);
-    return this.prisma.community.update({
+  async deleteCommunity(communityId: number): Promise<void> {
+    this.logger.log(`Репозиторий: удаление сообщества ${communityId}.`);
+    await this.prisma.community.delete({
       where: {
         id: communityId,
-      },
-      data: {
-        latitude,
-        longitude,
       },
     });
   }

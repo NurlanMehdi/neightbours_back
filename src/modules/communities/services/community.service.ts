@@ -222,11 +222,11 @@ export class CommunityService {
         createdBy: userId,
         latitude,
         longitude,
-        status: 'INACTIVE' as any,
+        status: 'INACTIVE',
         isActive: false,
         joinCode: Math.floor(100000 + Math.random() * 900000).toString(),
         confirmationDeadline,
-      } as any,
+      },
     });
 
     await this.communityRepository.addUser(community.id, userId, false);
@@ -234,6 +234,8 @@ export class CommunityService {
     return {
       ...community,
       joinCode: community.joinCode,
+      status: community.status,
+      confirmationDeadline: community.confirmationDeadline,
     };
   }
 
@@ -368,14 +370,25 @@ export class CommunityService {
     dto: CreateCommunityAdminDto,
   ): Promise<CommunityDto> {
     this.logger.log('Сервис: создание нового сообщества администратором.');
-    const community = await this.communityRepository.create({
-      name: dto.name,
-      description: dto.description,
-      latitude: dto.latitude,
-      longitude: dto.longitude,
-      status: 'ACTIVE',
-      createdBy: userId,
+    
+    const confirmationDeadline = this.confirmationService.calculateConfirmationDeadline();
+
+    const community = await this.prisma.community.create({
+      data: {
+        name: dto.name,
+        description: dto.description,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        status: 'INACTIVE',
+        isActive: false,
+        createdBy: userId,
+        joinCode: Math.floor(100000 + Math.random() * 900000).toString(),
+        confirmationDeadline,
+      },
     });
+
+    await this.communityRepository.addUser(community.id, userId, false);
+
     return this.buildCommunityDto(community);
   }
 
@@ -438,13 +451,18 @@ export class CommunityService {
       ? `${community.creator.firstName || ''} ${community.creator.lastName || ''}`.trim()
       : 'Неизвестный пользователь';
 
+    // Подсчитываем пользователей, присоединившихся по коду (исключая создателя)
+    const joinedViaCodeCount = community.users?.filter((user: any) => 
+      user.joinedViaCode === true && user.userId !== community.createdBy
+    ).length ?? 0;
+
     return plainToInstance(
       CommunityDto,
       {
         id: community.id,
         name: community.name,
         description: community.description ?? '',
-        numberOfUsers: community.users?.length ?? 0,
+        numberOfUsers: joinedViaCodeCount,
         status: community.status,
         createdBy: createdByName,
         createdAt: community.createdAt,
@@ -509,7 +527,9 @@ export class CommunityService {
               })) || [],
             createdAt: event.createdAt,
           })) || [],
-        numberOfUsers: community.users?.length ?? 0,
+        numberOfUsers: community.users?.filter((user: any) => 
+          user.joinedViaCode === true && user.userId !== community.createdBy
+        ).length ?? 0,
         numberOfEvents: community.events?.length ?? 0,
         createdAt: community.createdAt,
         latitude: community.latitude ?? 0.0,
@@ -671,6 +691,19 @@ export class CommunityService {
         `Координаты сообщества ${communityId} обновлены: ${latitude}, ${longitude}`,
       );
     }
+  }
+
+  async adminConfirmCommunity(communityId: number, adminId: number): Promise<void> {
+    this.logger.log(
+      `Сервис: административное подтверждение сообщества ${communityId} администратором ${adminId}`,
+    );
+
+    const community = await this.communityRepository.findById(communityId);
+    if (!community) {
+      throw new BadRequestException('Сообщество не найдено');
+    }
+
+    await this.confirmationService.adminConfirmCommunity(communityId, adminId);
   }
 
   private buildCommunityInfoDto(community: any): CommunityInfoDto {

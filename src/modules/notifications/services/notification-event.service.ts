@@ -281,6 +281,30 @@ export class NotificationEventService {
   }
 
   /**
+   * Уведомление о изменении статуса сообщества
+   */
+  async notifyCommunityStatusChange(data: {
+    userId: number;
+    communityId: number;
+    status: string;
+    type: 'COMMUNITY_APPROVED' | 'COMMUNITY_REJECTED';
+  }): Promise<void> {
+    const eventData: ISystemEventData = {
+      eventType: data.type === 'COMMUNITY_APPROVED' 
+        ? SystemEventType.COMMUNITY_APPROVED 
+        : SystemEventType.COMMUNITY_REJECTED,
+      relatedEntityId: data.communityId,
+      relatedEntityType: 'community',
+      additionalData: {
+        status: data.status,
+        triggererUserId: data.userId,
+      },
+    };
+
+    await this.triggerService.processSystemEvent(eventData);
+  }
+
+  /**
    * Уведомление о новом сообщении в мероприятии (для всех участников кроме автора)
    */
   async notifyEventMessagePosted(data: {
