@@ -47,13 +47,7 @@ export class PropertyConfirmationService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.property.update({
-        where: { id: propertyId },
-        data: {
-          verificationStatus: 'VERIFIED' as any,
-        },
-      });
-
+      // 1. Сначала добавляем запись подтверждения
       await tx.propertyVerification.upsert({
         where: {
           propertyId_userId: {
@@ -68,6 +62,21 @@ export class PropertyConfirmationService {
           createdAt: new Date(),
         },
       });
+
+      // 2. Подсчитываем общее количество уникальных подтверждений
+      const verificationCount = await tx.propertyVerification.count({
+        where: { propertyId },
+      });
+
+      // 3. Обновляем статус только если есть минимум 2 подтверждения
+      if (verificationCount >= 2) {
+        await tx.property.update({
+          where: { id: propertyId },
+          data: {
+            verificationStatus: 'VERIFIED' as any,
+          },
+        });
+      }
     });
 
     // Notify owner
