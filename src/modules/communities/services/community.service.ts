@@ -364,6 +364,7 @@ export class CommunityService {
    * @returns Созданное сообщество с кодом для присоединения
    */
   async createCommunityByAdmin(
+    userId: number,
     dto: CreateCommunityAdminDto,
   ): Promise<CommunityDto> {
     this.logger.log('Сервис: создание нового сообщества администратором.');
@@ -373,7 +374,7 @@ export class CommunityService {
       latitude: dto.latitude,
       longitude: dto.longitude,
       status: 'ACTIVE',
-      createdBy: 1, // ID администратора
+      createdBy: userId,
     });
     return this.buildCommunityDto(community);
   }

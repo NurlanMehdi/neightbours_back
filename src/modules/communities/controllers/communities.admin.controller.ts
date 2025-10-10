@@ -32,7 +32,7 @@ import { CommunityMinimalDto } from '../dto/community-minimal.dto';
 import { CommunityFullDto } from '../dto/community-full.dto';
 import { ApiStandardResponses } from '../../../common/decorators/api-responses.decorator';
 import { CommunityConfirmationService } from '../services/community-confirmation.service';
-
+import { UserId } from '../../../common/decorators/user-id.decorator';
 @ApiTags('Управление сообществами')
 @Controller('admin/communities')
 @UseGuards(JwtAuthGuard)
@@ -57,9 +57,10 @@ export class CommunitiesAdminController {
   })
   @ApiStandardResponses()
   async createCommunity(
+    @UserId() userId: number,
     @Body() dto: CreateCommunityAdminDto,
   ): Promise<CommunityDto> {
-    return this.communityService.createCommunityByAdmin(dto);
+    return this.communityService.createCommunityByAdmin(userId, dto);
   }
 
   @Get()
