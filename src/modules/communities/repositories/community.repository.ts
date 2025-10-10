@@ -38,9 +38,12 @@ export class CommunityRepository {
     } = filters;
 
     // Строим условия фильтрации
-    const where: any = {};
+    const where: any = {
+      // Исключаем мягко удаленные сообщества (isActive: false)
+      isActive: true,
+    };
     
-    // Фильтр по статусу (если не указан, показываем все сообщества)
+    // Фильтр по статусу (INACTIVE = ожидает подтверждения, ACTIVE = подтверждено)
     if (filters.status) {
       where.status = filters.status;
     }
@@ -113,7 +116,10 @@ export class CommunityRepository {
     } = filters;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: any = {
+      // Исключаем мягко удаленные сообщества (isActive: false)
+      isActive: true,
+    };
     
     if (filters.status) {
       where.status = filters.status;

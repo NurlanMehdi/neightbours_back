@@ -138,7 +138,7 @@ model Community {
   latitude             Float?
   longitude            Float?
   isPrivate            Boolean              @default(false)
-  isActive             Boolean              @default(false)
+  isActive             Boolean              @default(true)
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   createdBy            Int

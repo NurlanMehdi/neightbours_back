@@ -95,7 +95,6 @@ describe('CommunityService', () => {
         joinCode: '123456',
         confirmationDeadline: deadline,
       });
-      mockCommunityRepository.addUser.mockResolvedValue(undefined);
 
       const result = await service.createCommunity(userId, name, latitude, longitude);
 
@@ -106,13 +105,14 @@ describe('CommunityService', () => {
           latitude,
           longitude,
           status: 'INACTIVE',
-          isActive: false,
+          isActive: true, // true = видимо, false = мягко удалено
           joinCode: expect.any(String),
           confirmationDeadline: deadline,
         },
       });
 
-      expect(mockCommunityRepository.addUser).toHaveBeenCalledWith(1, userId, false);
+      // Создатель НЕ добавляется как участник сообщества автоматически
+      expect(mockCommunityRepository.addUser).not.toHaveBeenCalled();
       expect(result.status).toBe('INACTIVE');
       expect(result.confirmationDeadline).toBe(deadline);
     });

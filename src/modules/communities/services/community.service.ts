@@ -223,13 +223,14 @@ export class CommunityService {
         latitude,
         longitude,
         status: 'INACTIVE',
-        isActive: false,
+        isActive: true, // true = видимо, false = мягко удалено
         joinCode: Math.floor(100000 + Math.random() * 900000).toString(),
         confirmationDeadline,
       },
     });
 
-    await this.communityRepository.addUser(community.id, userId, false);
+    // Создатель НЕ добавляется как участник сообщества автоматически
+    // Это соответствует требованию клиента
 
     return {
       ...community,
@@ -343,10 +344,22 @@ export class CommunityService {
       `Сервис: генерация кода для вступления в сообщество пользователем с id: ${userId}.`,
     );
 
-    // Проверяем, состоит ли пользователь в сообществе
-    const community = await this.communityRepository.findByUserId(userId);
+    // Проверяем, состоит ли пользователь в сообществе или является его создателем
+    let community = await this.communityRepository.findByUserId(userId);
+    
+    // Если не состоит, проверяем, является ли создателем
     if (!community) {
-      throw new BadRequestException('Пользователь не состоит в сообществе');
+      const communities = await this.prisma.community.findMany({
+        where: { createdBy: userId },
+      });
+      
+      if (communities.length > 0) {
+        community = communities[0];
+      }
+    }
+    
+    if (!community) {
+      throw new BadRequestException('Пользователь не состоит в сообществе и не является создателем');
     }
 
     // Генерируем код из 6 случайных цифр
@@ -380,14 +393,15 @@ export class CommunityService {
         latitude: dto.latitude,
         longitude: dto.longitude,
         status: 'INACTIVE',
-        isActive: false,
+        isActive: true, // true = видимо, false = мягко удалено
         createdBy: userId,
         joinCode: Math.floor(100000 + Math.random() * 900000).toString(),
         confirmationDeadline,
       },
     });
 
-    await this.communityRepository.addUser(community.id, userId, false);
+    // Создатель НЕ добавляется как участник сообщества автоматически
+    // Это соответствует требованию клиента
 
     return this.buildCommunityDto(community);
   }
