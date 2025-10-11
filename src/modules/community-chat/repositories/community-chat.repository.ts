@@ -531,7 +531,7 @@ export class CommunityChatRepository {
       where: { communityId },
       orderBy: { createdAt: 'desc' },
       include: {
-        sender: {
+        user: {
           select: {
             id: true,
             firstName: true,
@@ -547,11 +547,11 @@ export class CommunityChatRepository {
       lastMessage: lastMessage ? {
         id: lastMessage.id,
         communityId: lastMessage.communityId,
-        userId: lastMessage.senderId,
+        userId: lastMessage.userId,
         text: lastMessage.text,
         createdAt: lastMessage.createdAt,
         updatedAt: lastMessage.updatedAt,
-        user: lastMessage.sender,
+        user: lastMessage.user,
       } : null,
     };
   }

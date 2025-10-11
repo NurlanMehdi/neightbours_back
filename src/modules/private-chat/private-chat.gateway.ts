@@ -183,13 +183,14 @@ export class PrivateChatGateway
   ): Promise<{ status: string; conversationId: number }> {
     try {
       const userId = this.extractUserId(client);
-      if (!payload.receivedId) {
-        throw new WsException('receivedId is required');
+      const receiverId = payload.getReceiverId();
+      if (!receiverId) {
+        throw new WsException('receiverId/receivedId/userId/targetId is required');
       }
 
       const conversation = await this.chatService.createConversation(
         userId,
-        payload.receivedId,
+        receiverId,
       );
       const conversationId = conversation.id;
 
@@ -204,14 +205,14 @@ export class PrivateChatGateway
       const readData = await this.chatService.markPrivateAsReadForUser(userId, conversationId);
 
       // Уведомляем всех участников чата, что пользователь прочитал сообщения
-      this.io.to(`user:${payload.receivedId}`).emit('private:read', {
+      this.io.to(`user:${receiverId}`).emit('private:read', {
         seenAt: readData.seenAt,
         user: readData.user,
         message: readData.message,
       });
 
       this.logger.log(
-        `Пользователь ${userId} включил авточтение для приватного чата с пользователем ${payload.receivedId} (conversationId: ${conversationId})`,
+        `Пользователь ${userId} включил авточтение для приватного чата с пользователем ${receiverId} (conversationId: ${conversationId})`,
       );
 
       return { status: 'enabled', conversationId };
@@ -232,13 +233,14 @@ export class PrivateChatGateway
   ): Promise<{ status: string; conversationId: number }> {
     try {
       const userId = this.extractUserId(client);
-      if (!payload.receivedId) {
-        throw new WsException('receivedId is required');
+      const receiverId = payload.getReceiverId();
+      if (!receiverId) {
+        throw new WsException('receiverId/receivedId/userId/targetId is required');
       }
 
       const conversation = await this.chatService.createConversation(
         userId,
-        payload.receivedId,
+        receiverId,
       );
       const conversationId = conversation.id;
 
@@ -254,7 +256,7 @@ export class PrivateChatGateway
       }
 
       this.logger.log(
-        `Пользователь ${userId} выключил авточтение для приватного чата с пользователем ${payload.receivedId} (conversationId: ${conversationId})`,
+        `Пользователь ${userId} выключил авточтение для приватного чата с пользователем ${receiverId} (conversationId: ${conversationId})`,
       );
 
       return { status: 'disabled', conversationId };
