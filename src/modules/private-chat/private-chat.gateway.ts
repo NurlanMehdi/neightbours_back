@@ -183,7 +183,7 @@ export class PrivateChatGateway
   ): Promise<{ status: string; conversationId: number }> {
     try {
       const userId = this.extractUserId(client);
-      const receiverId = payload.getReceiverId();
+      const receiverId = payload?.receiverId || payload?.receivedId;
       if (!receiverId) {
         throw new WsException('receiverId/receivedId/userId/targetId is required');
       }
@@ -233,7 +233,7 @@ export class PrivateChatGateway
   ): Promise<{ status: string; conversationId: number }> {
     try {
       const userId = this.extractUserId(client);
-      const receiverId = payload.getReceiverId();
+      const receiverId = payload?.receiverId || payload?.receivedId || payload?.userId || payload?.targetId;
       if (!receiverId) {
         throw new WsException('receiverId/receivedId/userId/targetId is required');
       }

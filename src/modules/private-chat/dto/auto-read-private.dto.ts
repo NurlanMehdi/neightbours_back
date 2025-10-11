@@ -29,13 +29,6 @@ export class AutoReadPrivateDto {
   @IsInt()
   @IsPositive()
   targetId?: number;
-
-  /**
-   * Извлекает ID получателя из любого доступного поля
-   */
-  getReceiverId(): number {
-    return this.receiverId || this.receivedId || this.userId || this.targetId;
-  }
 }
 
 
