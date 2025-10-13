@@ -12,7 +12,6 @@ describe('CommunityConfirmationService', () => {
   const mockPrismaService = {
     community: {
       update: jest.fn(),
-      delete: jest.fn(),
       findMany: jest.fn(),
       findUnique: jest.fn(),
     },
@@ -86,11 +85,11 @@ describe('CommunityConfirmationService', () => {
   });
 
   describe('rejectCommunity', () => {
-    it('should reject community and send notification', async () => {
+    it('should deactivate community and send notification', async () => {
       const communityId = 1;
       const creatorId = 2;
 
-      mockPrismaService.community.delete.mockResolvedValue({ id: communityId });
+      mockPrismaService.community.update.mockResolvedValue({ id: communityId });
       mockNotificationService.notifyCommunityStatusChange.mockResolvedValue(undefined);
 
       await service.rejectCommunity(communityId, creatorId);
@@ -102,8 +101,12 @@ describe('CommunityConfirmationService', () => {
         type: 'COMMUNITY_REJECTED',
       });
 
-      expect(mockPrismaService.community.delete).toHaveBeenCalledWith({
+      expect(mockPrismaService.community.update).toHaveBeenCalledWith({
         where: { id: communityId },
+        data: {
+          isActive: false,
+          status: 'INACTIVE',
+        },
       });
     });
   });
@@ -127,6 +130,17 @@ describe('CommunityConfirmationService', () => {
 
       await service.processExpiredCommunities();
 
+      expect(mockPrismaService.community.findMany).toHaveBeenCalledWith({
+        where: {
+          status: 'INACTIVE',
+          isActive: true,
+          confirmationDeadline: {
+            lte: expect.any(Date),
+          },
+        },
+        include: expect.any(Object),
+      });
+
       expect(mockPrismaService.community.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: {
@@ -145,7 +159,7 @@ describe('CommunityConfirmationService', () => {
       });
     });
 
-    it('should reject community when not enough members joined', async () => {
+    it('should deactivate community when not enough members joined', async () => {
       const expiredCommunities = [
         {
           id: 1,
@@ -157,7 +171,7 @@ describe('CommunityConfirmationService', () => {
       ];
 
       mockPrismaService.community.findMany.mockResolvedValue(expiredCommunities);
-      mockPrismaService.community.delete.mockResolvedValue({ id: 1 });
+      mockPrismaService.community.update.mockResolvedValue({ id: 1 });
       mockNotificationService.notifyCommunityStatusChange.mockResolvedValue(undefined);
 
       await service.processExpiredCommunities();
@@ -169,8 +183,12 @@ describe('CommunityConfirmationService', () => {
         type: 'COMMUNITY_REJECTED',
       });
 
-      expect(mockPrismaService.community.delete).toHaveBeenCalledWith({
+      expect(mockPrismaService.community.update).toHaveBeenCalledWith({
         where: { id: 1 },
+        data: {
+          isActive: false,
+          status: 'INACTIVE',
+        },
       });
     });
   });

@@ -49,11 +49,15 @@ export class CommunityConfirmationService {
       type: 'COMMUNITY_REJECTED',
     });
 
-    await this.prisma.community.delete({
+    await this.prisma.community.update({
       where: { id: communityId },
+      data: {
+        isActive: false,
+        status: 'INACTIVE',
+      },
     });
 
-    this.logger.log(`Сообщество ${communityId} отклонено и удалено`);
+    this.logger.log(`Сообщество ${communityId} отклонено и деактивировано`);
   }
 
   async processExpiredCommunities(): Promise<void> {
@@ -62,6 +66,7 @@ export class CommunityConfirmationService {
     const expiredCommunities = await this.prisma.community.findMany({
       where: {
         status: 'INACTIVE',
+        isActive: true,
         confirmationDeadline: {
           lte: new Date(),
         },

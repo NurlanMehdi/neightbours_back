@@ -330,4 +330,34 @@ export class EventsGateway
       throw new WsException('Не удалось выключить авточтение');
     }
   }
+
+  @SubscribeMessage('event:disableSocket')
+  handleDisableSocket(
+    @ConnectedSocket() client: Socket,
+  ): { status: string } {
+    try {
+      const userId = this.socketUser.get(client.id);
+      this.logger.log(
+        `Отключение сокета ${client.id} для пользователя ${userId || 'неизвестен'}`,
+      );
+      if (userId) {
+        this.socketUser.delete(client.id);
+        const userSockets = this.userSockets.get(userId);
+        if (userSockets) {
+          userSockets.delete(client.id);
+          if (userSockets.size === 0) {
+            this.userSockets.delete(userId);
+          }
+        }
+      }
+      client.disconnect(true);
+      return { status: 'disconnected' };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при отключении сокета: ${error.message}`,
+      );
+      client.disconnect(true);
+      return { status: 'disconnected' };
+    }
+  }
 }

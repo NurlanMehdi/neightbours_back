@@ -310,6 +310,28 @@ export class PrivateChatGateway
   }
 
 
+  @SubscribeMessage('private:disableSocket')
+  handleDisableSocket(
+    @ConnectedSocket() client: Socket,
+  ): { status: string } {
+    try {
+      const userId = this.socketUser.get(client.id);
+      this.logger.log(
+        `Отключение сокета ${client.id} для пользователя ${userId || 'неизвестен'}`,
+      );
+      this.cleanupUserSocket(client.id);
+      client.disconnect(true);
+      return { status: 'disconnected' };
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при отключении сокета: ${error.message}`,
+        error.stack,
+      );
+      client.disconnect(true);
+      return { status: 'disconnected' };
+    }
+  }
+
   private processAutoRead(
     senderId: number,
     receiverId: number,
