@@ -37,6 +37,7 @@ export class PrivateChatGateway
   private userSockets: Map<number, Set<string>> = new Map();
   private socketUser: Map<string, number> = new Map();
   private autoReadUsers: Map<number, Set<number>> = new Map();
+  private lastMessageId: number | null = null;
 
   @WebSocketServer() io: Server;
 
@@ -142,6 +143,13 @@ export class PrivateChatGateway
       this.logger.log(
         `Сообщение ${message.id} создано от ${userId} → ${payload.receiverId}`,
       );
+
+      // Проверяем на дублирование сообщений
+      if (this.lastMessageId === message.id) {
+        this.logger.warn(`Дублирующееся сообщение ${message.id} проигнорировано`);
+        return { status: 'ignored', messageId: message.id, conversationId: message.conversationId };
+      }
+      this.lastMessageId = message.id;
 
       const senderRoom = `user:${userId}`;
       const receiverRoom = `user:${payload.receiverId}`;

@@ -37,6 +37,7 @@ export class CommunityChatGateway
   private readonly logger = new Logger(CommunityChatGateway.name);
   private userSockets: Map<number, Set<string>> = new Map();
   private socketUser: Map<string, number> = new Map();
+  private lastMessageId: number | null = null;
 
   constructor(
     private readonly chatService: CommunityChatService,
@@ -207,6 +208,14 @@ export class CommunityChatGateway
         },
       );
       this.logger.log(`Сообщение создано с ID: ${message.id}`);
+
+      // Проверяем на дублирование сообщений
+      if (this.lastMessageId === message.id) {
+        this.logger.warn(`Дублирующееся сообщение ${message.id} проигнорировано`);
+        return { status: 'ignored', messageId: message.id };
+      }
+      this.lastMessageId = message.id;
+
       const roomName = `community:${payload.communityId}`;
       this.io.to(roomName).emit('community:message', message);
       this.logger.log(`Сообщение отправлено в комнату ${roomName}`);
