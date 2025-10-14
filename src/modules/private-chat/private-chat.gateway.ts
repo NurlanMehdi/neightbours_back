@@ -156,8 +156,13 @@ export class PrivateChatGateway
         `Эмит сообщения в комнату ${receiverRoom} (${receiverSockets.length} сокетов)`,
       );
 
-      this.io.to(senderRoom).emit('private:message', message);
-      this.io.to(receiverRoom).emit('private:message', message);
+      // Избегаем дублирования сообщений, если отправитель и получатель - один пользователь
+      if (userId === payload.receiverId) {
+        this.io.to(senderRoom).emit('private:message', message);
+      } else {
+        this.io.to(senderRoom).emit('private:message', message);
+        this.io.to(receiverRoom).emit('private:message', message);
+      }
 
       this.processAutoRead(userId, payload.receiverId, message.conversationId);
 
@@ -180,7 +185,7 @@ export class PrivateChatGateway
   async handleAutoReadOn(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: AutoReadPrivateDto,
-  ): Promise<{ status: string; conversationId: number }> {
+  ): Promise<{ status: string; conversationId?: number }> {
     try {
       const userId = this.extractUserId(client);
       const receiverId = payload?.receiverId || payload?.receivedId;
@@ -188,10 +193,16 @@ export class PrivateChatGateway
         throw new WsException('receiverId/receivedId/userId/targetId is required');
       }
 
-      const conversation = await this.chatService.createConversation(
-        userId,
-        receiverId,
-      );
+      // Ищем существующий диалог, не создаем новый
+      const conversation = await this.chatService.findConversationByUsers(userId, receiverId);
+      
+      if (!conversation) {
+        this.logger.warn(
+          `Попытка включить авточтение для несуществующего диалога между пользователями ${userId} и ${receiverId}`,
+        );
+        return { status: 'conversation_not_found' };
+      }
+
       const conversationId = conversation.id;
 
       this.initializeAutoReadStructure(client);
@@ -230,7 +241,7 @@ export class PrivateChatGateway
   async handleAutoReadOff(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: AutoReadPrivateDto,
-  ): Promise<{ status: string; conversationId: number }> {
+  ): Promise<{ status: string; conversationId?: number }> {
     try {
       const userId = this.extractUserId(client);
       const receiverId = payload?.receiverId || payload?.receivedId || payload?.userId || payload?.targetId;
@@ -238,10 +249,16 @@ export class PrivateChatGateway
         throw new WsException('receiverId/receivedId/userId/targetId is required');
       }
 
-      const conversation = await this.chatService.createConversation(
-        userId,
-        receiverId,
-      );
+      // Ищем существующий диалог, не создаем новый
+      const conversation = await this.chatService.findConversationByUsers(userId, receiverId);
+      
+      if (!conversation) {
+        this.logger.warn(
+          `Попытка выключить авточтение для несуществующего диалога между пользователями ${userId} и ${receiverId}`,
+        );
+        return { status: 'conversation_not_found' };
+      }
+
       const conversationId = conversation.id;
 
       if (client.data.autoRead?.private) {

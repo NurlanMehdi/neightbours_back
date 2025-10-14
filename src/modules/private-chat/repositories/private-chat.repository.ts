@@ -611,7 +611,7 @@ export class PrivateChatRepository {
     await this.markAsRead(chatId, userId);
   }
 
-  private buildPairKey(userAId: number, userBId: number): string {
+  buildPairKey(userAId: number, userBId: number): string {
     const [minId, maxId] =
       userAId < userBId ? [userAId, userBId] : [userBId, userAId];
     return `${minId}_${maxId}`;

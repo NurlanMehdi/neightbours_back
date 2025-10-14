@@ -157,10 +157,14 @@ export class PrivateChatService {
       );
     }
 
-    const conversation = await this.repo.getOrCreateConversation(
-      currentUserId,
-      receiverId,
-    );
+    const pairKey = this.repo.buildPairKey(currentUserId, receiverId);
+    const conversation = await this.repo.findConversationByPairKey(pairKey);
+    
+    if (!conversation) {
+      // Возвращаем пустой массив, если диалог не существует
+      return [];
+    }
+
     const messages = await this.repo.getMessages(
       conversation.id,
       page,
