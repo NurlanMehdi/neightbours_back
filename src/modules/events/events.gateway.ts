@@ -331,11 +331,13 @@ export class EventsGateway
     }
   }
 
+  @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('event:disableSocket')
   handleDisableSocket(
     @ConnectedSocket() client: Socket,
   ): { status: string } {
     try {
+      this.logger.log(`Получен запрос event:disableSocket от сокета ${client.id}`);
       const userId = this.socketUser.get(client.id);
       this.logger.log(
         `Отключение сокета ${client.id} для пользователя ${userId || 'неизвестен'}`,
