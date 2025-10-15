@@ -143,21 +143,14 @@ export class PrivateChatGateway
         `Сообщение ${message.id} создано от ${userId} → ${payload.receiverId}`,
       );
 
+      const senderRoom = `user:${userId}`;
       const receiverRoom = `user:${payload.receiverId}`;
 
-      // Only emit to receiver - sender gets confirmation via return value
+      const senderSockets = await this.io.in(senderRoom).fetchSockets();
+      const receiverSockets = await this.io.in(receiverRoom).fetchSockets();
+      
+      this.io.to(senderRoom).emit('private:message', message);
       this.io.to(receiverRoom).emit('private:message', message);
-
-      // Send to sender's other connected devices (multi-device sync)
-      // but exclude the current socket to avoid duplication
-      const senderSockets = this.userSockets.get(userId);
-      if (senderSockets) {
-        senderSockets.forEach((socketId) => {
-          if (socketId !== client.id) {
-            this.io.to(socketId).emit('private:message', message);
-          }
-        });
-      }
     
 
       this.processAutoRead(userId, payload.receiverId, message.conversationId);
