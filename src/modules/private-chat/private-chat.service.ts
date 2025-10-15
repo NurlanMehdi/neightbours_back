@@ -317,7 +317,6 @@ export class PrivateChatService {
       updatedAt: msg.updatedAt,
       isRead: msg.isRead ?? false,
       readAt: msg.readAt ?? null,
-      isNewConversation: msg.isNewConversation ?? false,
       user: msg.sender
         ? {
             id: msg.sender.id,

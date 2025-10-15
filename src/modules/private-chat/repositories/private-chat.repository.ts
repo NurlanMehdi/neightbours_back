@@ -251,8 +251,6 @@ export class PrivateChatRepository {
         select: { id: true },
       });
 
-      let isNewConversation = false;
-
       if (!conversation) {
         this.logger.debug(
           `Creating new conversation for users ${params.senderId} and ${params.receiverId}`,
@@ -271,7 +269,6 @@ export class PrivateChatRepository {
           },
           select: { id: true },
         });
-        isNewConversation = true;
       } else {
         await this.ensureParticipantsInTransaction(
           tx,
@@ -322,7 +319,6 @@ export class PrivateChatRepository {
         ...message,
         isRead: false,
         readAt: null,
-        isNewConversation,
         conversation: {
           id: conversation.id,
           participants,
