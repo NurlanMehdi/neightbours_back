@@ -71,6 +71,7 @@ export interface IEvent {
   hasMoneyCollection: boolean;
   moneyAmount?: number;
   eventDateTime?: Date;
+  lifetimeHours?: number;
   createdAt: Date;
   updatedAt: Date;
   creator: IEventCreator;

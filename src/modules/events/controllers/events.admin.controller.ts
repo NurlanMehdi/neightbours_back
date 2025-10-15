@@ -160,4 +160,12 @@ export class EventsAdminController {
   async deleteEvent(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.eventsService.deleteEventByAdmin(id);
   }
+
+  @Post('test-cleanup')
+  @ApiOperation({ summary: 'Тест очистки истекших уведомлений' })
+  @ApiResponse({ status: 200, description: 'Очистка выполнена' })
+  async testCleanup(): Promise<{ message: string }> {
+    await this.eventsService.cleanupExpiredNotifications();
+    return { message: 'Очистка истекших уведомлений выполнена' };
+  }
 }

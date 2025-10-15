@@ -1,14 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsOptional,
-  IsString,
-  IsEnum,
-  IsInt,
-  Min,
-  IsDateString,
-} from 'class-validator';
-import { Type } from 'class-transformer';
 import { EventType } from '@prisma/client';
+import { Type } from 'class-transformer';
+import {
+    IsDateString,
+    IsEnum,
+    IsInt,
+    IsOptional,
+    IsString,
+    Min,
+} from 'class-validator';
 import { TransformToInt } from '../../../common/utils/form-data-transformers.util';
 
 /**

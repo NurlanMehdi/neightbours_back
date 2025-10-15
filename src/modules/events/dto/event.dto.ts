@@ -206,6 +206,13 @@ export class EventDto implements IEvent {
   @Expose()
   moneyAmount?: number;
 
+  @ApiProperty({ 
+    description: 'Время жизни уведомления в часах (только для типа NOTIFICATION)', 
+    required: false 
+  })
+  @Expose()
+  lifetimeHours?: number;
+
   @ApiProperty({ description: 'Дата создания' })
   @Expose()
   createdAt: Date;

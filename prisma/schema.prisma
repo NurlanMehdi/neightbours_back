@@ -7,6 +7,540 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Users {
+  id                       Int                       @id @default(autoincrement())
+  phone                    String                    @unique
+  login                    String?                   @unique
+  password                 String?
+  email                    String?                   @unique
+  firstName                String?
+  lastName                 String?
+  gender                   UserGender?
+  birthDate                DateTime?
+  avatar                   String?
+  role                     UserRole                  @default(USER)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @default(now()) @updatedAt
+  isVerified               Boolean                   @default(false)
+  smsCode                  String?
+  smsCodeExpiresAt         DateTime?
+  status                   UserStatus                @default(ACTIVE)
+  lastAccess               DateTime?
+  registrationStep         Int                       @default(1)
+  latitude                 Float?
+  longitude                Float?
+  address                  String?
+  familyTypeId             Int?
+  deletionScheduledAt      DateTime?
+  fcmToken                 String?                   @unique
+  pushNotificationsEnabled Boolean                   @default(true)
+  AiChatMessages           AiChatMessage[]
+  AiChat                   AiChat?
+  Blockings                Blocking[]
+  CreatedCommunities       Community[]               @relation("CommunityCreator")
+  communityMessages        CommunityMessage[]
+  communityReads           CommunityRead[]
+  privateConversations     ConversationParticipant[]
+  EventMessages            EventMessage[]
+  eventReads               EventRead[]               @relation("UserEventReads")
+  Events                   Event[]
+  GeoModerationRejections  GeoModerationRejection[]
+  messageSeens             MessageSeen[]
+  notifications            Notification[]
+  privateMessages          PrivateMessage[]          @relation("UserPrivateMessages")
+  profileDeletionRequests  ProfileDeletionRequest?
+  Properties               Property[]
+  PropertyVerifications    PropertyVerification[]
+  familyType               FamilyType?               @relation(fields: [familyTypeId], references: [id])
+  Communities              UsersOnCommunities[]
+  ParticipatingEvents      UsersOnEvents[]
+  products                 UsersOnProducts[]
+  qualifications           UsersOnQualifications[]
+  votings                  Voting[]                  @relation("UserVoting")
+
+  @@map("users")
+}
+
+model Blocking {
+  id        Int            @id @default(autoincrement())
+  userId    Int
+  reason    String?
+  status    BlockingStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @default(now()) @updatedAt
+  user      Users          @relation(fields: [userId], references: [id])
+
+  @@map("blocking")
+}
+
+model Community {
+  id                   Int                  @id @default(autoincrement())
+  name                 String
+  description          String?
+  status               CommunityStatus      @default(INACTIVE)
+  latitude             Float?
+  longitude            Float?
+  isPrivate            Boolean              @default(false)
+  isActive             Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  createdBy            Int
+  joinCode             String?              @unique
+  confirmationDeadline DateTime?
+  confirmedAt          DateTime?
+  creator              Users                @relation("CommunityCreator", fields: [createdBy], references: [id])
+  chat                 CommunityChat?
+  messages             CommunityMessage[]
+  reads                CommunityRead[]
+  events               Event[]
+  users                UsersOnCommunities[]
+
+  @@map("communities")
+}
+
+model UsersOnCommunities {
+  userId        Int
+  communityId   Int
+  joinedAt      DateTime  @default(now())
+  joinedViaCode Boolean   @default(false)
+  community     Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user          Users     @relation(fields: [userId], references: [id])
+
+  @@id([userId, communityId])
+  @@map("users_on_communities")
+}
+
+model Property {
+  id                        Int                        @id @default(autoincrement())
+  name                      String
+  category                  PropertyCategory
+  latitude                  Float
+  longitude                 Float
+  photo                     String?
+  isActive                  Boolean                    @default(true)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  userId                    Int
+  verificationStatus        PropertyVerificationStatus @default(UNVERIFIED)
+  confirmationCode          String
+  confirmationCodeExpiresAt DateTime
+  user                      Users                      @relation(fields: [userId], references: [id])
+  resources                 PropertyResource[]
+  verifications             PropertyVerification[]
+
+  @@map("properties")
+}
+
+model PropertyResource {
+  id         Int                      @id @default(autoincrement())
+  name       String
+  photo      String?
+  category   PropertyResourceCategory
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+  propertyId Int
+  property   Property                 @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_resources")
+}
+
+model EventCategory {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  icon     String
+  color    String?
+  type     EventType @default(EVENT)
+  isActive Boolean   @default(true)
+  events   Event[]
+
+  @@map("event_categories")
+}
+
+model Event {
+  id                 Int             @id @default(autoincrement())
+  title              String
+  description        String?
+  image              String?
+  latitude           Float
+  longitude          Float
+  categoryId         Int?
+  type               EventType
+  hasVoting          Boolean         @default(false)
+  votingQuestion     String?
+  hasMoneyCollection Boolean         @default(false)
+  moneyAmount        Float?
+  eventDateTime      DateTime?
+  isActive           Boolean         @default(true)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  createdBy          Int
+  communityId        Int
+  lifetimeHours      Int?            @default(24)
+  messages           EventMessage[]
+  eventReads         EventRead[]
+  category           EventCategory?  @relation(fields: [categoryId], references: [id])
+  community          Community       @relation(fields: [communityId], references: [id])
+  creator            Users           @relation(fields: [createdBy], references: [id])
+  participants       UsersOnEvents[]
+  votingOptions      VotingOption[]
+  votings            Voting[]
+
+  @@map("events")
+}
+
+model VotingOption {
+  id      Int      @id @default(autoincrement())
+  eventId Int
+  text    String
+  event   Event    @relation(fields: [eventId], references: [id])
+  votings Voting[]
+
+  @@map("voting_options")
+}
+
+model Voting {
+  id             Int          @id @default(autoincrement())
+  eventId        Int
+  votingOptionId Int
+  userId         Int
+  createdAt      DateTime     @default(now())
+  event          Event        @relation(fields: [eventId], references: [id])
+  user           Users        @relation("UserVoting", fields: [userId], references: [id])
+  votingOption   VotingOption @relation(fields: [votingOptionId], references: [id])
+
+  @@unique([eventId, userId])
+  @@map("votings")
+}
+
+model EventMessage {
+  id               Int            @id @default(autoincrement())
+  text             String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  eventId          Int
+  userId           Int
+  replyToMessageId Int?
+  isDeleted        Boolean        @default(false)
+  isModerated      Boolean        @default(true)
+  event            Event          @relation(fields: [eventId], references: [id])
+  replyTo          EventMessage?  @relation("EventMessageReply", fields: [replyToMessageId], references: [id])
+  replies          EventMessage[] @relation("EventMessageReply")
+  user             Users          @relation(fields: [userId], references: [id])
+
+  @@map("event_messages")
+}
+
+model EventRead {
+  id      Int      @id @default(autoincrement())
+  userId  Int
+  eventId Int
+  readAt  DateTime @default(now())
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    Users    @relation("UserEventReads", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("event_reads")
+}
+
+model UsersOnEvents {
+  userId   Int
+  eventId  Int
+  joinedAt DateTime @default(now())
+  event    Event    @relation(fields: [eventId], references: [id])
+  user     Users    @relation(fields: [userId], references: [id])
+
+  @@id([userId, eventId])
+  @@map("users_on_events")
+}
+
+model PropertyVerification {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  userId     Int
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       Users    @relation(fields: [userId], references: [id])
+
+  @@unique([propertyId, userId])
+  @@map("property_verifications")
+}
+
+model AiChat {
+  id        Int             @id @default(autoincrement())
+  userId    Int             @unique
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  messages  AiChatMessage[]
+  user      Users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_chats")
+}
+
+model AiChatMessage {
+  id        Int               @id @default(autoincrement())
+  chatId    Int
+  userId    Int
+  role      AiChatMessageRole
+  content   String
+  createdAt DateTime          @default(now())
+  chat      AiChat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user      Users             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_chat_messages")
+}
+
+model GeoModerationSettings {
+  id                              Int      @id @default(autoincrement())
+  communityJoinEnabled            Boolean  @default(true)
+  communityJoinMaxDistance        Int      @default(500)
+  propertyVerificationEnabled     Boolean  @default(true)
+  propertyVerificationMaxDistance Int      @default(100)
+  propertyCreationEnabled         Boolean  @default(true)
+  propertyCreationMaxDistance     Int      @default(100)
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+
+  @@map("geo_moderation_settings")
+}
+
+model GeoModerationRejection {
+  id              Int                 @id @default(autoincrement())
+  userId          Int
+  action          GeoModerationAction
+  distance        Int
+  maxDistance     Int
+  reason          String
+  userLatitude    Float?
+  userLongitude   Float?
+  targetLatitude  Float?
+  targetLongitude Float?
+  createdAt       DateTime            @default(now())
+  user            Users               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("geo_moderation_rejections")
+}
+
+model Qualification {
+  id          Int                     @id @default(autoincrement())
+  name        String                  @unique
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean                 @default(true)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  users       UsersOnQualifications[]
+
+  @@map("qualifications")
+}
+
+model UsersOnQualifications {
+  userId          Int
+  qualificationId Int
+  assignedAt      DateTime      @default(now())
+  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
+  user            Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, qualificationId])
+  @@map("users_on_qualifications")
+}
+
+model Product {
+  id          Int               @id @default(autoincrement())
+  name        String
+  description String?
+  price       Float?
+  image       String?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  users       UsersOnProducts[]
+
+  @@map("products")
+}
+
+model UsersOnProducts {
+  userId     Int
+  productId  Int
+  assignedAt DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user       Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, productId])
+  @@map("users_on_products")
+}
+
+model FamilyType {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       Users[]
+
+  @@map("family_types")
+}
+
+model Document {
+  id        String       @id @default(cuid())
+  title     String
+  content   String
+  type      DocumentType @unique
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@map("documents")
+}
+
+model ProfileDeletionRequest {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  code      String
+  expiresAt DateTime
+  confirmed Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_deletion_requests")
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  type      NotificationType
+  title     String
+  message   String
+  payload   Json?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  userId    Int
+  user      Users            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([type])
+  @@map("notifications")
+}
+
+model Conversation {
+  id           Int                       @id @default(autoincrement())
+  pairKey      String                    @unique
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+  messages     PrivateMessage[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  conversationId Int
+  userId         Int
+  lastReadAt     DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           Users        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId, conversationId])
+  @@map("conversation_participants")
+}
+
+model PrivateMessage {
+  id             Int              @id @default(autoincrement())
+  conversationId Int
+  senderId       Int
+  text           String
+  replyToId      Int?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  seens          MessageSeen[]
+  conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  replyTo        PrivateMessage?  @relation("MessageReply", fields: [replyToId], references: [id])
+  replies        PrivateMessage[] @relation("MessageReply")
+  sender         Users            @relation("UserPrivateMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("private_messages")
+}
+
+model MessageSeen {
+  messageId Int
+  userId    Int
+  seenAt    DateTime       @default(now())
+  message   PrivateMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      Users          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+  @@index([userId])
+  @@map("message_seen")
+}
+
+model CommunityChat {
+  id          Int                @id @default(autoincrement())
+  communityId Int                @unique
+  isActive    Boolean            @default(true)
+  settings    Json?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  community   Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  messages    CommunityMessage[]
+
+  @@map("community_chats")
+}
+
+model CommunityMessage {
+  id               Int                @id @default(autoincrement())
+  communityId      Int
+  userId           Int
+  text             String
+  replyToMessageId Int?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  isDeleted        Boolean            @default(false)
+  isModerated      Boolean            @default(true)
+  communityChat    CommunityChat      @relation(fields: [communityId], references: [communityId], map: "community_messages_community_chat_fkey")
+  community        Community          @relation(fields: [communityId], references: [id], onDelete: Cascade, map: "community_messages_community_fkey")
+  replyTo          CommunityMessage?  @relation("CommunityMessageReply", fields: [replyToMessageId], references: [id])
+  replies          CommunityMessage[] @relation("CommunityMessageReply")
+  user             Users              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([communityId, createdAt])
+  @@index([userId])
+  @@map("community_messages")
+}
+
+model CommunityRead {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  communityId Int
+  readAt      DateTime  @default(now())
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, communityId])
+  @@map("community_reads")
+}
+
+model GlobalChatSettings {
+  id                   Int      @id @default(autoincrement())
+  allowCommunityChat   Boolean  @default(true)
+  allowEventChat       Boolean  @default(true)
+  allowPrivateChat     Boolean  @default(true)
+  messageRetentionDays Int      @default(365)
+  maxMessageLength     Int      @default(1000)
+  moderationEnabled    Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("global_chat_settings")
+}
+
 enum UserRole {
   USER
   MODERATOR
@@ -52,278 +586,14 @@ enum DocumentType {
   PRIVACY
 }
 
-model Users {
-  id                       Int         @id @default(autoincrement())
-  phone                    String      @unique
-  login                    String?     @unique
-  password                 String?
-  email                    String?     @unique
-  firstName                String?
-  lastName                 String?
-  gender                   UserGender?
-  birthDate                DateTime?
-  avatar                   String?
-  role                     UserRole    @default(USER)
-  createdAt                DateTime    @default(now())
-  updatedAt                DateTime    @default(now()) @updatedAt
-  isVerified               Boolean     @default(false)
-  smsCode                  String?
-  smsCodeExpiresAt         DateTime?
-  status                   UserStatus  @default(ACTIVE)
-  lastAccess               DateTime?
-  registrationStep         Int         @default(1)
-  latitude                 Float?
-  longitude                Float?
-  address                  String?
-  familyTypeId             Int?
-  familyType               FamilyType? @relation(fields: [familyTypeId], references: [id])
-  deletionScheduledAt      DateTime?
-  fcmToken                 String?     @unique
-  pushNotificationsEnabled Boolean     @default(true)
-
-  Blockings               Blocking[]
-  Communities             UsersOnCommunities[]
-  CreatedCommunities      Community[]               @relation("CommunityCreator")
-  Properties              Property[]
-  Events                  Event[]
-  ParticipatingEvents     UsersOnEvents[]
-  EventMessages           EventMessage[]
-  PropertyVerifications   PropertyVerification[]
-  AiChat                  AiChat?
-  AiChatMessages          AiChatMessage[]
-  GeoModerationRejections GeoModerationRejection[]
-  votings                 Voting[]                  @relation("UserVoting")
-  qualifications          UsersOnQualifications[]
-  products                UsersOnProducts[]
-  eventReads              EventRead[]               @relation("UserEventReads")
-  profileDeletionRequests ProfileDeletionRequest[]
-  notifications           Notification[]
-  privateConversations    ConversationParticipant[]
-  privateMessages         PrivateMessage[]          @relation("UserPrivateMessages")
-  messageSeens            MessageSeen[]
-  communityMessages       CommunityMessage[]
-  communityReads          CommunityRead[]
-
-  @@map("users")
-}
-
 enum BlockingStatus {
   ACTIVE
   INACTIVE
 }
 
-model Blocking {
-  id Int @id @default(autoincrement())
-
-  userId    Int
-  user      Users          @relation(fields: [userId], references: [id])
-  reason    String?
-  status    BlockingStatus @default(ACTIVE)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @default(now()) @updatedAt
-
-  @@map("blocking")
-}
-
 enum CommunityStatus {
   ACTIVE
   INACTIVE
-}
-
-model Community {
-  id                   Int                  @id @default(autoincrement())
-  name                 String
-  description          String?
-  status               CommunityStatus      @default(INACTIVE)
-  latitude             Float?
-  longitude            Float?
-  isPrivate            Boolean              @default(false)
-  isActive             Boolean              @default(true)
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-  createdBy            Int
-  creator              Users                @relation("CommunityCreator", fields: [createdBy], references: [id])
-  users                UsersOnCommunities[]
-  joinCode             String?              @unique
-  events               Event[]
-  chat                 CommunityChat?
-  messages             CommunityMessage[]
-  reads                CommunityRead[]
-  confirmationDeadline DateTime?
-  confirmedAt          DateTime?
-
-  @@map("communities")
-}
-
-model UsersOnCommunities {
-  userId        Int
-  user          Users     @relation(fields: [userId], references: [id])
-  communityId   Int
-  community     Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  joinedViaCode Boolean   @default(false)
-  joinedAt      DateTime  @default(now())
-
-  @@id([userId, communityId])
-  @@map("users_on_communities")
-}
-
-model Property {
-  id                 Int                        @id @default(autoincrement())
-  name               String
-  category           PropertyCategory
-  latitude           Float
-  longitude          Float
-  photo              String?
-  isActive           Boolean                    @default(true)
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @updatedAt
-  userId             Int
-  user               Users                      @relation(fields: [userId], references: [id])
-  resources          PropertyResource[]
-  verificationStatus PropertyVerificationStatus @default(UNVERIFIED)
-  verifications      PropertyVerification[]
-
-  // Code-based confirmation flow
-  confirmationCode           String
-  confirmationCodeExpiresAt  DateTime
-
-  @@map("properties")
-}
-
-model PropertyResource {
-  id         Int                      @id @default(autoincrement())
-  name       String
-  photo      String?
-  category   PropertyResourceCategory
-  createdAt  DateTime                 @default(now())
-  updatedAt  DateTime                 @updatedAt
-  propertyId Int
-  property   Property                 @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-
-  @@map("property_resources")
-}
-
-model EventCategory {
-  id       Int       @id @default(autoincrement())
-  name     String    @unique
-  icon     String
-  color    String? // Цвет категории (обязателен только для оповещений)
-  type     EventType @default(EVENT) // Тип категории: оповещение или мероприятие
-  isActive Boolean   @default(true)
-  events   Event[]
-  // Можно добавить поле description, если потребуется
-
-  @@map("event_categories")
-}
-
-model Event {
-  id                 Int             @id @default(autoincrement())
-  title              String
-  description        String?
-  image              String? // Картинка мероприятия
-  latitude           Float
-  longitude          Float
-  categoryId         Int?
-  category           EventCategory?  @relation(fields: [categoryId], references: [id])
-  type               EventType
-  hasVoting          Boolean         @default(false)
-  votingQuestion     String? // Вопрос для голосования
-  hasMoneyCollection Boolean         @default(false)
-  moneyAmount        Float? // Сумма сбора, если есть
-  eventDateTime      DateTime? // Дата и время проведения мероприятия
-  isActive           Boolean         @default(true)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  createdBy          Int
-  creator            Users           @relation(fields: [createdBy], references: [id])
-  communityId        Int
-  community          Community       @relation(fields: [communityId], references: [id])
-  participants       UsersOnEvents[]
-  messages           EventMessage[]
-  votingOptions      VotingOption[]
-  votings            Voting[]
-  eventReads         EventRead[]
-
-  @@map("events")
-}
-
-model VotingOption {
-  id      Int      @id @default(autoincrement())
-  eventId Int
-  event   Event    @relation(fields: [eventId], references: [id])
-  text    String
-  votings Voting[]
-
-  @@map("voting_options")
-}
-
-model Voting {
-  id             Int          @id @default(autoincrement())
-  eventId        Int
-  event          Event        @relation(fields: [eventId], references: [id])
-  votingOptionId Int
-  votingOption   VotingOption @relation(fields: [votingOptionId], references: [id])
-  userId         Int
-  user           Users        @relation("UserVoting", fields: [userId], references: [id])
-  createdAt      DateTime     @default(now())
-
-  @@unique([eventId, userId])
-  @@map("votings")
-}
-
-model EventMessage {
-  id               Int            @id @default(autoincrement())
-  text             String
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  eventId          Int
-  event            Event          @relation(fields: [eventId], references: [id])
-  userId           Int
-  user             Users          @relation(fields: [userId], references: [id])
-  replyToMessageId Int?
-  replyTo          EventMessage?  @relation("EventMessageReply", fields: [replyToMessageId], references: [id])
-  replies          EventMessage[] @relation("EventMessageReply")
-  isDeleted        Boolean        @default(false)
-  isModerated       Boolean        @default(true)
-
-  @@map("event_messages")
-}
-
-model EventRead {
-  id      Int      @id @default(autoincrement())
-  userId  Int
-  user    Users    @relation("UserEventReads", fields: [userId], references: [id], onDelete: Cascade)
-  eventId Int
-  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  readAt  DateTime @default(now())
-
-  @@unique([userId, eventId])
-  @@map("event_reads")
-}
-
-model UsersOnEvents {
-  userId Int
-  user   Users @relation(fields: [userId], references: [id])
-
-  eventId Int
-  event   Event @relation(fields: [eventId], references: [id])
-
-  joinedAt DateTime @default(now())
-
-  @@id([userId, eventId])
-  @@map("users_on_events")
-}
-
-model PropertyVerification {
-  id         Int      @id @default(autoincrement())
-  propertyId Int
-  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  userId     Int
-  user       Users    @relation(fields: [userId], references: [id])
-  createdAt  DateTime @default(now())
-
-  @@unique([propertyId, userId])
-  @@map("property_verifications")
 }
 
 enum AiChatMessageRole {
@@ -337,155 +607,6 @@ enum GeoModerationAction {
   PROPERTY_CREATION
 }
 
-model AiChat {
-  id        Int             @id @default(autoincrement())
-  userId    Int             @unique
-  user      Users           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  messages  AiChatMessage[]
-
-  @@map("ai_chats")
-}
-
-model AiChatMessage {
-  id        Int               @id @default(autoincrement())
-  chatId    Int
-  chat      AiChat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  userId    Int
-  user      Users             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      AiChatMessageRole
-  content   String
-  createdAt DateTime          @default(now())
-
-  @@map("ai_chat_messages")
-}
-
-model GeoModerationSettings {
-  id                              Int      @id @default(autoincrement())
-  communityJoinEnabled            Boolean  @default(true)
-  communityJoinMaxDistance        Int      @default(500) // в метрах
-  propertyVerificationEnabled     Boolean  @default(true)
-  propertyVerificationMaxDistance Int      @default(100) // в метрах
-  propertyCreationEnabled         Boolean  @default(true)
-  propertyCreationMaxDistance     Int      @default(100) // в метрах
-  createdAt                       DateTime @default(now())
-  updatedAt                       DateTime @updatedAt
-
-  @@map("geo_moderation_settings")
-}
-
-model GeoModerationRejection {
-  id              Int                 @id @default(autoincrement())
-  userId          Int
-  user            Users               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action          GeoModerationAction
-  distance        Int // расстояние в метрах
-  maxDistance     Int // максимально допустимое расстояние
-  reason          String // причина отказа
-  userLatitude    Float? // координаты пользователя
-  userLongitude   Float?
-  targetLatitude  Float? // координаты цели (объекта/сообщества)
-  targetLongitude Float?
-  createdAt       DateTime            @default(now())
-
-  @@map("geo_moderation_rejections")
-}
-
-model Qualification {
-  id          Int                     @id @default(autoincrement())
-  name        String                  @unique
-  description String?
-  icon        String?
-  color       String?
-  isActive    Boolean                 @default(true)
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
-  users       UsersOnQualifications[]
-
-  @@map("qualifications")
-}
-
-model UsersOnQualifications {
-  userId Int
-  user   Users @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  qualificationId Int
-  qualification   Qualification @relation(fields: [qualificationId], references: [id], onDelete: Cascade)
-
-  assignedAt DateTime @default(now())
-
-  @@id([userId, qualificationId])
-  @@map("users_on_qualifications")
-}
-
-model Product {
-  id          Int               @id @default(autoincrement())
-  name        String
-  description String?
-  price       Float?
-  image       String?
-  isActive    Boolean           @default(true)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  users       UsersOnProducts[]
-
-  @@map("products")
-}
-
-model UsersOnProducts {
-  userId Int
-  user   Users @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  productId Int
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  assignedAt DateTime @default(now())
-
-  @@id([userId, productId])
-  @@map("users_on_products")
-}
-
-model FamilyType {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  icon        String?
-  color       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  users       Users[]
-
-  @@map("family_types")
-}
-
-model Document {
-  id        String       @id @default(cuid())
-  title     String
-  content   String
-  type      DocumentType @unique
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-
-  @@map("documents")
-}
-
-model ProfileDeletionRequest {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  code      String
-  expiresAt DateTime
-  confirmed Boolean  @default(false)
-  attempts  Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId])
-  @@map("profile_deletion_requests")
-}
-
 enum NotificationType {
   INFO
   EVENT_CREATED
@@ -495,161 +616,12 @@ enum NotificationType {
   USER_JOINED_EVENT
   USER_LEFT_EVENT
   USER_MENTIONED
-  MESSAGE_RECEIVED
   COMMUNITY_INVITE
   COMMUNITY_APPROVED
   COMMUNITY_REJECTED
   USER_JOINED_COMMUNITY
-  PROPERTY_VERIFIED
   SYSTEM_MAINTENANCE
   SYSTEM_UPDATE
-}
-
-model Notification {
-  id        Int              @id @default(autoincrement())
-  type      NotificationType
-  title     String
-  message   String
-  payload   Json?
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  userId    Int
-  user      Users            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, isRead])
-  @@index([userId, createdAt])
-  @@index([type])
-  @@map("notifications")
-}
-
-// ==========================
-// Private 1-to-1 Chat Models
-// ==========================
-
-model Conversation {
-  id        Int      @id @default(autoincrement())
-  // Sorted userId pair key: `${minUserId}_${maxUserId}` to ensure uniqueness
-  pairKey   String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  participants ConversationParticipant[]
-  messages     PrivateMessage[]
-
-  @@map("conversations")
-}
-
-model ConversationParticipant {
-  conversationId Int
-  userId         Int
-  lastReadAt     DateTime?
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user         Users        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([conversationId, userId])
-  @@index([userId, conversationId])
-  @@map("conversation_participants")
-}
-
-model PrivateMessage {
-  id             Int      @id @default(autoincrement())
-  conversationId Int
-  senderId       Int
-  text           String
-  replyToId      Int?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  conversation Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       Users            @relation("UserPrivateMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  replyTo      PrivateMessage?  @relation("MessageReply", fields: [replyToId], references: [id])
-  replies      PrivateMessage[] @relation("MessageReply")
-  seens        MessageSeen[]
-
-  @@index([conversationId, createdAt])
-  @@index([senderId])
-  @@map("private_messages")
-}
-
-model MessageSeen {
-  messageId Int
-  userId    Int
-  seenAt    DateTime @default(now())
-
-  message PrivateMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user    Users          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([messageId, userId])
-  @@index([userId])
-  @@map("message_seen")
-}
-
-// ==========================
-// Community Chat Models
-// ==========================
-
-model CommunityChat {
-  id          Int      @id @default(autoincrement())
-  communityId Int      @unique
-  isActive    Boolean  @default(true)
-  settings    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  community Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  messages  CommunityMessage[]
-
-  @@map("community_chats")
-}
-
-model CommunityMessage {
-  id               Int      @id @default(autoincrement())
-  communityId      Int
-  userId           Int
-  text             String
-  replyToMessageId Int?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  isDeleted        Boolean  @default(false)
-  isModerated       Boolean  @default(true)
-
-  community Community          @relation(fields: [communityId], references: [id], onDelete: Cascade, map: "community_messages_communityId_fkey")
-  user      Users              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  replyTo   CommunityMessage?  @relation("CommunityMessageReply", fields: [replyToMessageId], references: [id])
-  replies   CommunityMessage[] @relation("CommunityMessageReply")
-
-  chat CommunityChat? @relation(fields: [communityId], references: [communityId], map: "community_messages_chatId_fkey")
-
-  @@index([communityId, createdAt])
-  @@index([userId])
-  @@map("community_messages")
-}
-
-model CommunityRead {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  communityId Int
-  readAt      DateTime @default(now())
-
-  user      Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, communityId])
-  @@map("community_reads")
-}
-
-model GlobalChatSettings {
-  id                    Int      @id @default(autoincrement())
-  allowCommunityChat     Boolean  @default(true)
-  allowEventChat         Boolean  @default(true)
-  allowPrivateChat       Boolean  @default(true)
-  messageRetentionDays   Int      @default(365)
-  maxMessageLength       Int      @default(1000)
-  moderationEnabled      Boolean  @default(true)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-
-  @@map("global_chat_settings")
+  MESSAGE_RECEIVED
+  PROPERTY_VERIFIED
 }

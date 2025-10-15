@@ -105,6 +105,10 @@ export class EventsController {
           format: 'date-time',
           description: 'Дата и время проведения мероприятия (ISO 8601)',
         },
+        lifetimeHours: {
+          type: 'string',
+          description: 'Время жизни уведомления в часах (только для типа NOTIFICATION, минимум 1)',
+        },
         image: {
           type: 'string',
           format: 'binary',

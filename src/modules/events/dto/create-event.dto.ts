@@ -7,6 +7,7 @@ import {
   IsDateString,
   ValidateNested,
   ArrayMinSize,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
@@ -105,6 +106,18 @@ export class CreateEventDto {
   @IsNumber()
   @TransformToInt()
   communityId: number;
+
+  @ApiPropertyOptional({
+    description: 'Время жизни уведомления в часах (только для типа NOTIFICATION)',
+    required: false,
+    example: 24,
+    minimum: 1,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1, { message: 'Время жизни уведомления должно быть не менее 1 часа' })
+  @TransformToInt()
+  lifetimeHours?: number;
 
   @ApiPropertyOptional({
     description:

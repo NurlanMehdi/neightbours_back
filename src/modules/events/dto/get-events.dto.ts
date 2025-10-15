@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsOptional } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EventType } from '@prisma/client';
 import { TransformToInt } from '../../../common/utils/form-data-transformers.util';
@@ -44,4 +44,24 @@ export class GetEventsDto {
   @IsOptional()
   @TransformToInt()
   limit?: number;
+
+  @ApiProperty({
+    description: 'Поле для сортировки',
+    enum: ['id', 'title', 'createdAt'],
+    required: false,
+    default: 'createdAt',
+  })
+  @IsOptional()
+  @IsString()
+  sortBy?: 'id' | 'title' | 'createdAt' = 'createdAt';
+
+  @ApiProperty({
+    description: 'Порядок сортировки',
+    enum: ['asc', 'desc'],
+    required: false,
+    default: 'desc',
+  })
+  @IsOptional()
+  @IsString()
+  sortOrder?: 'asc' | 'desc' = 'desc';
 }

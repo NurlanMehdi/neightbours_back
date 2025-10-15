@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { GetEventsDto } from './dto/get-events.dto';
@@ -61,25 +62,14 @@ export class EventsService {
     private readonly unifiedMessageNotificationService: UnifiedMessageNotificationService,
   ) {}
 
-  /**
-   * Проверяет, является ли значение истинным булевым значением
-   */
   private isTrueBoolean(value: any): boolean {
     return transformBoolean(value);
   }
 
-  /**
-   * Приводит dto.votingOptions к массиву объектов { text: string }
-   */
   private normalizeVotingOptions(dto: { votingOptions?: any }) {
     if (!dto) return;
     const { votingOptions } = dto as any;
     if (!votingOptions) return;
-
-    console.log(
-      'normalizeVotingOptions input:',
-      JSON.stringify(votingOptions, null, 2),
-    );
 
     if (typeof votingOptions === 'string') {
       (dto as any).votingOptions = votingOptions
@@ -87,10 +77,6 @@ export class EventsService {
         .map((v: string) => v.trim())
         .filter((v: string) => v.length > 0)
         .map((text: string) => ({ text }));
-      console.log(
-        'normalizeVotingOptions string result:',
-        JSON.stringify((dto as any).votingOptions, null, 2),
-      );
       return;
     }
 
@@ -100,22 +86,9 @@ export class EventsService {
           .map((v) => v.trim())
           .filter((v) => v.length > 0)
           .map((text) => ({ text }));
-        console.log(
-          'normalizeVotingOptions array of strings result:',
-          JSON.stringify((dto as any).votingOptions, null, 2),
-        );
       } else if (
         votingOptions.every((v: any) => typeof v === 'object' && v !== null)
       ) {
-        // Если это массив объектов, но они пустые или без text
-        console.log(
-          'Processing array of objects, first object keys:',
-          Object.keys(votingOptions[0] || {}),
-        );
-        console.log(
-          'First object content:',
-          JSON.stringify(votingOptions[0], null, 2),
-        );
 
         const validOptions = votingOptions
           .filter((v: any) => v && typeof v === 'object')
@@ -131,16 +104,10 @@ export class EventsService {
           })
           .filter((v: any) => v !== null);
 
-        // Если все объекты пустые, попробуем извлечь данные из других полей
         if (validOptions.length === 0 && votingOptions.length > 0) {
-          console.log(
-            'All objects are empty, trying to extract from other fields...',
-          );
-          // Возможно, данные пришли в другом формате
           const extractedOptions = votingOptions
             .filter((v: any) => v && typeof v === 'object')
             .map((v: any) => {
-              // Попробуем найти текст в любом поле объекта
               const text = Object.values(v).find(
                 (val) => typeof val === 'string' && val.trim().length > 0,
               );
@@ -153,35 +120,36 @@ export class EventsService {
 
           if (extractedOptions.length > 0) {
             (dto as any).votingOptions = extractedOptions;
-            console.log(
-              'normalizeVotingOptions extracted from other fields:',
-              JSON.stringify((dto as any).votingOptions, null, 2),
-            );
             return;
           }
         }
 
         (dto as any).votingOptions = validOptions;
-        console.log(
-          'normalizeVotingOptions array of objects result:',
-          JSON.stringify((dto as any).votingOptions, null, 2),
-        );
       }
     }
   }
 
-  /**
-   * Создает новое событие
-   */
+  private validateLifetimeHours(lifetimeHours: number | undefined, eventType: string): number | null {
+    if (eventType !== 'NOTIFICATION') {
+      return null;
+    }
+
+    if (lifetimeHours === undefined || lifetimeHours === null) {
+      return 24;
+    }
+
+    if (lifetimeHours < 1) {
+      throw new BadRequestException('Время жизни уведомления должно быть не менее 1 часа');
+    }
+
+    return lifetimeHours;
+  }
+
   async createEvent(
     userId: number,
     dto: CreateEventDto,
     image?: Express.Multer.File,
   ): Promise<IEvent> {
-    console.log(
-      'createEvent dto.votingOptions before normalize:',
-      JSON.stringify(dto.votingOptions, null, 2),
-    );
 
     const isUserInCommunity = await this.eventsRepository.isUserInCommunity(
       userId,
@@ -192,13 +160,10 @@ export class EventsService {
       throw new UserNotInCommunityException();
     }
 
-    // Нормализуем votingOptions (строка -> массив объектов)
     this.normalizeVotingOptions(dto);
-
-    // Проверяем, действительно ли нужно голосование
     const needsVoting = this.isTrueBoolean(dto.hasVoting);
+    const lifetimeHours = this.validateLifetimeHours(dto.lifetimeHours, dto.type);
 
-    // Валидация votingOptions только если нужно голосование
     if (needsVoting) {
       if (!dto.votingQuestion) {
         throw new BadRequestException(
@@ -210,7 +175,6 @@ export class EventsService {
           'При включении голосования необходимо указать минимум 2 варианта ответа',
         );
       }
-      // Проверяем, что все варианты имеют корректный текст
       const validOptions = dto.votingOptions.filter(
         (option) =>
           option.text &&
@@ -218,10 +182,6 @@ export class EventsService {
           option.text.trim().length > 0,
       );
       if (validOptions.length < 2) {
-        console.log(
-          'Debug votingOptions:',
-          JSON.stringify(dto.votingOptions, null, 2),
-        );
         throw new BadRequestException(
           `Необходимо указать минимум 2 корректных варианта ответа с непустым текстом. Получено: ${validOptions.length} из ${dto.votingOptions?.length || 0}`,
         );
@@ -229,7 +189,6 @@ export class EventsService {
     }
 
     let event;
-    // Подготавливаем данные с правильными булевыми значениями
     const eventData = {
       ...dto,
       hasVoting: needsVoting,
@@ -237,9 +196,9 @@ export class EventsService {
       createdBy: userId,
       image: image?.filename || null,
       eventDateTime: dto.eventDateTime,
+      lifetimeHours: lifetimeHours,
     };
 
-    // Если есть голосование, используем createWithVotingOptions
     if (needsVoting && dto.votingOptions && dto.votingOptions.length > 0) {
       event = await this.eventsRepository.createWithVotingOptions(
         eventData,
@@ -281,9 +240,6 @@ export class EventsService {
     return this.transformEventToDto(event);
   }
 
-  /**
-   * Получает все события сообщества с фильтрацией и пагинацией
-   */
   async getCommunityEvents(
     communityId: number,
     filters: GetEventsDto,
@@ -298,17 +254,11 @@ export class EventsService {
     };
   }
 
-  /**
-   * Получает событие по ID
-   */
   async getEventById(id: number): Promise<IEvent> {
     const event = await this.eventsRepository.findById(id);
     return this.transformEventToDto(event);
   }
 
-  /**
-   * Обновляет событие
-   */
   async updateEvent(
     userId: number,
     eventId: number,
@@ -324,16 +274,10 @@ export class EventsService {
       throw new EventAccessDeniedException();
     }
 
-    // Нормализуем votingOptions (строка -> массив объектов)
     this.normalizeVotingOptions(dto);
+    const needsVoting = dto.hasVoting !== undefined ? this.isTrueBoolean(dto.hasVoting) : undefined;
+    const lifetimeHours = this.validateLifetimeHours(dto.lifetimeHours, dto.type);
 
-    // Проверяем, действительно ли нужно голосование
-    const needsVoting =
-      dto.hasVoting !== undefined
-        ? this.isTrueBoolean(dto.hasVoting)
-        : undefined;
-
-    // Валидация votingOptions только если включается голосование
     if (needsVoting === true) {
       if (!dto.votingQuestion) {
         throw new BadRequestException(
@@ -368,15 +312,13 @@ export class EventsService {
           ? this.isTrueBoolean(dto.hasMoneyCollection)
           : undefined,
       image: image?.filename || undefined, // Обновляем изображение только если передано
+      lifetimeHours: lifetimeHours,
     };
 
     const event = await this.eventsRepository.update(eventId, updateData);
     return this.transformEventToDto(event);
   }
 
-  /**
-   * Удаляет событие
-   */
   async deleteEvent(userId: number, eventId: number): Promise<void> {
     const hasAccess = await this.eventsRepository.checkEventAccess(
       userId,
@@ -433,9 +375,6 @@ export class EventsService {
     await this.eventsRepository.delete(eventId);
   }
 
-  /**
-   * Добавляет пользователя в участники события
-   */
   async joinEvent(userId: number, eventId: number): Promise<IEvent> {
     try {
       this.logger.log(`Attempting to join event ${eventId} for user ${userId}`);
@@ -515,9 +454,6 @@ export class EventsService {
     }
   }
 
-  /**
-   * Удаляет пользователя из участников события
-   */
   async leaveEvent(userId: number, eventId: number): Promise<IEvent> {
     const event = await this.eventsRepository.findById(eventId);
     const isParticipant = await this.eventsRepository.isUserParticipant(
@@ -754,13 +690,10 @@ export class EventsService {
     dto: CreateEventDto,
     image?: Express.Multer.File,
   ): Promise<IEvent> {
-    // Нормализуем votingOptions (строка -> массив объектов)
     this.normalizeVotingOptions(dto);
-
-    // Проверяем, действительно ли нужно голосование
     const needsVoting = this.isTrueBoolean(dto.hasVoting);
+    const lifetimeHours = this.validateLifetimeHours(dto.lifetimeHours, dto.type);
 
-    // Валидация votingOptions только если нужно голосование
     if (needsVoting) {
       if (!dto.votingQuestion) {
         throw new BadRequestException(
@@ -774,7 +707,6 @@ export class EventsService {
       }
     }
 
-    // Подготавливаем данные с правильными булевыми значениями
     const eventData = {
       ...dto,
       hasVoting: needsVoting,
@@ -782,6 +714,7 @@ export class EventsService {
       createdBy: adminId,
       image: image?.filename || null,
       eventDateTime: dto.eventDateTime,
+      lifetimeHours: lifetimeHours,
     };
 
     let event;
@@ -834,16 +767,10 @@ export class EventsService {
     dto: UpdateEventDto,
     image?: Express.Multer.File,
   ): Promise<IEvent> {
-    // Нормализуем votingOptions (строка -> массив объектов)
     this.normalizeVotingOptions(dto);
+    const needsVoting = dto.hasVoting !== undefined ? this.isTrueBoolean(dto.hasVoting) : undefined;
+    const lifetimeHours = this.validateLifetimeHours(dto.lifetimeHours, dto.type);
 
-    // Проверяем, действительно ли нужно голосование
-    const needsVoting =
-      dto.hasVoting !== undefined
-        ? this.isTrueBoolean(dto.hasVoting)
-        : undefined;
-
-    // Валидация votingOptions только если включается голосование
     if (needsVoting === true) {
       if (!dto.votingQuestion) {
         throw new BadRequestException(
@@ -878,6 +805,7 @@ export class EventsService {
           ? this.isTrueBoolean(dto.hasMoneyCollection)
           : undefined,
       image: image?.filename || undefined, // Обновляем изображение только если передано
+      lifetimeHours: lifetimeHours,
     };
 
     const event = await this.eventsRepository.update(eventId, updateData);
@@ -1181,5 +1109,55 @@ export class EventsService {
       user: readerData.user,
       message: readerData.lastMessage,
     };
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async cleanupExpiredNotifications(): Promise<void> {
+    this.logger.log('Запуск очистки истекших уведомлений...');
+
+    try {
+      const now = new Date();
+      let totalDeactivated = 0;
+
+      const distinctLifetimes = await this.prisma.event.findMany({
+        where: {
+          type: 'NOTIFICATION',
+          lifetimeHours: { not: null },
+          isActive: true,
+        },
+        select: { lifetimeHours: true },
+        distinct: ['lifetimeHours'],
+      });
+
+      for (const { lifetimeHours } of distinctLifetimes) {
+        if (!lifetimeHours) continue;
+
+        const expirationTime = new Date(now.getTime() - lifetimeHours * 60 * 60 * 1000);
+        
+        const result = await this.prisma.event.updateMany({
+          where: {
+            type: 'NOTIFICATION',
+            lifetimeHours: lifetimeHours,
+            isActive: true,
+            createdAt: { lt: expirationTime },
+          },
+          data: { isActive: false },
+        });
+
+        if (result.count > 0) {
+          totalDeactivated += result.count;
+          this.logger.log(
+            `Деактивировано ${result.count} истекших уведомлений с временем жизни ${lifetimeHours} часов`
+          );
+        }
+      }
+
+      this.logger.log(`Очистка завершена. Всего деактивировано уведомлений: ${totalDeactivated}`);
+    } catch (error) {
+      this.logger.error(
+        `Ошибка при очистке истекших уведомлений: ${error.message}`,
+        error.stack
+      );
+    }
   }
 }

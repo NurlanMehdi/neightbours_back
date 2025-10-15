@@ -33,6 +33,7 @@ export class EventsRepository {
       creator: { connect: { id: data.createdBy } },
       community: { connect: { id: data.communityId } },
       eventDateTime: data.eventDateTime ?? null,
+      lifetimeHours: data.lifetimeHours ?? null,
     };
     // Проверяем существование категории (теперь обязательное поле)
     const category = await this.prisma.eventCategory.findUnique({
@@ -177,7 +178,7 @@ export class EventsRepository {
     communityId: number,
     filters: GetEventsDto,
   ): Promise<{ events: any[]; total: number }> {
-    const { type, categoryId, page = 1, limit } = filters;
+    const { type, categoryId, page = 1, limit, sortBy = 'createdAt', sortOrder = 'desc' } = filters;
     const skip = limit ? (page - 1) * limit : 0;
 
     const where: any = {
@@ -187,12 +188,19 @@ export class EventsRepository {
       ...(categoryId && { categoryId }),
     };
 
+    // Handle sorting - ignore 'expiresAt' and fallback to 'createdAt'
+    const validSortFields = ['id', 'title', 'createdAt'];
+    const finalSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    // Convert string to proper Prisma SortOrder enum
+    const finalSortOrder = sortOrder?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+    const orderBy: any = { [finalSortBy]: finalSortOrder };
+
     const [events, total] = await Promise.all([
       this.prisma.event.findMany({
         where,
         skip,
         ...(limit && { take: limit }),
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: {
           creator: {
             select: {
@@ -503,7 +511,12 @@ export class EventsRepository {
       }
     }
 
-    const orderBy: any = { [sortBy]: sortOrder };
+    // Handle sorting - ignore 'expiresAt' and fallback to 'createdAt'
+    const validSortFields = ['id', 'title', 'createdAt'];
+    const finalSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    // Convert string to proper Prisma SortOrder enum
+    const finalSortOrder = sortOrder?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+    const orderBy: any = { [finalSortBy]: finalSortOrder };
 
     const [data, total] = await Promise.all([
       this.prisma.event.findMany({
