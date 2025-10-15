@@ -25,6 +25,7 @@ export class PrivateChatRepository {
 
     const pairKey = this.buildPairKey(userId, otherUserId);
     let conversation = await this.findConversationByPairKey(pairKey);
+    let isNewConversation = false;
 
     if (!conversation) {
       conversation = await this.createNewConversation(
@@ -32,6 +33,7 @@ export class PrivateChatRepository {
         userId,
         otherUserId,
       );
+      isNewConversation = true;
     } else {
       conversation = await this.ensureConversationParticipants(
         conversation,
@@ -40,7 +42,7 @@ export class PrivateChatRepository {
       );
     }
 
-    return conversation;
+    return { conversation, isNewConversation };
   }
 
   async findConversationByPairKey(pairKey: string) {
@@ -251,6 +253,8 @@ export class PrivateChatRepository {
         select: { id: true },
       });
 
+      let isNewConversation = false;
+
       if (!conversation) {
         this.logger.debug(
           `Creating new conversation for users ${params.senderId} and ${params.receiverId}`,
@@ -269,6 +273,7 @@ export class PrivateChatRepository {
           },
           select: { id: true },
         });
+        isNewConversation = true;
       } else {
         await this.ensureParticipantsInTransaction(
           tx,
@@ -323,6 +328,7 @@ export class PrivateChatRepository {
           id: conversation.id,
           participants,
         },
+        isNewConversation,
       };
     });
   }

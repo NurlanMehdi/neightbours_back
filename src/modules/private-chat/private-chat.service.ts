@@ -18,11 +18,11 @@ export class PrivateChatService {
 
   async createConversation(currentUserId: number, otherUserId: number) {
     await this.validatePrivateChatAllowed();
-    const conversation = await this.repo.getOrCreateConversation(
+    const result = await this.repo.getOrCreateConversation(
       currentUserId,
       otherUserId,
     );
-    return conversation;
+    return result;
   }
 
   async findConversationByUsers(currentUserId: number, otherUserId: number) {
@@ -114,6 +114,9 @@ export class PrivateChatService {
       message = result;
       conversationId = result.conversationId;
       participants = result.conversation?.participants || [];
+      
+      // Добавляем информацию о том, что это новый диалог
+      message.isNewConversation = result.isNewConversation;
     } else if (params.conversationId) {
       conversationId = params.conversationId;
       await this.repo.ensureParticipant(conversationId, currentUserId);
@@ -317,6 +320,7 @@ export class PrivateChatService {
       updatedAt: msg.updatedAt,
       isRead: msg.isRead ?? false,
       readAt: msg.readAt ?? null,
+      isNewConversation: msg.isNewConversation ?? false,
       user: msg.sender
         ? {
             id: msg.sender.id,

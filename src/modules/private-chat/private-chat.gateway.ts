@@ -151,7 +151,31 @@ export class PrivateChatGateway
       
       this.io.to(senderRoom).emit('private:message', message);
       this.io.to(receiverRoom).emit('private:message', message);
-    
+      
+      // Отправляем событие о новом диалоге только получателю, если диалог новый
+      if (message.isNewConversation) {
+        this.logger.log(
+          `Отправляем событие private:newConversation получателю ${payload.receiverId} для диалога ${message.conversationId}`,
+        );
+        
+        const conversationData = {
+          conversationId: message.conversationId,
+          sender: {
+            id: userId,
+            firstName: message.user?.firstName || null,
+            lastName: message.user?.lastName || null,
+            avatar: message.user?.avatar || null,
+          },
+          message: {
+            id: message.id,
+            text: message.text,
+            createdAt: message.createdAt,
+          },
+          createdAt: new Date().toISOString(),
+        };
+        
+        this.io.to(receiverRoom).emit('private:newConversation', conversationData);
+      }
 
       this.processAutoRead(userId, payload.receiverId, message.conversationId);
 
