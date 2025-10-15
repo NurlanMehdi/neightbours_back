@@ -35,7 +35,6 @@ export class EventsGateway
   private readonly logger = new Logger(EventsGateway.name);
   private userSockets: Map<number, Set<string>> = new Map();
   private socketUser: Map<string, number> = new Map();
-  private lastMessageId: number | null = null;
 
   constructor(private readonly eventsService: EventsService) {
     this.logger.log('EventsGateway constructor called');
@@ -199,13 +198,6 @@ export class EventsGateway
       );
       this.logger.log(`Broadcasting to room: event:${parsedData.eventId}`);
       this.logger.log(`Current rooms: ${Array.from(client.rooms)}`);
-
-      // Проверяем на дублирование сообщений
-      if (this.lastMessageId === message.id) {
-        this.logger.warn(`Дублирующееся сообщение ${message.id} проигнорировано`);
-        return { status: 'ignored' };
-      }
-      this.lastMessageId = message.id;
 
       // Отправляем сообщение всем участникам события
       this.io.to(`event:${parsedData.eventId}`).emit('newMessage', message);

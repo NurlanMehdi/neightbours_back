@@ -37,7 +37,6 @@ export class PrivateChatGateway
   private userSockets: Map<number, Set<string>> = new Map();
   private socketUser: Map<string, number> = new Map();
   private autoReadUsers: Map<number, Set<number>> = new Map();
-  private lastMessageId: number | null = null;
 
   @WebSocketServer() io: Server;
 
@@ -144,33 +143,22 @@ export class PrivateChatGateway
         `Сообщение ${message.id} создано от ${userId} → ${payload.receiverId}`,
       );
 
-      // Проверяем на дублирование сообщений
-      if (this.lastMessageId === message.id) {
-        this.logger.warn(`Дублирующееся сообщение ${message.id} проигнорировано`);
-        return { status: 'ignored', messageId: message.id, conversationId: message.conversationId };
-      }
-      this.lastMessageId = message.id;
-
       const senderRoom = `user:${userId}`;
       const receiverRoom = `user:${payload.receiverId}`;
 
       const senderSockets = await this.io.in(senderRoom).fetchSockets();
       const receiverSockets = await this.io.in(receiverRoom).fetchSockets();
 
-      this.logger.debug(
-        `Эмит сообщения в комнату ${senderRoom} (${senderSockets.length} сокетов)`,
-      );
-      this.logger.debug(
-        `Эмит сообщения в комнату ${receiverRoom} (${receiverSockets.length} сокетов)`,
-      );
-
-      // Избегаем дублирования сообщений, если отправитель и получатель - один пользователь
-      if (userId === payload.receiverId) {
-        this.io.to(senderRoom).emit('private:message', message);
+      // Если разговор новый, отправляем сообщение только получателю
+      const isNewConversation = message.isNewConversation;
+      
+      if (isNewConversation) {
+        this.io.to(receiverRoom).emit('private:message', message);
       } else {
         this.io.to(senderRoom).emit('private:message', message);
         this.io.to(receiverRoom).emit('private:message', message);
       }
+    
 
       this.processAutoRead(userId, payload.receiverId, message.conversationId);
 
