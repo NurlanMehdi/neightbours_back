@@ -175,7 +175,6 @@ export class PrivateChatGateway
         };
         
         this.io.to(receiverRoom).emit('private:newConversation', conversationData);
-        this.io.to(senderRoom).emit('private:newConversation', conversationData);
       }
 
       this.processAutoRead(userId, payload.receiverId, message.conversationId);
