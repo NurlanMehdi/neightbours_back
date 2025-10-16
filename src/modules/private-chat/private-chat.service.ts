@@ -103,6 +103,7 @@ export class PrivateChatService {
     let message: any;
     let conversationId: number;
     let participants: any[] = [];
+    let receiverData: any = null;
 
     if (params.receiverId) {
       const result = await this.repo.createMessageWithAutoConversation({
@@ -117,6 +118,12 @@ export class PrivateChatService {
       
       // Добавляем информацию о том, что это новый диалог
       message.isNewConversation = result.isNewConversation;
+      
+      // Получаем данные получателя для нового диалога
+      if (result.isNewConversation) {
+        const receiver = participants.find(p => p.userId === params.receiverId);
+        receiverData = receiver?.user || null;
+      }
     } else if (params.conversationId) {
       conversationId = params.conversationId;
       await this.repo.ensureParticipant(conversationId, currentUserId);
@@ -145,7 +152,7 @@ export class PrivateChatService {
       participants,
     );
 
-    return this.formatPrivateMessage(message);
+    return this.formatPrivateMessage(message, receiverData);
   }
 
   async getMessages(
@@ -309,8 +316,8 @@ export class PrivateChatService {
     );
   }
 
-  private formatPrivateMessage(msg: any) {
-    return {
+  private formatPrivateMessage(msg: any, receiverData?: any) {
+    const baseMessage = {
       id: msg.id,
       conversationId: msg.conversationId,
       userId: msg.senderId,
@@ -344,5 +351,20 @@ export class PrivateChatService {
           }
         : null,
     };
+
+    // Добавляем данные получателя для нового диалога
+    if (msg.isNewConversation && receiverData) {
+      return {
+        ...baseMessage,
+        receiver: {
+          id: receiverData.id,
+          firstName: receiverData.firstName,
+          lastName: receiverData.lastName,
+          avatar: receiverData.avatar,
+        },
+      };
+    }
+
+    return baseMessage;
   }
 }
