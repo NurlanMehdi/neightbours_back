@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { EventType } from '@prisma/client';
+import { EventType, EventStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
     IsDateString,
@@ -24,6 +24,11 @@ export class GetEventsAdminDto {
   @IsOptional()
   @IsEnum(EventType)
   type?: EventType;
+
+  @ApiPropertyOptional({ description: 'Статус события', enum: EventStatus })
+  @IsOptional()
+  @IsEnum(EventStatus)
+  status?: EventStatus;
 
   @ApiPropertyOptional({ description: 'ID сообщества' })
   @IsOptional()

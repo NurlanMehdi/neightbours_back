@@ -159,13 +159,28 @@ export class EventsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Обновить событие' })
+  @ApiOperation({ 
+    summary: 'Обновить событие',
+    description: 'Обновляет данные события. Завершенные события (статус COMPLETED) нельзя редактировать.'
+  })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image'))
   @ApiResponse({
     status: 200,
     description: 'Событие успешно обновлено',
     type: EventDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Нельзя редактировать завершенное событие',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Нет прав для редактирования события',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Событие не найдено',
   })
   @ApiBody({
     description: 'Данные для обновления события',
@@ -516,5 +531,63 @@ export class EventsController {
     @UserId() userId: number,
   ): Promise<UnreadMessagesResponseDto> {
     return this.eventsService.getUnreadMessages(userId);
+  }
+
+  @Post(':id/complete')
+  @ApiOperation({ 
+    summary: 'Завершить событие',
+    description: 'Отмечает событие как завершенное. После завершения событие становится архивным и скрывается из активных списков. Все поля события становятся доступными только для чтения. Отправляет уведомления всем участникам события.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Событие успешно завершено',
+    type: EventDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Событие уже завершено',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Нет прав для завершения события (только создатель события или администратор)',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Событие не найдено',
+  })
+  async completeEvent(
+    @UserId() userId: number,
+    @Param('id', ParseIntPipe) eventId: number,
+  ): Promise<IEvent> {
+    return this.eventsService.completeEvent(userId, eventId);
+  }
+
+  @Post(':id/resume')
+  @ApiOperation({ 
+    summary: 'Возобновить событие',
+    description: 'Возвращает завершенное событие к активному статусу. После возобновления событие снова появляется в активных списках и становится доступным для редактирования. Отправляет уведомления всем участникам события.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Событие успешно возобновлено',
+    type: EventDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Событие уже активно',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Нет прав для возобновления события (только создатель события или администратор)',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Событие не найдено',
+  })
+  async resumeEvent(
+    @UserId() userId: number,
+    @Param('id', ParseIntPipe) eventId: number,
+  ): Promise<IEvent> {
+    return this.eventsService.resumeEvent(userId, eventId);
   }
 }

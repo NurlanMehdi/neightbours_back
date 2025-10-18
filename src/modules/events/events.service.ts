@@ -274,6 +274,12 @@ export class EventsService {
       throw new EventAccessDeniedException();
     }
 
+    const existingEvent = await this.eventsRepository.findByIdIncludingCompleted(eventId);
+    
+    if (existingEvent.status === 'COMPLETED') {
+      throw new BadRequestException('Нельзя редактировать завершенное событие');
+    }
+
     this.normalizeVotingOptions(dto);
     const needsVoting = dto.hasVoting !== undefined ? this.isTrueBoolean(dto.hasVoting) : undefined;
     const lifetimeHours = this.validateLifetimeHours(dto.lifetimeHours, dto.type);
@@ -767,6 +773,11 @@ export class EventsService {
     dto: UpdateEventDto,
     image?: Express.Multer.File,
   ): Promise<IEvent> {
+    const existingEvent = await this.eventsRepository.findByIdIncludingCompleted(eventId);
+    
+    if (existingEvent.status === 'COMPLETED') {
+      throw new BadRequestException('Нельзя редактировать завершенное событие');
+    }
     this.normalizeVotingOptions(dto);
     const needsVoting = dto.hasVoting !== undefined ? this.isTrueBoolean(dto.hasVoting) : undefined;
     const lifetimeHours = this.validateLifetimeHours(dto.lifetimeHours, dto.type);
@@ -854,6 +865,132 @@ export class EventsService {
     }
 
     await this.eventsRepository.delete(eventId);
+  }
+
+  /**
+   * Завершает событие
+   */
+  async completeEvent(userId: number, eventId: number): Promise<IEvent> {
+    const hasAccess = await this.eventsRepository.checkEventAccess(
+      userId,
+      eventId,
+    );
+
+    if (!hasAccess) {
+      throw new EventAccessDeniedException();
+    }
+
+    const existingEvent = await this.eventsRepository.findByIdIncludingCompleted(eventId);
+    
+    if (existingEvent.status === 'COMPLETED') {
+      throw new BadRequestException('Событие уже завершено');
+    }
+
+    const completedEvent = await this.eventsRepository.completeEvent(eventId);
+
+    try {
+      const completer = await this.userService.findById(userId);
+      const completerName = completer
+        ? `${completer.firstName || ''} ${completer.lastName || ''}`.trim()
+        : 'Пользователь';
+
+      const community = await this.prisma.community.findUnique({
+        where: { id: existingEvent.communityId },
+        include: {
+          users: { select: { userId: true } },
+          creator: { select: { id: true } },
+        },
+      });
+
+      if (community) {
+        const allParticipantIds = [
+          ...existingEvent.participants.map((p: any) => p.userId),
+          existingEvent.createdBy,
+        ];
+        const uniqueParticipantIds = Array.from(new Set(allParticipantIds));
+
+        await this.notificationEventService.notifyEventCompleted({
+          eventId: existingEvent.id,
+          eventTitle: existingEvent.title,
+          participantIds: uniqueParticipantIds,
+          completedByName: completerName,
+          completedById: userId,
+        });
+
+        this.logger.log(
+          `Отправлено уведомление о завершении события ${eventId} пользователем ${userId}`,
+        );
+      }
+    } catch (notificationError) {
+      this.logger.error(
+        `Ошибка отправки уведомления о завершении события: ${notificationError.message}`,
+      );
+    }
+
+    return this.transformEventToDto(completedEvent);
+  }
+
+  /**
+   * Возвращает событие к активному статусу
+   */
+  async resumeEvent(userId: number, eventId: number): Promise<IEvent> {
+    const hasAccess = await this.eventsRepository.checkEventAccess(
+      userId,
+      eventId,
+    );
+
+    if (!hasAccess) {
+      throw new EventAccessDeniedException();
+    }
+
+    const existingEvent = await this.eventsRepository.findByIdIncludingCompleted(eventId);
+    
+    if (existingEvent.status === 'ACTIVE') {
+      throw new BadRequestException('Событие уже активно');
+    }
+
+    const resumedEvent = await this.eventsRepository.resumeEvent(eventId);
+
+    try {
+      const resumer = await this.userService.findById(userId);
+      const resumerName = resumer
+        ? `${resumer.firstName || ''} ${resumer.lastName || ''}`.trim()
+        : 'Пользователь';
+
+      const community = await this.prisma.community.findUnique({
+        where: { id: existingEvent.communityId },
+        include: {
+          users: { select: { userId: true } },
+          creator: { select: { id: true } },
+        },
+      });
+
+      if (community) {
+        const allParticipantIds = [
+          ...existingEvent.participants.map((p: any) => p.userId),
+          existingEvent.createdBy,
+        ];
+        const uniqueParticipantIds = Array.from(new Set(allParticipantIds));
+
+        await this.notificationEventService.notifyEventResumed({
+          eventId: existingEvent.id,
+          eventTitle: existingEvent.title,
+          participantIds: uniqueParticipantIds,
+          resumedByName: resumerName,
+          resumedById: userId,
+        });
+
+        this.logger.log(
+          `Отправлено уведомление о возобновлении события ${eventId} пользователем ${userId}`,
+        );
+      }
+    } catch (notificationError) {
+      this.logger.error(
+        `Ошибка отправки уведомления о возобновлении события: ${notificationError.message}`,
+      );
+    }
+
+    return this.transformEventToDto(resumedEvent);
   }
 
   /**

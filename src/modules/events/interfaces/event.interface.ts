@@ -1,4 +1,4 @@
-import { EventType } from '@prisma/client';
+import { EventType, EventStatus } from '@prisma/client';
 
 /**
  * Интерфейс для создателя события
@@ -66,6 +66,7 @@ export interface IEvent {
   latitude: number;
   longitude: number;
   type: EventType;
+  status: EventStatus;
   hasVoting: boolean;
   votingQuestion?: string;
   hasMoneyCollection: boolean;

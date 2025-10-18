@@ -305,8 +305,52 @@ export class NotificationEventService {
   }
 
   /**
-   * Уведомление о новом сообщении в мероприятии (для всех участников кроме автора)
+   * Уведомление о завершении мероприятия
    */
+  async notifyEventCompleted(data: {
+    eventId: number;
+    eventTitle: string;
+    participantIds: number[];
+    completedByName: string;
+    completedById?: number;
+  }): Promise<void> {
+    const eventData: ISystemEventData = {
+      eventType: SystemEventType.EVENT_COMPLETED,
+      relatedEntityId: data.eventId,
+      relatedEntityType: 'event',
+      additionalData: {
+        eventTitle: data.eventTitle,
+        completedByName: data.completedByName,
+        completedById: data.completedById,
+      },
+    };
+
+    await this.triggerService.processSystemEvent(eventData);
+  }
+
+  /**
+   * Уведомление о возобновлении мероприятия
+   */
+  async notifyEventResumed(data: {
+    eventId: number;
+    eventTitle: string;
+    participantIds: number[];
+    resumedByName: string;
+    resumedById?: number;
+  }): Promise<void> {
+    const eventData: ISystemEventData = {
+      eventType: SystemEventType.EVENT_RESUMED,
+      relatedEntityId: data.eventId,
+      relatedEntityType: 'event',
+      additionalData: {
+        eventTitle: data.eventTitle,
+        resumedByName: data.resumedByName,
+        resumedById: data.resumedById,
+      },
+    };
+
+    await this.triggerService.processSystemEvent(eventData);
+  }
   async notifyEventMessagePosted(data: {
     eventId: number;
     eventTitle: string;

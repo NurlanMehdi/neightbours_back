@@ -165,6 +165,7 @@ model Event {
   longitude          Float
   categoryId         Int?
   type               EventType
+  status             EventStatus     @default(ACTIVE)
   hasVoting          Boolean         @default(false)
   votingQuestion     String?
   hasMoneyCollection Boolean         @default(false)
@@ -579,6 +580,11 @@ enum PropertyResourceCategory {
 enum EventType {
   NOTIFICATION
   EVENT
+}
+
+enum EventStatus {
+  ACTIVE
+  COMPLETED
 }
 
 enum DocumentType {

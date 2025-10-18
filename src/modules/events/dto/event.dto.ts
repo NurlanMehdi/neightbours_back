@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
-import { EventType } from '@prisma/client';
+import { EventType, EventStatus } from '@prisma/client';
 import {
   IEventCreator,
   IEventParticipant,
@@ -189,6 +189,14 @@ export class EventDto implements IEvent {
   @ApiProperty({ description: 'Тип события', enum: EventType })
   @Expose()
   type: EventType;
+
+  @ApiProperty({ 
+    description: 'Статус события', 
+    enum: EventStatus,
+    example: EventStatus.ACTIVE
+  })
+  @Expose()
+  status: EventStatus;
 
   @ApiProperty({ description: 'Нужно ли голосование' })
   @Expose()

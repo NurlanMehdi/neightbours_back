@@ -144,6 +144,8 @@ export enum SystemEventType {
   EVENT_UPDATED = 'event.updated',
   EVENT_CANCELLED = 'event.cancelled',
   EVENT_DELETED = 'event.deleted',
+  EVENT_COMPLETED = 'event.completed',
+  EVENT_RESUMED = 'event.resumed',
   USER_JOINED_EVENT = 'user.joined.event',
   USER_LEFT_EVENT = 'user.left.event',
   USER_MENTIONED = 'user.mentioned',

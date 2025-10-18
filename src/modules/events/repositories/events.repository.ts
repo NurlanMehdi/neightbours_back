@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { UserRole } from '@prisma/client';
+import { UserRole, EventStatus } from '@prisma/client';
 import { CreateEventDto } from '../dto/create-event.dto';
 import { UpdateEventDto } from '../dto/update-event.dto';
 import { GetEventsDto } from '../dto/get-events.dto';
@@ -184,6 +184,7 @@ export class EventsRepository {
     const where: any = {
       communityId,
       isActive: true,
+      status: EventStatus.ACTIVE,
       ...(type && { type }),
       ...(categoryId && { categoryId }),
     };
@@ -420,7 +421,7 @@ export class EventsRepository {
       where: { id: userId },
     });
 
-    return user.role === UserRole.ADMIN;
+    return user?.role === UserRole.ADMIN;
   }
 
   /**
@@ -476,6 +477,7 @@ export class EventsRepository {
       limit = 10,
       search,
       type,
+      status,
       communityId,
       categoryId,
       dateFrom,
@@ -494,6 +496,9 @@ export class EventsRepository {
     }
     if (type) {
       where.type = type;
+    }
+    if (status) {
+      where.status = status;
     }
     if (communityId) {
       where.communityId = communityId;
@@ -585,6 +590,7 @@ export class EventsRepository {
     // Базовые условия для поиска событий пользователя
     const where: any = {
       isActive: true,
+      status: EventStatus.ACTIVE,
     };
 
     // Если включен параметр includeParticipating, то ищем события где пользователь создатель ИЛИ участник
@@ -673,5 +679,151 @@ export class EventsRepository {
     ]);
 
     return { data, total };
+  }
+
+  /**
+   * Отмечает событие как завершенное
+   */
+  async completeEvent(eventId: number): Promise<any> {
+    const event = await this.prisma.event.update({
+      where: { id: eventId },
+      data: { status: EventStatus.COMPLETED },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            latitude: true,
+            longitude: true,
+            address: true,
+          },
+        },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+                latitude: true,
+                longitude: true,
+                address: true,
+              },
+            },
+          },
+        },
+        category: true,
+        community: true,
+        votingOptions: true,
+      },
+    });
+
+    return event;
+  }
+
+  /**
+   * Возвращает событие к активному статусу
+   */
+  async resumeEvent(eventId: number): Promise<any> {
+    const event = await this.prisma.event.update({
+      where: { id: eventId },
+      data: { status: EventStatus.ACTIVE },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            latitude: true,
+            longitude: true,
+            address: true,
+          },
+        },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatar: true,
+                latitude: true,
+                longitude: true,
+                address: true,
+              },
+            },
+          },
+        },
+        category: true,
+        community: true,
+        votingOptions: true,
+      },
+    });
+
+    return event;
+  }
+
+  /**
+   * Получает событие по ID включая завершенные события
+   */
+  async findByIdIncludingCompleted(id: number): Promise<any> {
+    try {
+      const event = await this.prisma.event.findFirst({
+        where: {
+          id,
+          isActive: true,
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              latitude: true,
+              longitude: true,
+              address: true,
+            },
+          },
+          participants: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  avatar: true,
+                  latitude: true,
+                  longitude: true,
+                  address: true,
+                },
+              },
+            },
+          },
+          category: true,
+          community: true,
+          votingOptions: true,
+        },
+      });
+
+      if (!event) {
+        console.log(`Event with ID ${id} not found or not active`);
+        throw new EventNotFoundException();
+      }
+
+      return event;
+    } catch (error) {
+      if (error instanceof EventNotFoundException) {
+        throw error;
+      }
+      console.error(`Database error in findByIdIncludingCompleted for event ${id}:`, error);
+      throw new Error(
+        `Ошибка базы данных при поиске события: ${error.message}`,
+      );
+    }
   }
 }

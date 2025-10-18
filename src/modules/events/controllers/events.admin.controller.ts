@@ -43,7 +43,11 @@ export class EventsAdminController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Получить список событий с фильтрами и пагинацией' })
+  @ApiOperation({ 
+    summary: 'Получить список событий с фильтрами и пагинацией',
+    description: 'Возвращает все события (включая завершенные) с возможностью фильтрации по статусу, типу, сообществу и другим параметрам.'
+  })
+  @ApiQuery({ name: 'status', required: false, enum: ['ACTIVE', 'COMPLETED'], description: 'Фильтр по статусу события' })
   @ApiResponse({
     status: 200,
     description: 'Список событий',
@@ -77,7 +81,10 @@ export class EventsAdminController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Обновить событие' })
+  @ApiOperation({ 
+    summary: 'Обновить событие',
+    description: 'Обновляет данные события. Завершенные события (статус COMPLETED) нельзя редактировать.'
+  })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('image'))
   @ApiBody({
@@ -145,6 +152,14 @@ export class EventsAdminController {
     status: 200,
     description: 'Событие обновлено',
     type: EventDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Нельзя редактировать завершенное событие',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Событие не найдено',
   })
   async updateEvent(
     @Param('id', ParseIntPipe) id: number,
