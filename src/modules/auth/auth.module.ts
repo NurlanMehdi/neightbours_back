@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
@@ -17,8 +17,8 @@ import { PrismaModule } from '../../prisma/prisma.module';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET'),
         signOptions: {
-          expiresIn: '12h', // Время жизни access токена
-        },
+          expiresIn: configService.get('JWT_EXPIRES_IN') || '12h',
+        } as unknown as JwtSignOptions, // @ts-ignore
       }),
     }),
   ],

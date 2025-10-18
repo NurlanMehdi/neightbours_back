@@ -174,12 +174,12 @@ export class AuthService {
   private generateTokens(payload: Omit<TokenPayload, 'type'>) {
     const accessToken = this.jwtService.sign(
       { ...payload, type: 'access' },
-      { expiresIn: '12h' },
+      { expiresIn: this.configService.get('JWT_EXPIRES_IN') || '12h' },
     );
 
     const refreshToken = this.jwtService.sign(
       { ...payload, type: 'refresh' },
-      { expiresIn: '24h' },
+      { expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN') || '24h' },
     );
 
     return { accessToken, refreshToken };
